@@ -1,13 +1,13 @@
+import cookieParser from "cookie-parser";
+import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import cors from "cors";
-import cookieParser from "cookie-parser";
 
-import { notFound } from "./app/middleware/notFound.js";
-import { globalErrorHandler } from "./app/middleware/globalErrorHandeler.js";
-import { router } from "./app/router/index.js";
 import passport from "passport";
 import "./app/config/passport.config.js";
+import { globalErrorHandler } from "./app/middleware/globalErrorHandeler.js";
+import { notFound } from "./app/middleware/notFound.js";
+import { router } from "./app/router/index.js";
 
 
 
@@ -27,7 +27,7 @@ app.use("/uploads", express.static("uploads"));
 
 // Health check
 app.get("/", (req, res) => {
-  res.send("Hello, World!");
+  res.send("Dealafriq Backend is running!");
 });
 
 // 404 handler (must be after routes)
