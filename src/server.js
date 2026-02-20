@@ -12,7 +12,7 @@ const startServer = async () => {
     console.log(`Environment: ${envVars.NODE_ENV}`);
 
     // Connect Redis
-    connectRedis();
+    await connectRedis();
     console.log("Redis Connected Successfully 🚚✅");
 
     // Start server
