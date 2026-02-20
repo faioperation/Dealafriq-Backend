@@ -51,7 +51,37 @@ model User {
   deletedAt DateTime?
 
   forgotPasswordStatus Boolean @default(false)
+  teamId               String?
+
+  createdTeams  Team[] @relation("TeamCreatedBy")
+  updatedTeams  Team[] @relation("TeamUpdatedBy")
+  approvedTeams Team[] @relation("TeamApprovedBy")
+  deletedTeams  Team[] @relation("TeamDeletedBy")
+  team          Team?  @relation(fields: [teamId], references: [id])
 
   @@index([role])
   @@map("users")
+}
+
+model Team {
+  id   String @id @default(uuid())
+  name String
+
+  members User[] // auto reverse of team relation
+
+  createdById  String?
+  updatedById  String?
+  approvedById String?
+  deletedById  String?
+
+  createdBy  User? @relation("TeamCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User? @relation("TeamUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy User? @relation("TeamApprovedBy", fields: [approvedById], references: [id])
+  deletedBy  User? @relation("TeamDeletedBy", fields: [deletedById], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@map("teams")
 }

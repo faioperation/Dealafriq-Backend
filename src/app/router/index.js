@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { UserRoutes } from "../modules/user/user.route.js";
+import { TeamRoutes } from "../modules/Admin/team/team.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
+import { UserRoutes } from "../modules/user/user.route.js";
 
 
 
@@ -21,6 +22,12 @@ const moduleRoutes = [
     path: "/otp",
     route: OtpRouter,
   },
+  // Admin Routes starts here
+  {
+    path: "/admin/team",
+    route: TeamRoutes,
+  },
+  // Admin Routes ends here
 ];
 
 moduleRoutes.forEach((route) => {
