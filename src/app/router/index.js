@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { EmployeeRoutes } from "../modules/Admin/employee/employee.route.js";
 import { TeamRoutes } from "../modules/Admin/team/team.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
@@ -26,6 +27,10 @@ const moduleRoutes = [
   {
     path: "/admin/team",
     route: TeamRoutes,
+  },
+  {
+    path: "/admin/employee",
+    route: EmployeeRoutes,
   },
   // Admin Routes ends here
 ];
