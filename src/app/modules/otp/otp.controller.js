@@ -1,3 +1,4 @@
+import prisma from "../../prisma/client.js";
 import { OtpService } from "./otp.service.js";
 import DevBuildError from "../../lib/DevBuildError.js";
 
@@ -5,7 +6,6 @@ import DevBuildError from "../../lib/DevBuildError.js";
 
 const sendOtp = async (req, res) => {
   try {
-    const prisma = req.prisma;
     const { email, name } = req.body;
 
     if (!email) {
@@ -45,7 +45,6 @@ const sendOtp = async (req, res) => {
 
 const verifyOtp = async (req, res) => {
   try {
-    const prisma = req.prisma;
     const { email, otp } = req.body;
 
     if (!email || !otp) {

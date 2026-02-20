@@ -17,6 +17,7 @@ const loadEnvVars = () => {
     "REDIS_PORT",
     "REDIS_USERNAME",
     "REDIS_PASSWORD",
+    "REDIS_URL",
   ];
 
   requiredVars.forEach((key) => {
@@ -44,6 +45,7 @@ const loadEnvVars = () => {
     REDIS_PORT: Number(process.env.REDIS_PORT),
     REDIS_USERNAME: process.env.REDIS_USERNAME,
     REDIS_PASSWORD: process.env.REDIS_PASSWORD,
+    REDIS_URL: process.env.REDIS_URL,
     // node mailer (SMTP)
     EMAIL_SENDER: {
       SMTP_HOST: process.env.SMTP_HOST,
