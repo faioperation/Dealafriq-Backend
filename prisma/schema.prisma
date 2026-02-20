@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SYSTEM_OWNER    @map("system_owner")
+  BUSINESS_OWNER  @map("business_owner")
+  ADMIN           @map("admin")
+  PROJECT_MANAGER @map("project_manager")
+}
+
+enum OAuthProvider {
+  email
+  google
+  facebook
+  apple
+}
+
+model User {
+  id String @id @default(uuid())
+
+  firstName     String
+  lastName      String?
+  username      String? @unique
+  email         String  @unique
+  passwordHash  String?
+  avatarUrl     String?
+  avatarUrlPath String?
+
+  gender   String?
+  country  String?
+  language String?
+  timezone String?
+
+  isActive  Boolean @default(true)
+  isDeleted Boolean @default(false)
+
+  role            UserRole      @default(PROJECT_MANAGER)
+  isVerified      Boolean       @default(false)
+  oauthProvider   OAuthProvider @default(email)
+  oauthProviderId String?
+  tokenVersion    Int           @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  forgotPasswordStatus Boolean @default(false)
+
+  @@index([role])
+  @@map("users")
+}
