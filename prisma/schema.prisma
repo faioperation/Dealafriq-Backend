@@ -53,11 +53,16 @@ model User {
   forgotPasswordStatus Boolean @default(false)
   teamId               String?
 
-  createdTeams  Team[] @relation("TeamCreatedBy")
-  updatedTeams  Team[] @relation("TeamUpdatedBy")
-  approvedTeams Team[] @relation("TeamApprovedBy")
-  deletedTeams  Team[] @relation("TeamDeletedBy")
-  team          Team?  @relation(fields: [teamId], references: [id])
+  createdTeams      Team[]     @relation("TeamCreatedBy")
+  updatedTeams      Team[]     @relation("TeamUpdatedBy")
+  approvedTeams     Team[]     @relation("TeamApprovedBy")
+  deletedTeams      Team[]     @relation("TeamDeletedBy")
+  team              Team?      @relation(fields: [teamId], references: [id])
+  employees         Employee[]
+  employeesCreated  Employee[] @relation("EmployeeCreatedBy")
+  employeesUpdated  Employee[] @relation("EmployeeUpdatedBy")
+  employeesApproved Employee[] @relation("EmployeeApprovedBy")
+  employeesDeleted  Employee[] @relation("EmployeeDeletedBy")
 
   @@index([role])
   @@map("users")
@@ -79,9 +84,37 @@ model Team {
   approvedBy User? @relation("TeamApprovedBy", fields: [approvedById], references: [id])
   deletedBy  User? @relation("TeamDeletedBy", fields: [deletedById], references: [id])
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   deletedAt DateTime?
+  employees Employee[]
 
   @@map("teams")
+}
+
+model Employee {
+  id           String  @id @default(uuid())
+  firstName    String  @map("firstName")
+  lastName     String? @map("lastName")
+  teamId       String? @map("teams_id")
+  team         Team?   @relation(fields: [teamId], references: [id])
+  projectId    String? @map("project_id")
+  createdById  String? @map("created_by")
+  updatedById  String? @map("updated_by")
+  approvedById String? @map("approved_by")
+  deletedById  String? @map("deleted_by")
+
+  createdBy  User? @relation("EmployeeCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User? @relation("EmployeeUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy User? @relation("EmployeeApprovedBy", fields: [approvedById], references: [id])
+  deletedBy  User? @relation("EmployeeDeletedBy", fields: [deletedById], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("Deleted_at")
+
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@map("employees")
 }
