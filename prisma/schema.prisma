@@ -347,7 +347,7 @@ model ProjectHealth {
   budgetStatus  String
   teamSentiment String
   score         Int?
-  status        String?
+  status        String?  @default("ON_TRACK")
   updatedAt     DateTime @updatedAt
 
   @@map("project_health")
