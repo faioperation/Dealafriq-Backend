@@ -53,16 +53,20 @@ model User {
   forgotPasswordStatus Boolean @default(false)
   teamId               String?
 
-  createdTeams      Team[]     @relation("TeamCreatedBy")
-  updatedTeams      Team[]     @relation("TeamUpdatedBy")
-  approvedTeams     Team[]     @relation("TeamApprovedBy")
-  deletedTeams      Team[]     @relation("TeamDeletedBy")
-  team              Team?      @relation(fields: [teamId], references: [id])
-  employees         Employee[]
-  employeesCreated  Employee[] @relation("EmployeeCreatedBy")
-  employeesUpdated  Employee[] @relation("EmployeeUpdatedBy")
-  employeesApproved Employee[] @relation("EmployeeApprovedBy")
-  employeesDeleted  Employee[] @relation("EmployeeDeletedBy")
+  createdTeams            Team[]              @relation("TeamCreatedBy")
+  updatedTeams            Team[]              @relation("TeamUpdatedBy")
+  approvedTeams           Team[]              @relation("TeamApprovedBy")
+  deletedTeams            Team[]              @relation("TeamDeletedBy")
+  team                    Team?               @relation(fields: [teamId], references: [id])
+  projectManagers         ProjectManager[]
+  projectManagersCreated  ProjectManager[]    @relation("ProjectManagerCreatedBy")
+  projectManagersUpdated  ProjectManager[]    @relation("ProjectManagerUpdatedBy")
+  projectManagersApproved ProjectManager[]    @relation("ProjectManagerApprovedBy")
+  projectManagersDeleted  ProjectManager[]    @relation("ProjectManagerDeletedBy")
+  projectAssignments      ProjectAssignment[]
+  projectsManaged         Project[]           @relation("ProjectManager")
+  projectsCreated         Project[]           @relation("ProjectCreatedBy")
+  assignedProjects        Project[]           @relation("AssignedProject")
 
   @@index([role])
   @@map("users")
@@ -84,30 +88,34 @@ model Team {
   approvedBy User? @relation("TeamApprovedBy", fields: [approvedById], references: [id])
   deletedBy  User? @relation("TeamDeletedBy", fields: [deletedById], references: [id])
 
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  deletedAt DateTime?
-  employees Employee[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+  projectManagers ProjectManager[]
+  projects        Project[]
 
   @@map("teams")
 }
 
-model Employee {
-  id           String  @id @default(uuid())
-  firstName    String  @map("firstName")
-  lastName     String? @map("lastName")
-  teamId       String? @map("teams_id")
-  team         Team?   @relation(fields: [teamId], references: [id])
-  projectId    String? @map("project_id")
+model ProjectManager {
+  id        String  @id @default(uuid())
+  firstName String  @map("firstName")
+  lastName  String? @map("lastName")
+
+  teamId String? @map("teams_id")
+  team   Team?   @relation(fields: [teamId], references: [id])
+
+  projectId String? @map("project_id")
+
   createdById  String? @map("created_by")
   updatedById  String? @map("updated_by")
   approvedById String? @map("approved_by")
   deletedById  String? @map("deleted_by")
 
-  createdBy  User? @relation("EmployeeCreatedBy", fields: [createdById], references: [id])
-  updatedBy  User? @relation("EmployeeUpdatedBy", fields: [updatedById], references: [id])
-  approvedBy User? @relation("EmployeeApprovedBy", fields: [approvedById], references: [id])
-  deletedBy  User? @relation("EmployeeDeletedBy", fields: [deletedById], references: [id])
+  createdBy  User? @relation("ProjectManagerCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User? @relation("ProjectManagerUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy User? @relation("ProjectManagerApprovedBy", fields: [approvedById], references: [id])
+  deletedBy  User? @relation("ProjectManagerDeletedBy", fields: [deletedById], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -116,5 +124,224 @@ model Employee {
   userId String? @unique
   user   User?   @relation(fields: [userId], references: [id])
 
-  @@map("employees")
+  @@map("project_managers")
 }
+
+// Project related models and enums
+enum ProjectStatus {
+  DRAFT
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+  BLOCKED
+}
+
+enum MilestoneStatus {
+  UPCOMING
+  IN_PROGRESS
+  COMPLETED
+  DELAYED
+}
+
+enum ProjectRole {
+  PROJECT_MANAGER
+  DEVELOPER
+  DESIGNER
+  QA
+  CLIENT
+}
+
+model Project {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  vendorName  String?
+
+  startDate DateTime?
+  endDate   DateTime?
+
+  status ProjectStatus @default(IN_PROGRESS)
+
+  managerId String
+  manager   User   @relation("ProjectManager", fields: [managerId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id])
+
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks             ProjectTask[]
+  meetings          ProjectMeeting[]
+  documents         ProjectDocumentUpload[]
+  milestones        ProjectMilestone[]
+  assignments       ProjectAssignment[]
+  health            ProjectHealth?
+  assignedTo        User?                   @relation("AssignedProject", fields: [userId], references: [id])
+  userId            String?
+  projectAgreements ProjectAgreements[]
+
+  @@map("projects")
+}
+
+model ProjectTask {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  title     String
+  startDate DateTime?
+  endDate   DateTime?
+
+  priority TaskPriority
+  status   TaskStatus   @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("project_tasks")
+}
+
+// project meetings starts here
+
+model ProjectMeeting {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  title          String?
+  summary        String?
+  projectSummary String?
+  meetingUrl     String?
+  meetingDate    DateTime?
+
+  keyPoints    KeyPoint[]
+  actionPoints ActionPoint[]
+
+  createdAt DateTime @default(now())
+
+  @@map("project_meetings")
+}
+
+model KeyPoint {
+  id        String         @id @default(uuid())
+  meetingId String
+  meeting   ProjectMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  content String
+  status  String?
+
+  createdAt DateTime @default(now())
+
+  @@map("meeting_key_points")
+}
+
+model ActionPoint {
+  id        String         @id @default(uuid())
+  meetingId String
+  meeting   ProjectMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  content String
+  status  String?
+
+  createdAt DateTime @default(now())
+
+  @@map("meeting_action_points")
+}
+
+// project meetings ends here
+model ProjectDocumentUpload {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  fileName String
+  fileUrl  String
+  filePath String
+
+  createdAt DateTime @default(now())
+
+  @@map("project_documents")
+}
+
+model ProjectAgreements {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  fileName String
+  fileUrl  String
+  filePath String
+  fileType String?
+
+  createdAt DateTime @default(now())
+
+  @@map("project_agreements")
+}
+
+model ProjectMilestone {
+  id        String  @id @default(uuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  title         String
+  description   String?
+  milestoneDate DateTime
+
+  status MilestoneStatus
+
+  createdAt DateTime @default(now())
+
+  @@map("project_milestones")
+}
+
+model ProjectAssignment {
+  id        String @id @default(uuid())
+  projectId String
+  userId    String
+
+  project Project @relation(fields: [projectId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  role ProjectRole
+
+  @@unique([projectId, userId])
+  @@map("project_assignments")
+}
+
+model ProjectHealth {
+  id        String  @id @default(uuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id])
+
+  overallStatus String
+  budgetStatus  String
+  teamSentiment String
+  score         Int?
+  status        String?  @default("ON_TRACK")
+  updatedAt     DateTime @updatedAt
+
+  @@map("project_health")
+}
+
+// project Related models and enums ends here

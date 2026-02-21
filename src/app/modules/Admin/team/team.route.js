@@ -10,22 +10,22 @@ const router = express.Router();
 
 router.post(
   "/create",
-   checkAuthMiddleware(...Object.values(Role)),
+   checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER),
   validateRequest(TeamValidation.createTeamSchema),
   TeamController.createTeam
 );
 
-router.get("/all",  checkAuthMiddleware(...Object.values(Role)), TeamController.getAllTeams);
+router.get("/all",  checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER), TeamController.getAllTeams);
 
-router.get("/:id",  checkAuthMiddleware(...Object.values(Role)), TeamController.getSingleTeam);
+router.get("/:id",  checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER), TeamController.getSingleTeam);
 
 router.patch(
   "/:id",
-   checkAuthMiddleware(...Object.values(Role)),
+   checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER),
   validateRequest(TeamValidation.updateTeamSchema),
   TeamController.updateTeam
 );
 
-router.delete("/:id",  checkAuthMiddleware(...Object.values(Role)), TeamController.deleteTeam);
+router.delete("/:id",  checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER), TeamController.deleteTeam);
 
 export const TeamRoutes = router;
