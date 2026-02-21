@@ -5,12 +5,14 @@ import { ProjectManagerProjectValidation } from "./project_management.validation
 
 import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
 import { Role } from "../../../utils/role.js";
+import { projectUpload } from "../../../config/projectUploads.config.js";
 
 const router = express.Router();
 
 router.post(
-    "/create-project",
+    "/create",
     checkAuthMiddleware(Role.PROJECT_MANAGER),
+    projectUpload,
     validateRequest(ProjectManagerProjectValidation.createProjectSchema),
     PMProjectManagementController.createProject,
 );
