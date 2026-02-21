@@ -127,9 +127,24 @@ const updateProfile = async (req, res, next) => {
       allowedUpdates.avatarUrlPath = avatarUrlPath;
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: allowedUpdates,
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: allowedUpdates,
+      });
+
+      // Sync to ProjectManager if it exists
+      if (allowedUpdates.firstName || allowedUpdates.lastName) {
+        await tx.projectManager.updateMany({
+          where: { userId: user.id },
+          data: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+          },
+        });
+      }
+
+      return user;
     });
 
     // Manually exclude fields from response since `omit` might not differ in runtime or to be extra safe
@@ -170,9 +185,24 @@ const updateUser = async (req, res, next) => {
       throw new DevBuildError("userId is required", StatusCodes.BAD_REQUEST);
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data,
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id: userId },
+        data,
+      });
+
+      // Sync to ProjectManager if it exists
+      if (data.firstName || data.lastName) {
+        await tx.projectManager.updateMany({
+          where: { userId: user.id },
+          data: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+          },
+        });
+      }
+
+      return user;
     });
 
     sendResponse(res, {

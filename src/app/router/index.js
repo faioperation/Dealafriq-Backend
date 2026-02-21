@@ -1,12 +1,10 @@
 import { Router } from "express";
-import { EmployeeRoutes } from "../modules/Admin/employee/employee.route.js";
+import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_manager.route.js";
 import { TeamRoutes } from "../modules/Admin/team/team.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
-
-
-
+// ... (rest of imports)
 
 export const router = Router();
 const moduleRoutes = [
@@ -29,8 +27,8 @@ const moduleRoutes = [
     route: TeamRoutes,
   },
   {
-    path: "/admin/employee",
-    route: EmployeeRoutes,
+    path: "/admin/project-manager",
+    route: ProjectManagerRoutes,
   },
   // Admin Routes ends here
 ];
