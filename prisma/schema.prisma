@@ -151,15 +151,6 @@ enum TaskStatus {
   BLOCKED
 }
 
-enum DocumentType {
-  BRIEF
-  SLA
-  DESIGN
-  CONTRACT
-  REPORT
-  OTHER
-}
-
 enum MilestoneStatus {
   UPCOMING
   IN_PROGRESS
@@ -301,7 +292,7 @@ model ProjectAgreements {
   fileName String
   fileUrl  String
   filePath String
-  fileType DocumentType
+  fileType String?
 
   createdAt DateTime @default(now())
 

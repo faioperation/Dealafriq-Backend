@@ -1,17 +1,17 @@
 import { Router } from "express";
+import { ProjectManagementRoutes } from "../modules/Admin/project_management/project_management.route.js";
 import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_manager.route.js";
 import { TeamRoutes } from "../modules/Admin/team/team.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
-import { UserRoutes } from "../modules/user/user.route.js";
-import { ProjectManagementRoutes } from "../modules/Admin/project_management/project_management.route.js";
 import { PMProjectManagementRoutes } from "../modules/ProjectManager/project_management/project_management.route.js";
-import { ProjectTaskRoutes } from "../modules/ProjectManager/projectTask/projectTask.route.js";
-import { ProjectMilestoneRoutes } from "../modules/ProjectManager/projectMilestone/projectMilestone.route.js";
-import { ProjectMeetingRoutes } from "../modules/ProjectManager/projectMeeting/projectMeeting.route.js";
+import { ProjectAgreementRoutes } from "../modules/ProjectManager/projectAgreement/projectAgreement.route.js";
 import { ProjectDocumentRoutes } from "../modules/ProjectManager/projectDocument/projectDocument.route.js";
-import { ProjectAssignmentRoutes } from "../modules/ProjectManager/projectAssignment/projectAssignment.route.js";
 import { ProjectHealthRoutes } from "../modules/ProjectManager/projectHealth/projectHealth.route.js";
+import { ProjectMeetingRoutes } from "../modules/ProjectManager/projectMeeting/projectMeeting.route.js";
+import { ProjectMilestoneRoutes } from "../modules/ProjectManager/projectMilestone/projectMilestone.route.js";
+import { ProjectTaskRoutes } from "../modules/ProjectManager/projectTask/projectTask.route.js";
+import { UserRoutes } from "../modules/user/user.route.js";
 
 export const router = Router();
 const moduleRoutes = [
@@ -65,11 +65,15 @@ const moduleRoutes = [
   },
   {
     path: "/project-manager/project-assignment",
-    route: ProjectAssignmentRoutes,
+    route: ProjectAgreementRoutes,
   },
   {
     path: "/project-manager/project-health",
     route: ProjectHealthRoutes,
+  },
+  {
+    path: "/project-manager/project-agreement",
+    route: ProjectAgreementRoutes,
   },
   // Project Manager Routes ends here
 ];
