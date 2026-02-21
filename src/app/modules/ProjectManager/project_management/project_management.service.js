@@ -23,7 +23,44 @@ export const PMProjectManagementService = {
                 manager: { connect: { id: userId } },
                 createdBy: { connect: { id: userId } },
                 team: user.teamId ? { connect: { id: user.teamId } } : undefined,
+
+                // Integrated creation of sub-entities
+                meetings: payload.meetings ? {
+                    create: payload.meetings.map(m => ({
+                        title: m.title,
+                        meetingUrl: m.meetingUrl,
+                    }))
+                } : undefined,
+
+                documents: payload.documents ? {
+                    create: payload.documents.map(d => ({
+                        fileName: d.fileName,
+                        fileUrl: d.fileUrl,
+                        filePath: d.filePath,
+                    }))
+                } : undefined,
+
+                projectAgreements: payload.agreements ? {
+                    create: payload.agreements.map(a => ({
+                        fileName: a.fileName,
+                        fileUrl: a.fileUrl,
+                        filePath: a.filePath,
+                        fileType: a.fileType || "SLA",
+                    }))
+                } : undefined,
             },
+            include: {
+                meetings: true,
+                documents: true,
+                projectAgreements: true,
+                manager: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        role: true,
+                    }
+                }
+            }
         });
     },
 
@@ -34,6 +71,14 @@ export const PMProjectManagementService = {
                 deletedAt: null
             },
             include: {
+                manager: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        id: true,
+                        role: true,
+                    },
+                },
                 team: true,
                 tasks: true,
                 milestones: true,
@@ -70,7 +115,15 @@ export const PMProjectManagementService = {
                 managerId: userId,
                 deletedAt: null
             },
-            include: {
+               include: {
+                manager: {
+                    select: {
+                        firstName: true,
+                        id: true,
+                        lastName: true,
+                        role: true,
+                    },
+                },
                 team: true,
                 tasks: true,
                 milestones: true,

@@ -9,6 +9,10 @@ const createProjectSchema = z.object({
         endDate: z.string().optional(),
         managerId: z.string().uuid("Invalid manager ID"),
         status: z.enum(["DRAFT", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
+        meetings: z.array(z.object({
+            title: z.string().optional(),
+            meetingUrl: z.string().url("Invalid meeting URL").optional(),
+        })).optional(),
     }),
 });
 
