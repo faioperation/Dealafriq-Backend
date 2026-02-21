@@ -58,11 +58,11 @@ model User {
   approvedTeams     Team[]     @relation("TeamApprovedBy")
   deletedTeams      Team[]     @relation("TeamDeletedBy")
   team              Team?      @relation(fields: [teamId], references: [id])
-  employees         Employee[]
-  employeesCreated  Employee[] @relation("EmployeeCreatedBy")
-  employeesUpdated  Employee[] @relation("EmployeeUpdatedBy")
-  employeesApproved Employee[] @relation("EmployeeApprovedBy")
-  employeesDeleted  Employee[] @relation("EmployeeDeletedBy")
+  projectManagers         ProjectManager[]
+  projectManagersCreated  ProjectManager[] @relation("ProjectManagerCreatedBy")
+  projectManagersUpdated  ProjectManager[] @relation("ProjectManagerUpdatedBy")
+  projectManagersApproved ProjectManager[] @relation("ProjectManagerApprovedBy")
+  projectManagersDeleted  ProjectManager[] @relation("ProjectManagerDeletedBy")
 
   @@index([role])
   @@map("users")
@@ -87,27 +87,30 @@ model Team {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   deletedAt DateTime?
-  employees Employee[]
+  projectManagers ProjectManager[]
 
   @@map("teams")
 }
 
-model Employee {
-  id           String  @id @default(uuid())
-  firstName    String  @map("firstName")
-  lastName     String? @map("lastName")
-  teamId       String? @map("teams_id")
-  team         Team?   @relation(fields: [teamId], references: [id])
-  projectId    String? @map("project_id")
+model ProjectManager {
+  id        String  @id @default(uuid())
+  firstName String  @map("firstName")
+  lastName  String? @map("lastName")
+
+  teamId String? @map("teams_id")
+  team   Team?   @relation(fields: [teamId], references: [id])
+
+  projectId String? @map("project_id")
+
   createdById  String? @map("created_by")
   updatedById  String? @map("updated_by")
   approvedById String? @map("approved_by")
   deletedById  String? @map("deleted_by")
 
-  createdBy  User? @relation("EmployeeCreatedBy", fields: [createdById], references: [id])
-  updatedBy  User? @relation("EmployeeUpdatedBy", fields: [updatedById], references: [id])
-  approvedBy User? @relation("EmployeeApprovedBy", fields: [approvedById], references: [id])
-  deletedBy  User? @relation("EmployeeDeletedBy", fields: [deletedById], references: [id])
+  createdBy  User? @relation("ProjectManagerCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User? @relation("ProjectManagerUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy User? @relation("ProjectManagerApprovedBy", fields: [approvedById], references: [id])
+  deletedBy  User? @relation("ProjectManagerDeletedBy", fields: [deletedById], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -116,5 +119,5 @@ model Employee {
   userId String? @unique
   user   User?   @relation(fields: [userId], references: [id])
 
-  @@map("employees")
+  @@map("project_managers")
 }
