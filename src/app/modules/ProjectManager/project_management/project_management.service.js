@@ -1,5 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
+import { QueryBuilder } from "../../../utils/QueryBuilder.js";
+import { projectSearchableFields } from "../../../constant.js";
 
 export const PMProjectManagementService = {
     createProject: async (prisma, payload, userId) => {
@@ -37,6 +39,20 @@ export const PMProjectManagementService = {
                         fileName: d.fileName,
                         fileUrl: d.fileUrl,
                         filePath: d.filePath,
+                        title: d.title,
+                        projectSummary: d.projectSummary,
+                        keyPoints: d.keyPoints ? {
+                            create: d.keyPoints.filter(kp => kp && kp.content).map(kp => ({
+                                content: kp.content,
+                                status: kp.status || "TO_BE_VALIDATED"
+                            }))
+                        } : undefined,
+                        actionPoints: d.actionPoints ? {
+                            create: d.actionPoints.filter(ap => ap && ap.content).map(ap => ({
+                                content: ap.content,
+                                status: ap.status || "PENDING"
+                            }))
+                        } : undefined,
                     }))
                 } : undefined,
 
@@ -64,48 +80,76 @@ export const PMProjectManagementService = {
         });
     },
 
-    getMyProjects: async (prisma, userId) => {
-        return prisma.project.findMany({
-            where: {
-                managerId: userId,
-                deletedAt: null
-            },
-            include: {
-                manager: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                        id: true,
-                        role: true,
+    getMyProjects: async (prisma, userId, query) => {
+        const relationConfig = {
+            manager: ["firstName", "lastName", "email"],
+            team: ["name"],
+        };
+
+        const queryBuilder = new QueryBuilder(query)
+            .search(projectSearchableFields)
+            .filter(relationConfig)
+            .sort("createdAt", relationConfig)
+            .paginate();
+
+        const buildQuery = queryBuilder.build();
+        buildQuery.where = {
+            ...buildQuery.where,
+            managerId: userId,
+            deletedAt: null
+        };
+
+        const [result, total] = await Promise.all([
+            prisma.project.findMany({
+                ...buildQuery,
+                include: {
+                    manager: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            id: true,
+                            role: true,
+                        },
                     },
-                },
-                team: true,
-                tasks: true,
-                milestones: true,
-                health: true,
-                meetings: {
-                    include: {
-                        keyPoints: true,
-                        actionPoints: true,
+                    team: true,
+                    tasks: true,
+                    milestones: true,
+                    health: true,
+                    meetings: {
+                        include: {
+                            keyPoints: true,
+                            actionPoints: true,
+                        },
                     },
-                },
-                documents: true,
-                projectAgreements: true,
-                assignments: {
-                    include: {
-                        user: {
-                            select: {
-                                id: true,
-                                firstName: true,
-                                lastName: true,
-                                email: true,
-                                role: true,
+                    documents: {
+                        include: {
+                            keyPoints: true,
+                            actionPoints: true,
+                        },
+                    },
+                    projectAgreements: true,
+                    assignments: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    firstName: true,
+                                    lastName: true,
+                                    email: true,
+                                    role: true,
+                                },
                             },
                         },
                     },
                 },
-            },
-        });
+            }),
+            prisma.project.count({ where: buildQuery.where }),
+        ]);
+
+        return {
+            meta: queryBuilder.getMeta(total),
+            data: result,
+        };
     },
 
     getSingleProject: async (prisma, id, userId) => {
@@ -115,7 +159,7 @@ export const PMProjectManagementService = {
                 managerId: userId,
                 deletedAt: null
             },
-               include: {
+            include: {
                 manager: {
                     select: {
                         firstName: true,
