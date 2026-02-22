@@ -275,13 +275,44 @@ model ProjectDocumentUpload {
   projectId String
   project   Project @relation(fields: [projectId], references: [id])
 
-  fileName String
-  fileUrl  String
-  filePath String
+  projectSummary String?
+  title          String?
+  fileName       String
+  fileUrl        String
+  filePath       String
+
+  keyPoints    DocumentKeyPoint[]
+  actionPoints DocumentActionPoint[]
 
   createdAt DateTime @default(now())
 
   @@map("project_documents")
+}
+
+model DocumentKeyPoint {
+  id         String                @id @default(uuid())
+  documentId String
+  document   ProjectDocumentUpload @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  content String
+  status  String?
+
+  createdAt DateTime @default(now())
+
+  @@map("document_key_points")
+}
+
+model DocumentActionPoint {
+  id         String                @id @default(uuid())
+  documentId String
+  document   ProjectDocumentUpload @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  content String
+  status  String?
+
+  createdAt DateTime @default(now())
+
+  @@map("document_action_points")
 }
 
 model ProjectAgreements {
