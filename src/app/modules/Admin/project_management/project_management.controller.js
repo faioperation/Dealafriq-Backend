@@ -46,12 +46,13 @@ const createProject = catchAsync(async (req, res) => {
 });
 
 const getAllProjects = catchAsync(async (req, res) => {
-    const result = await ProjectManagementService.getAllProjects(prisma);
+    const result = await ProjectManagementService.getAllProjects(prisma, req.query);
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
         message: "Projects fetched successfully",
-        data: result,
+        meta: result.meta,
+        data: result.data,
     });
 });
 
