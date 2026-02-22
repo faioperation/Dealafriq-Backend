@@ -13,7 +13,25 @@ const uploadAgreementSchema = z.object({
     }),
 });
 
+const updateDocumentSchema = z.object({
+    body: z.object({
+        projectSummary: z.string().optional(),
+        title: z.string().optional(),
+        keyPoints: z.array(z.object({
+            id: z.string().uuid().optional(),
+            content: z.string().optional(),
+            status: z.string().optional(),
+        })).optional(),
+        actionPoints: z.array(z.object({
+            id: z.string().uuid().optional(),
+            content: z.string().optional(),
+            status: z.string().optional(),
+        })).optional(),
+    }),
+});
+
 export const ProjectDocumentValidation = {
     uploadDocumentSchema,
     uploadAgreementSchema,
+    updateDocumentSchema,
 };

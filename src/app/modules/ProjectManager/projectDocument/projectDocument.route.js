@@ -30,4 +30,11 @@ router.delete(
     ProjectDocumentController.deleteDocument,
 );
 
+router.patch(
+    "/documents/:id",
+    checkAuthMiddleware(Role.PROJECT_MANAGER),
+    validateRequest(ProjectDocumentValidation.updateDocumentSchema),
+    ProjectDocumentController.updateDocument,
+);
+
 export const ProjectDocumentRoutes = router;
