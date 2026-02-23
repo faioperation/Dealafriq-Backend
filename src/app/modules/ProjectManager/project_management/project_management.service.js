@@ -26,43 +26,19 @@ export const PMProjectManagementService = {
                 createdBy: { connect: { id: userId } },
                 team: user.teamId ? { connect: { id: user.teamId } } : undefined,
 
-                weeklyMeetingSummary: payload.weeklyMeetingSummary,
-                // Integrated creation of sub-entities
-                meetings: payload.meetings ? {
-                    create: payload.meetings.map(m => ({
-                        title: m.title,
-                        meetingUrl: m.meetingUrl,
-                        lastMeetingSummary: m.lastMeetingSummary,
-                        aiMeetingSummary: m.aiMeetingSummary,
-                        projectSummary: m.projectSummary,
-                    }))
-                } : undefined,
-
-                documents: payload.documents ? {
-                    create: payload.documents.map(d => ({
-                        fileName: d.fileName,
-                        fileUrl: d.fileUrl,
-                        filePath: d.filePath,
-                        title: d.title,
-                        aiDocumentSummary: d.aiDocumentSummary,
-                        keyPoints: d.keyPoints ? {
-                            create: d.keyPoints.filter(kp => kp && kp.content).map(kp => ({
-                                content: kp.content,
-                                status: kp.status || "TO_BE_VALIDATED"
-                            }))
-                        } : undefined,
-                        actionPoints: d.actionPoints ? {
-                            create: d.actionPoints.filter(ap => ap && ap.content).map(ap => ({
-                                content: ap.content,
-                                status: ap.status || "PENDING"
-                            }))
-                        } : undefined,
+                health: payload.health ? {
+                    create: payload.health.map(h => ({
+                        type: h.field,
+                        healthStatus: h.healthStatus,
+                        score: h.score,
+                        status: h.status,
                     }))
                 } : undefined,
             },
             include: {
                 meetings: true,
                 documents: true,
+                health: true,
                 manager: {
                     select: {
                         firstName: true,
@@ -121,6 +97,7 @@ export const PMProjectManagementService = {
                             actionPoints: true,
                         },
                     },
+                    health: true,
                 },
             }),
             prisma.project.count({ where: buildQuery.where }),
