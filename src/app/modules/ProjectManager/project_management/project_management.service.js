@@ -26,11 +26,15 @@ export const PMProjectManagementService = {
                 createdBy: { connect: { id: userId } },
                 team: user.teamId ? { connect: { id: user.teamId } } : undefined,
 
+                weeklyMeetingSummary: payload.weeklyMeetingSummary,
                 // Integrated creation of sub-entities
                 meetings: payload.meetings ? {
                     create: payload.meetings.map(m => ({
                         title: m.title,
                         meetingUrl: m.meetingUrl,
+                        lastMeetingSummary: m.lastMeetingSummary,
+                        aiMeetingSummary: m.aiMeetingSummary,
+                        projectSummary: m.projectSummary,
                     }))
                 } : undefined,
 
@@ -40,7 +44,7 @@ export const PMProjectManagementService = {
                         fileUrl: d.fileUrl,
                         filePath: d.filePath,
                         title: d.title,
-                        projectSummary: d.projectSummary,
+                        aiDocumentSummary: d.aiDocumentSummary,
                         keyPoints: d.keyPoints ? {
                             create: d.keyPoints.filter(kp => kp && kp.content).map(kp => ({
                                 content: kp.content,
@@ -55,20 +59,10 @@ export const PMProjectManagementService = {
                         } : undefined,
                     }))
                 } : undefined,
-
-                projectAgreements: payload.agreements ? {
-                    create: payload.agreements.map(a => ({
-                        fileName: a.fileName,
-                        fileUrl: a.fileUrl,
-                        filePath: a.filePath,
-                        fileType: a.fileType || "SLA",
-                    }))
-                } : undefined,
             },
             include: {
                 meetings: true,
                 documents: true,
-                projectAgreements: true,
                 manager: {
                     select: {
                         firstName: true,
@@ -127,20 +121,6 @@ export const PMProjectManagementService = {
                             actionPoints: true,
                         },
                     },
-                    projectAgreements: true,
-                    assignments: {
-                        include: {
-                            user: {
-                                select: {
-                                    id: true,
-                                    firstName: true,
-                                    lastName: true,
-                                    email: true,
-                                    role: true,
-                                },
-                            },
-                        },
-                    },
                 },
             }),
             prisma.project.count({ where: buildQuery.where }),
@@ -172,27 +152,7 @@ export const PMProjectManagementService = {
                 tasks: true,
                 milestones: true,
                 health: true,
-                meetings: {
-                    include: {
-                        keyPoints: true,
-                        actionPoints: true,
-                    },
-                },
                 documents: true,
-                projectAgreements: true,
-                assignments: {
-                    include: {
-                        user: {
-                            select: {
-                                id: true,
-                                firstName: true,
-                                lastName: true,
-                                email: true,
-                                role: true,
-                            },
-                        },
-                    },
-                },
             },
         });
 

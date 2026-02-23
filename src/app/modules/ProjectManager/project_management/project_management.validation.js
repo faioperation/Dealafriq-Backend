@@ -7,7 +7,8 @@ const createProjectSchema = z.object({
         vendorName: z.string().optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
-        status: z.enum(["DRAFT", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
+        status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
+        weeklyMeetingSummary: z.string().optional(),
     }),
 });
 
@@ -18,7 +19,8 @@ const updateProjectSchema = z.object({
         vendorName: z.string().optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
-        status: z.enum(["DRAFT", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
+        status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
+        weeklyMeetingSummary: z.string().optional(),
     }),
 });
 

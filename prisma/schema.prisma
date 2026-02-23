@@ -168,13 +168,13 @@ enum ProjectRole {
 }
 
 model Project {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
-  vendorName  String?
-
-  startDate DateTime?
-  endDate   DateTime?
+  id                   String    @id @default(uuid())
+  name                 String
+  description          String?
+  vendorName           String?
+  weeklyMeetingSummary String?
+  startDate            DateTime?
+  endDate              DateTime?
 
   status ProjectStatus @default(ONGOING)
 
@@ -208,7 +208,7 @@ model Project {
 model ProjectTask {
   id        String  @id @default(uuid())
   projectId String
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   title     String
   startDate DateTime?
@@ -228,13 +228,14 @@ model ProjectTask {
 model ProjectMeeting {
   id        String  @id @default(uuid())
   projectId String
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  title          String?
-  summary        String?
-  projectSummary String?
-  meetingUrl     String?
-  meetingDate    DateTime?
+  title              String?
+  lastMeetingSummary String?
+  aiMeetingSummary   String?
+  projectSummary     String?
+  meetingUrl         String?
+  meetingDate        DateTime?
 
   keyPoints    KeyPoint[]
   actionPoints ActionPoint[]
@@ -274,13 +275,13 @@ model ActionPoint {
 model ProjectDocumentUpload {
   id        String  @id @default(uuid())
   projectId String
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  projectSummary String?
-  title          String?
-  fileName       String
-  fileUrl        String
-  filePath       String
+  aiDocumentSummary String?
+  title             String?
+  fileName          String
+  fileUrl           String
+  filePath          String
 
   keyPoints    DocumentKeyPoint[]
   actionPoints DocumentActionPoint[]
@@ -319,7 +320,7 @@ model DocumentActionPoint {
 model ProjectAgreements {
   id        String  @id @default(uuid())
   projectId String
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   fileName String
   fileUrl  String
@@ -334,7 +335,7 @@ model ProjectAgreements {
 model ProjectMilestone {
   id        String  @id @default(uuid())
   projectId String
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   title         String
   description   String?
@@ -352,7 +353,7 @@ model ProjectAssignment {
   projectId String
   userId    String
 
-  project Project @relation(fields: [projectId], references: [id])
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id])
 
   role ProjectRole
@@ -364,7 +365,7 @@ model ProjectAssignment {
 model ProjectHealth {
   id        String  @id @default(uuid())
   projectId String  @unique
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   overallStatus String
   budgetStatus  String
