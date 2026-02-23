@@ -131,6 +131,7 @@ model ProjectManager {
 enum ProjectStatus {
   DRAFT
   IN_PROGRESS
+  ONGOING
   ON_HOLD
   COMPLETED
   CANCELLED
@@ -175,7 +176,7 @@ model Project {
   startDate DateTime?
   endDate   DateTime?
 
-  status ProjectStatus @default(IN_PROGRESS)
+  status ProjectStatus @default(ONGOING)
 
   managerId String
   manager   User   @relation("ProjectManager", fields: [managerId], references: [id])
