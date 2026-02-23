@@ -9,7 +9,7 @@ const uploadDocument = catchAsync(async (req, res) => {
         throw new Error("Document files are required");
     }
 
-    const { projectId, projectSummary, title } = req.body;
+    const { projectId, aiDocumentSummary, title } = req.body;
     let { keyPoints, actionPoints } = req.body;
 
     // Robust JSON parsing for multipart/form-data (handles single string or array of strings)
@@ -34,7 +34,7 @@ const uploadDocument = catchAsync(async (req, res) => {
 
     const payloads = req.files.map(file => ({
         projectId,
-        projectSummary,
+        aiDocumentSummary,
         title,
         fileName: file.originalname,
         fileUrl: `${req.protocol}://${req.get("host")}/uploads/project-documents/${file.filename}`,
