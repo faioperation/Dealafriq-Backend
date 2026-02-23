@@ -78,11 +78,21 @@ export const ProjectManagementService = {
                         fileType: a.fileType || "SLA",
                     }))
                 } : undefined,
+
+                health: payload.health ? {
+                    create: payload.health.map(h => ({
+                        type: h.field,
+                        healthStatus: h.healthStatus,
+                        score: h.score,
+                        status: h.status,
+                    }))
+                } : undefined,
             },
             include: {
                 meetings: true,
                 documents: true,
                 projectAgreements: true,
+                health: true,
                 manager: {
                     select: {
                         firstName: true,
@@ -137,6 +147,7 @@ export const ProjectManagementService = {
                         },
                     },
                     projectAgreements: true,
+                    health: true,
                     assignments: {
                         include: {
                             user: {
@@ -182,6 +193,7 @@ export const ProjectManagementService = {
                     },
                 },
                 documents: true,
+                health: true,
                 projectAgreements: true,
                 assignments: {
                     include: {
@@ -196,7 +208,6 @@ export const ProjectManagementService = {
                         },
                     },
                 },
-                health: true,
             },
         });
 

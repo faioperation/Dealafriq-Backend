@@ -197,7 +197,7 @@ model Project {
   documents         ProjectDocumentUpload[]
   milestones        ProjectMilestone[]
   assignments       ProjectAssignment[]
-  health            ProjectHealth?
+  health            ProjectHealth[]
   assignedTo        User?                   @relation("AssignedProject", fields: [userId], references: [id])
   userId            String?
   projectAgreements ProjectAgreements[]
@@ -362,17 +362,32 @@ model ProjectAssignment {
   @@map("project_assignments")
 }
 
+enum HealthType {
+  OVERALL_STATUS
+  BUDGET_STATUS
+  TEAM_SENTIMENT
+}
+
+enum HealthStatus {
+  ON_TRACK
+  PENDING
+  AT_RISK
+  OFF_TRACK
+  GOOD
+  EXCELLENT
+  LOW
+}
+
 model ProjectHealth {
   id        String  @id @default(uuid())
-  projectId String  @unique
+  projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  score     Int?
 
-  overallStatus String
-  budgetStatus  String
-  teamSentiment String
-  score         Int?
-  status        String?  @default("ON_TRACK")
-  updatedAt     DateTime @updatedAt
+  type         HealthType?
+  healthStatus HealthStatus?
+  status       String?
+  createdAt    DateTime      @default(now())
 
   @@map("project_health")
 }

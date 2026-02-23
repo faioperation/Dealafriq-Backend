@@ -12,73 +12,44 @@ const verifyProjectOwnership = async (prisma, projectId, userId) => {
 };
 
 export const ProjectHealthService = {
-    updateHealth: async (prisma, payload, userId) => {
+    upsertHealth: async (prisma, payload, userId) => {
         await verifyProjectOwnership(prisma, payload.projectId, userId);
 
-        return prisma.projectHealth.upsert({
-            where: {
-                projectId: payload.projectId,
-            },
-            update: {
-                overallStatus: payload.overallStatus,
-                budgetStatus: payload.budgetStatus,
-                teamSentiment: payload.teamSentiment,
-                score: payload.score,
-                status: payload.status,
-            },
-            create: payload,
+        const { projectId, health } = payload;
+
+        return prisma.$transaction(async (tx) => {
+            // Delete existing health records
+            await tx.projectHealth.deleteMany({
+                where: { projectId },
+            });
+
+            // Bulk create new records
+            return tx.projectHealth.createMany({
+                data: health.map(h => ({
+                    projectId,
+                    type: h.field,
+                    healthStatus: h.healthStatus,
+                    score: h.score,
+                    status: h.status,
+                })),
+            });
         });
     },
 
-    updateHealthById: async (prisma, id, payload, userId) => {
-        const health = await prisma.projectHealth.findUnique({
-            where: { id },
-            include: { project: true },
-        });
-
-        if (!health || health.project.managerId !== userId || health.project.deletedAt !== null) {
-            throw new AppError(StatusCodes.FORBIDDEN, "Health record not found or access denied");
-        }
-
-        return prisma.projectHealth.update({
-            where: { id },
-            data: payload,
-        });
-    },
-
-    getHealth: async (prisma, projectId, userId) => {
+    getHealthByProjectId: async (prisma, projectId, userId) => {
         await verifyProjectOwnership(prisma, projectId, userId);
 
-        return prisma.projectHealth.findUnique({
+        return prisma.projectHealth.findMany({
             where: { projectId },
+            orderBy: { createdAt: "desc" },
         });
     },
 
-    getSingleHealth: async (prisma, id, userId) => {
-        const health = await prisma.projectHealth.findUnique({
-            where: { id },
-            include: { project: true },
-        });
+    deleteHealthByProjectId: async (prisma, projectId, userId) => {
+        await verifyProjectOwnership(prisma, projectId, userId);
 
-        if (!health || health.project.managerId !== userId || health.project.deletedAt !== null) {
-            throw new AppError(StatusCodes.FORBIDDEN, "Health record not found or access denied");
-        }
-
-        return health;
-    },
-
-    deleteHealth: async (prisma, id, userId) => {
-        const health = await prisma.projectHealth.findUnique({
-            where: { id },
-            include: { project: true },
-        });
-
-        if (!health || health.project.managerId !== userId || health.project.deletedAt !== null) {
-            throw new AppError(StatusCodes.FORBIDDEN, "Health record not found or access denied");
-        }
-
-        return prisma.projectHealth.delete({
-            where: { id },
+        return prisma.projectHealth.deleteMany({
+            where: { projectId },
         });
     },
 };

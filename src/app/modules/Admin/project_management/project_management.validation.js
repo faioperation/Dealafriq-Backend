@@ -10,6 +10,12 @@ const createProjectSchema = z.object({
         managerId: z.string().uuid("Invalid manager ID"),
         status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
         weeklyMeetingSummary: z.string().optional(),
+        health: z.array(z.object({
+            field: z.enum(["OVERALL_STATUS", "BUDGET_STATUS", "TEAM_SENTIMENT"]),
+            healthStatus: z.enum(["ON_TRACK", "PENDING", "AT_RISK", "OFF_TRACK", "GOOD", "EXCELLENT", "LOW"]),
+            score: z.number().int().optional(),
+            status: z.string().optional(),
+        })).optional(),
         meetings: z.array(z.object({
             title: z.string().optional(),
             meetingUrl: z.string().url("Invalid meeting URL").optional(),
