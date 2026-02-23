@@ -15,7 +15,7 @@ const uploadAgreementSchema = z.object({
 
 const updateDocumentSchema = z.object({
     body: z.object({
-        projectSummary: z.string().optional(),
+        aiDocumentSummary: z.string().optional(),
         title: z.string().optional(),
         keyPoints: z.array(z.object({
             id: z.string().uuid().optional(),

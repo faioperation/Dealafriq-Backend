@@ -4,7 +4,8 @@ const createProjectMeetingSchema = z.object({
     body: z.object({
         projectId: z.string().uuid("Invalid project ID"),
         title: z.string().min(1, "Meeting title is required"),
-        summary: z.string().optional(),
+        lastMeetingSummary: z.string().optional(),
+        aiMeetingSummary: z.string().optional(),
         projectSummary: z.string().optional(),
         meetingUrl: z.string().url("Invalid meeting URL").optional().or(z.literal("")),
         meetingDate: z.string().min(1, "Meeting date is required"),
@@ -28,7 +29,8 @@ const createProjectMeetingSchema = z.object({
 const updateProjectMeetingSchema = z.object({
     body: z.object({
         title: z.string().optional(),
-        summary: z.string().optional(),
+        lastMeetingSummary: z.string().optional(),
+        aiMeetingSummary: z.string().optional(),
         projectSummary: z.string().optional(),
         meetingUrl: z.string().url("Invalid meeting URL").optional().or(z.literal("")),
         meetingDate: z.string().optional(),
