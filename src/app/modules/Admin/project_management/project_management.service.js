@@ -35,7 +35,7 @@ export const ProjectManagementService = {
                 vendorName: payload.vendorName,
                 startDate: payload.startDate ? new Date(payload.startDate) : null,
                 endDate: payload.endDate ? new Date(payload.endDate) : null,
-                status: payload.status || "IN_PROGRESS",
+                status: payload.status || "ONGOING",
                 manager: { connect: { id: payload.managerId } },
                 createdBy: { connect: { id: userId } },
                 team: payload.teamId ? { connect: { id: payload.teamId } } : undefined,
@@ -102,7 +102,7 @@ export const ProjectManagementService = {
 
         const queryBuilder = new QueryBuilder(query)
             .search(projectSearchableFields)
-            .filter(relationConfig)
+            .filter(relationConfig, { status: ["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"] })
             .sort("createdAt", relationConfig)
             .paginate();
 

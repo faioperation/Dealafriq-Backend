@@ -13,7 +13,7 @@ export class QueryBuilder {
     this.take = undefined;
   }
 
-  filter(relationConfig = {}) {
+  filter(relationConfig = {}, enumConfig = {}) {
     const filters = { ...this.query };
 
     // Remove standard internal fields and manually excluded fields
@@ -24,12 +24,32 @@ export class QueryBuilder {
       if (value !== undefined && value !== "") {
         let isRelational = false;
 
+        let processedValue;
+        const validEnumValues = enumConfig[key];
+
+        if (validEnumValues && Array.isArray(validEnumValues)) {
+          // Enum validation
+          const normalizedValue = typeof value === "string" ? value.toUpperCase() : value;
+          if (validEnumValues.includes(normalizedValue)) {
+            processedValue = normalizedValue;
+          } else {
+            // Invalid enum value - force empty result by adding an impossible condition
+            this.where.id = "00000000-0000-0000-0000-000000000000";
+            return;
+          }
+        } else if (typeof value === "string") {
+          // Fuzzy search for regular strings
+          processedValue = { contains: value, mode: "insensitive" };
+        } else {
+          processedValue = value;
+        }
+
         // Check if the key belongs to a relation based on config
         for (const [relation, fields] of Object.entries(relationConfig)) {
           if (fields.includes(key)) {
             this.where[relation] = {
               ...(this.where[relation] || {}),
-              [key]: value,
+              [key]: processedValue,
             };
             isRelational = true;
             break;
@@ -37,7 +57,7 @@ export class QueryBuilder {
         }
 
         if (!isRelational) {
-          this.where[key] = value;
+          this.where[key] = processedValue;
         }
       }
     });
@@ -59,7 +79,7 @@ export class QueryBuilder {
 
 
   search(searchConfig = []) {
-    const searchTerm = this.query.searchTerm || this.query.searchParam ;
+    const searchTerm = this.query.searchTerm || this.query.searchParam;
     if (!searchTerm || !searchConfig.length) return this;
 
     this.where.OR = searchConfig.map(field => {

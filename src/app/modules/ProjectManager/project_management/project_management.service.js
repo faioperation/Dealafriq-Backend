@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
+import { projectSearchableFields } from "../../../constant.js";
 import { AppError } from "../../../errorHelper/appError.js";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
-import { projectSearchableFields } from "../../../constant.js";
 
 export const PMProjectManagementService = {
     createProject: async (prisma, payload, userId) => {
@@ -21,7 +21,7 @@ export const PMProjectManagementService = {
                 vendorName: payload.vendorName,
                 startDate: payload.startDate ? new Date(payload.startDate) : null,
                 endDate: payload.endDate ? new Date(payload.endDate) : null,
-                status: payload.status || "IN_PROGRESS",
+                status: payload.status || "ONGOING",
                 manager: { connect: { id: userId } },
                 createdBy: { connect: { id: userId } },
                 team: user.teamId ? { connect: { id: user.teamId } } : undefined,
@@ -88,7 +88,7 @@ export const PMProjectManagementService = {
 
         const queryBuilder = new QueryBuilder(query)
             .search(projectSearchableFields)
-            .filter(relationConfig)
+            .filter(relationConfig, { status: ["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"] })
             .sort("createdAt", relationConfig)
             .paginate();
 
