@@ -1,5 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
+import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
@@ -17,7 +18,7 @@ export const ProjectHealthService = {
 
         const { projectId, health } = payload;
 
-        return prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
             // Delete existing health records
             await tx.projectHealth.deleteMany({
                 where: { projectId },
@@ -34,6 +35,16 @@ export const ProjectHealthService = {
                 })),
             });
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "projectHealth",
+            crudId: projectId,
+            action: "update",
+            userId,
+            projectId: projectId,
+        });
+
+        return result;
     },
 
     getHealthByProjectId: async (prisma, projectId, userId) => {

@@ -68,8 +68,24 @@ model User {
   projectsCreated         Project[]           @relation("ProjectCreatedBy")
   assignedProjects        Project[]           @relation("AssignedProject")
 
+  activityLogs ActivityLog[] @relation("UserActivityLogs")
+
   @@index([role])
   @@map("users")
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  type      String // project, task, meeting, document, milestone, projectHealth
+  crudId    String // ID of the affected entity
+  action    String // create, update, delete
+  projectId String?
+  project   Project? @relation("ProjectActivityLogs", fields: [projectId], references: [id])
+  userId    String
+  user      User     @relation("UserActivityLogs", fields: [userId], references: [id])
+  timestamp DateTime @default(now())
+
+  @@map("activity_logs")
 }
 
 model Team {
@@ -201,6 +217,8 @@ model Project {
   assignedTo        User?                   @relation("AssignedProject", fields: [userId], references: [id])
   userId            String?
   projectAgreements ProjectAgreements[]
+  activityLogs      ActivityLog[]           @relation("ProjectActivityLogs")
+  transcripts       MeetingTranscript[]     @relation("ProjectTranscripts")
 
   @@map("projects")
 }
@@ -392,4 +410,23 @@ model ProjectHealth {
   @@map("project_health")
 }
 
+// for meeting transcript and document text extraction
+
+model MeetingTranscript {
+  id         String   @id @default(uuid())
+  meetingId  String? // optional relation if you have meeting table
+  projectId  String?
+  project    Project? @relation("ProjectTranscripts", fields: [projectId], references: [id])
+  platform   String // zoom | google | unknown
+  fileName   String
+  filePath   String
+  fileType   String
+  parsedData Json
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+  @@map("meeting_transcripts")
+}
+
+// meeting transcript and document text extraction ends here
 // project Related models and enums ends here

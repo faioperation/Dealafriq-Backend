@@ -2,6 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { projectSearchableFields } from "../../../constant.js";
 import { AppError } from "../../../errorHelper/appError.js";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
+import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 
 export const PMProjectManagementService = {
     createProject: async (prisma, payload, userId) => {
@@ -14,7 +15,7 @@ export const PMProjectManagementService = {
             throw new AppError(StatusCodes.FORBIDDEN, "Only Project Managers can create projects this way");
         }
 
-        return prisma.project.create({
+        const project = await prisma.project.create({
             data: {
                 name: payload.name,
                 description: payload.description,
@@ -48,6 +49,16 @@ export const PMProjectManagementService = {
                 }
             }
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "project",
+            crudId: project.id,
+            action: "create",
+            userId,
+            projectId: project.id,
+        });
+
+        return project;
     },
 
     getMyProjects: async (prisma, userId, query) => {
@@ -98,6 +109,7 @@ export const PMProjectManagementService = {
                         },
                     },
                     health: true,
+                    transcripts: true,
                 },
             }),
             prisma.project.count({ where: buildQuery.where }),
@@ -130,6 +142,7 @@ export const PMProjectManagementService = {
                 milestones: true,
                 health: true,
                 documents: true,
+                transcripts: true,
             },
         });
 
@@ -160,10 +173,20 @@ export const PMProjectManagementService = {
         // Project manager cannot change the managerId of the project to someone else in this view
         delete updateData.managerId;
 
-        return prisma.project.update({
+        const updatedProject = await prisma.project.update({
             where: { id },
             data: updateData,
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "project",
+            crudId: id,
+            action: "update",
+            userId,
+            projectId: id,
+        });
+
+        return updatedProject;
     },
     deleteSingleProject: async (prisma, id, userId) => {
         const project = await prisma.project.findFirst({
@@ -181,8 +204,18 @@ export const PMProjectManagementService = {
             );
         }
 
-        return prisma.project.delete({
+        const deletedProject = await prisma.project.delete({
             where: { id }
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "project",
+            crudId: id,
+            action: "delete",
+            userId,
+            projectId: id,
+        });
+
+        return deletedProject;
     },
 };

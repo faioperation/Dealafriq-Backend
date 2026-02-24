@@ -2,33 +2,46 @@ import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 import { projectSearchableFields } from "../../../constant.js";
+import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 
 export const ProjectManagementService = {
     createProject: async (prisma, payload, userId) => {
-        // Find the Project Manager to get their teamId
-        const projectManager = await prisma.projectManager.findFirst({
-            where: { userId: payload.managerId, deletedAt: null },
+        // Initialize fallback
+        let targetManagerId = payload.managerId;
+        let teamId = payload.teamId;
+
+        // Try to find the Project Manager record first (user might have sent ProjectManager.id or ProjectManager.userId)
+        const pmRecord = await prisma.projectManager.findFirst({
+            where: {
+                OR: [
+                    { id: payload.managerId },
+                    { userId: payload.managerId }
+                ],
+                deletedAt: null
+            },
         });
 
-        if (!projectManager) {
-            // Check if the managerId is a User ID (which it likely is based on schema)
+        if (pmRecord) {
+            // If found, use the related userId and teamId
+            targetManagerId = pmRecord.userId;
+            teamId = pmRecord.teamId;
+        } else {
+            // If not found in ProjectManager table, check if it's a direct User ID with PM role
             const user = await prisma.user.findUnique({
                 where: { id: payload.managerId },
-                include: { projectManagers: true }
             });
 
             if (!user || user.role !== "PROJECT_MANAGER") {
                 throw new AppError(StatusCodes.NOT_FOUND, "Project Manager not found");
             }
-
-            // If they are a user but don't have a ProjectManager record yet, we might need to handle it
-            // but usually they should have one if they are PM.
-            payload.teamId = user.teamId;
-        } else {
-            payload.teamId = projectManager.teamId;
+            teamId = user.teamId;
         }
 
-        return prisma.project.create({
+        // Update payload with the verified User ID and Team ID
+        payload.managerId = targetManagerId;
+        payload.teamId = teamId;
+
+        const project = await prisma.project.create({
             data: {
                 name: payload.name,
                 description: payload.description,
@@ -102,6 +115,16 @@ export const ProjectManagementService = {
                 }
             }
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "project",
+            crudId: project.id,
+            action: "create",
+            userId,
+            projectId: project.id,
+        });
+
+        return project;
     },
 
     getAllProjects: async (prisma, query) => {
@@ -161,6 +184,7 @@ export const ProjectManagementService = {
                             },
                         },
                     },
+                    transcripts: true,
                 },
             }),
             prisma.project.count({ where: buildQuery.where }),
@@ -208,6 +232,7 @@ export const ProjectManagementService = {
                         },
                     },
                 },
+                transcripts: true,
             },
         });
 
@@ -218,7 +243,7 @@ export const ProjectManagementService = {
         return project;
     },
 
-    updateProject: async (prisma, id, payload) => {
+    updateProject: async (prisma, id, payload, userId) => {
         const project = await prisma.project.findFirst({
             where: { id, deletedAt: null },
         });
@@ -241,13 +266,23 @@ export const ProjectManagementService = {
             }
         }
 
-        return prisma.project.update({
+        const updatedProject = await prisma.project.update({
             where: { id },
             data: updateData,
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "project",
+            crudId: id,
+            action: "update",
+            userId,
+            projectId: id,
+        });
+
+        return updatedProject;
     },
 
-    deleteProject: async (prisma, id) => {
+    deleteProject: async (prisma, id, userId) => {
         const project = await prisma.project.findUnique({
             where: { id },
         });
@@ -256,9 +291,19 @@ export const ProjectManagementService = {
             throw new AppError(StatusCodes.NOT_FOUND, "Project not found");
         }
 
-        return prisma.project.update({
+        const deletedProject = await prisma.project.update({
             where: { id },
             data: { deletedAt: new Date() },
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "project",
+            crudId: id,
+            action: "delete",
+            userId,
+            projectId: id,
+        });
+
+        return deletedProject;
     },
 };
