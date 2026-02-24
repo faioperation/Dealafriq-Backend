@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { ActivityLogRoutes } from "../modules/activityLog/activityLog.route.js";
 import { ProjectManagementRoutes } from "../modules/Admin/project_management/project_management.route.js";
 import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_manager.route.js";
 import { TeamRoutes } from "../modules/Admin/team/team.route.js";
@@ -11,8 +12,8 @@ import { ProjectHealthRoutes } from "../modules/ProjectManager/projectHealth/pro
 import { ProjectMeetingRoutes } from "../modules/ProjectManager/projectMeeting/projectMeeting.route.js";
 import { ProjectMilestoneRoutes } from "../modules/ProjectManager/projectMilestone/projectMilestone.route.js";
 import { ProjectTaskRoutes } from "../modules/ProjectManager/projectTask/projectTask.route.js";
+import { TranscriptRoutes } from "../modules/ProjectManager/transcriptManagement/transcript.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
-import { ActivityLogRoutes } from "../modules/activityLog/activityLog.route.js";
 
 export const router = Router();
 const moduleRoutes = [
@@ -75,6 +76,10 @@ const moduleRoutes = [
   {
     path: "/project-manager/project-agreement",
     route: ProjectAgreementRoutes,
+  },
+  {
+    path: "/project-manager/project-transcript",
+    route: TranscriptRoutes,
   },
   {
     path: "/activity-log",

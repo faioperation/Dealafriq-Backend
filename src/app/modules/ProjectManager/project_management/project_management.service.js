@@ -109,6 +109,7 @@ export const PMProjectManagementService = {
                         },
                     },
                     health: true,
+                    transcripts: true,
                 },
             }),
             prisma.project.count({ where: buildQuery.where }),
@@ -141,6 +142,7 @@ export const PMProjectManagementService = {
                 milestones: true,
                 health: true,
                 documents: true,
+                transcripts: true,
             },
         });
 
