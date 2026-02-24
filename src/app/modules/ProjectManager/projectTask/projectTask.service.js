@@ -1,5 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
+import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
   const project = await prisma.project.findFirst({
@@ -18,13 +19,23 @@ export const ProjectTaskService = {
   createTask: async (prisma, payload, userId) => {
     await verifyProjectOwnership(prisma, payload.projectId, userId);
 
-    return prisma.projectTask.create({
+    const task = await prisma.projectTask.create({
       data: {
         ...payload,
         startDate: payload.startDate ? new Date(payload.startDate) : null,
         endDate: payload.endDate ? new Date(payload.endDate) : null,
       },
     });
+
+    await ActivityLogService.createLog(prisma, {
+      type: "task",
+      crudId: task.id,
+      action: "create",
+      userId,
+      projectId: task.projectId,
+    });
+
+    return task;
   },
 
   getAllTasks: async (prisma, projectId, userId) => {
@@ -44,9 +55,9 @@ export const ProjectTaskService = {
         project: {
           select: {
             id: true,
-            name : true,
+            name: true,
             description: true,
-            vendorName : true,
+            vendorName: true,
             managerId: true,
             deletedAt: true,
           },
@@ -89,10 +100,20 @@ export const ProjectTaskService = {
     if (payload.startDate) updateData.startDate = new Date(payload.startDate);
     if (payload.endDate) updateData.endDate = new Date(payload.endDate);
 
-    return prisma.projectTask.update({
+    const updatedTask = await prisma.projectTask.update({
       where: { id },
       data: updateData,
     });
+
+    await ActivityLogService.createLog(prisma, {
+      type: "task",
+      crudId: id,
+      action: "update",
+      userId,
+      projectId: task.projectId,
+    });
+
+    return updatedTask;
   },
 
   deleteTask: async (prisma, id, userId) => {
@@ -112,8 +133,18 @@ export const ProjectTaskService = {
       );
     }
 
-    return prisma.projectTask.delete({
+    const deletedTask = await prisma.projectTask.delete({
       where: { id },
     });
+
+    await ActivityLogService.createLog(prisma, {
+      type: "task",
+      crudId: id,
+      action: "delete",
+      userId,
+      projectId: task.projectId,
+    });
+
+    return deletedTask;
   },
 };

@@ -12,6 +12,7 @@ import { ProjectMeetingRoutes } from "../modules/ProjectManager/projectMeeting/p
 import { ProjectMilestoneRoutes } from "../modules/ProjectManager/projectMilestone/projectMilestone.route.js";
 import { ProjectTaskRoutes } from "../modules/ProjectManager/projectTask/projectTask.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
+import { ActivityLogRoutes } from "../modules/activityLog/activityLog.route.js";
 
 export const router = Router();
 const moduleRoutes = [
@@ -74,6 +75,10 @@ const moduleRoutes = [
   {
     path: "/project-manager/project-agreement",
     route: ProjectAgreementRoutes,
+  },
+  {
+    path: "/activity-log",
+    route: ActivityLogRoutes,
   },
   // Project Manager Routes ends here
 ];

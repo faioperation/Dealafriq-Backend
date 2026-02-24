@@ -1,5 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
+import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
@@ -31,7 +32,7 @@ export const ProjectMeetingService = {
 
         const { keyPoints, actionPoints, ...meetingData } = payload;
 
-        return prisma.projectMeeting.create({
+        const meeting = await prisma.projectMeeting.create({
             data: {
                 ...meetingData,
                 meetingDate: new Date(payload.meetingDate),
@@ -53,6 +54,16 @@ export const ProjectMeetingService = {
                 actionPoints: true,
             },
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "meeting",
+            crudId: meeting.id,
+            action: "create",
+            userId,
+            projectId: meeting.projectId,
+        });
+
+        return meeting;
     },
 
     getAllMeetings: async (prisma, projectId, userId) => {
@@ -150,7 +161,7 @@ export const ProjectMeetingService = {
             };
         }
 
-        return prisma.projectMeeting.update({
+        const updatedMeeting = await prisma.projectMeeting.update({
             where: { id },
             data: {
                 ...updateData,
@@ -161,6 +172,16 @@ export const ProjectMeetingService = {
                 actionPoints: true,
             }
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "meeting",
+            crudId: id,
+            action: "update",
+            userId,
+            projectId: meeting.projectId,
+        });
+
+        return updatedMeeting;
     },
 
     deleteMeeting: async (prisma, id, userId) => {
@@ -173,8 +194,18 @@ export const ProjectMeetingService = {
             throw new AppError(StatusCodes.FORBIDDEN, "Meeting not found or access denied");
         }
 
-        return prisma.projectMeeting.delete({
+        const deletedMeeting = await prisma.projectMeeting.delete({
             where: { id },
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "meeting",
+            crudId: id,
+            action: "delete",
+            userId,
+            projectId: meeting.projectId,
+        });
+
+        return deletedMeeting;
     },
 };

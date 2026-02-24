@@ -67,7 +67,7 @@ const getSingleProject = catchAsync(async (req, res) => {
 });
 
 const updateProject = catchAsync(async (req, res) => {
-    const result = await ProjectManagementService.updateProject(prisma, req.params.id, req.body);
+    const result = await ProjectManagementService.updateProject(prisma, req.params.id, req.body, req.user.id);
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
@@ -77,7 +77,7 @@ const updateProject = catchAsync(async (req, res) => {
 });
 
 const deleteProject = catchAsync(async (req, res) => {
-    const result = await ProjectManagementService.deleteProject(prisma, req.params.id);
+    const result = await ProjectManagementService.deleteProject(prisma, req.params.id, req.user.id);
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
