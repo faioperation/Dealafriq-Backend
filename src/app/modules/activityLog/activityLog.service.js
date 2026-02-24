@@ -12,7 +12,17 @@ export const ActivityLogService = {
     },
 
     getAllLogs: async (prisma, query) => {
+        const { status } = query;
+        const where = {};
+
+        if (status) {
+            where.project = {
+                status: status.toUpperCase(),
+            };
+        }
+
         const logs = await prisma.activityLog.findMany({
+            where,
             include: {
                 user: {
                     select: {
@@ -52,6 +62,44 @@ export const ActivityLogService = {
         });
 
         return populateLogData(prisma, logs);
+    },
+
+    getGroupedByProject: async (prisma, query) => {
+        const { status } = query;
+        const where = { deletedAt: null };
+
+        if (status) {
+            where.status = status.toUpperCase();
+        }
+
+        const projects = await prisma.project.findMany({
+            where,
+            include: {
+                activityLogs: {
+                    include: {
+                        user: {
+                            select: {
+                                firstName: true,
+                                lastName: true,
+                                email: true,
+                            },
+                        },
+                    },
+                    orderBy: { timestamp: "desc" },
+                },
+            },
+        });
+
+        return Promise.all(
+            projects.map(async (project) => {
+                const activities = await populateLogData(prisma, project.activityLogs);
+                const { activityLogs, ...projectData } = project;
+                return {
+                    ...projectData,
+                    activities,
+                };
+            })
+        );
     },
 };
 

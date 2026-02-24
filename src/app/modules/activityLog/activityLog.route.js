@@ -17,12 +17,17 @@ router.get(
 );
 
 router.get(
-    "/all/:projectId",
+    "/grouped",
     checkAuthMiddleware(Role.ADMIN, Role.PROJECT_MANAGER),
-    ActivityLogController.getProjectLogs
+    ActivityLogController.getGroupedByProject
 );
 router.get(
-    "/get-all-logs-for-ai/:projectId",
+    "/get-all-logs-for-ai/grouped",
+    ActivityLogController.getGroupedByProject
+);
+
+router.get(
+    "/:projectId",
     checkAuthMiddleware(Role.ADMIN, Role.PROJECT_MANAGER),
     ActivityLogController.getProjectLogs
 );
