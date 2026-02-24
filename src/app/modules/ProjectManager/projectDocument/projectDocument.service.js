@@ -1,5 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
+import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
@@ -34,7 +35,7 @@ export const ProjectDocumentService = {
         await verifyProjectOwnership(prisma, payloads[0].projectId, userId);
 
         // We use a transaction or just map multiple creates to get returning data
-        return Promise.all(payloads.map(payload => {
+        const results = await Promise.all(payloads.map(async (payload) => {
             const { keyPoints, actionPoints, ...docData } = payload;
 
             const nestedData = { ...docData };
@@ -63,14 +64,26 @@ export const ProjectDocumentService = {
                 }
             }
 
-            return prisma.projectDocumentUpload.create({
+            const doc = await prisma.projectDocumentUpload.create({
                 data: nestedData,
                 include: {
                     keyPoints: true,
                     actionPoints: true,
                 }
             });
+
+            await ActivityLogService.createLog(prisma, {
+                type: "document",
+                crudId: doc.id,
+                action: "create",
+                userId,
+                projectId: doc.projectId,
+            });
+
+            return doc;
         }));
+
+        return results;
     },
 
     getAllDocuments: async (prisma, projectId, userId) => {
@@ -140,7 +153,7 @@ export const ProjectDocumentService = {
             };
         }
 
-        return prisma.projectDocumentUpload.update({
+        const updatedDoc = await prisma.projectDocumentUpload.update({
             where: { id },
             data: {
                 ...updateData,
@@ -151,6 +164,16 @@ export const ProjectDocumentService = {
                 actionPoints: true,
             }
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "document",
+            crudId: id,
+            action: "update",
+            userId,
+            projectId: doc.projectId,
+        });
+
+        return updatedDoc;
     },
 
     deleteDocument: async (prisma, id, userId) => {
@@ -163,9 +186,19 @@ export const ProjectDocumentService = {
             throw new AppError(StatusCodes.FORBIDDEN, "Document not found or access denied");
         }
 
-        return prisma.projectDocumentUpload.delete({
+        const deletedDoc = await prisma.projectDocumentUpload.delete({
             where: { id },
         });
+
+        await ActivityLogService.createLog(prisma, {
+            type: "document",
+            crudId: id,
+            action: "delete",
+            userId,
+            projectId: doc.projectId,
+        });
+
+        return deletedDoc;
     },
 
 
