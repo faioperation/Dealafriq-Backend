@@ -27,7 +27,19 @@ const getProjectLogs = catchAsync(async (req, res) => {
     });
 });
 
+const getGroupedByProject = catchAsync(async (req, res) => {
+    const result = await ActivityLogService.getGroupedByProject(prisma, req.query);
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: "Activity logs grouped by project retrieved successfully",
+        data: result,
+    });
+});
+
 export const ActivityLogController = {
     getAllLogs,
     getProjectLogs,
+    getGroupedByProject,
 };
