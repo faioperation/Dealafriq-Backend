@@ -218,6 +218,7 @@ model Project {
   userId            String?
   projectAgreements ProjectAgreements[]
   activityLogs      ActivityLog[]           @relation("ProjectActivityLogs")
+  transcripts       MeetingTranscript[]     @relation("ProjectTranscripts")
 
   @@map("projects")
 }
@@ -409,4 +410,23 @@ model ProjectHealth {
   @@map("project_health")
 }
 
+// for meeting transcript and document text extraction
+
+model MeetingTranscript {
+  id         String   @id @default(uuid())
+  meetingId  String? // optional relation if you have meeting table
+  projectId  String?
+  project    Project? @relation("ProjectTranscripts", fields: [projectId], references: [id])
+  platform   String // zoom | google | unknown
+  fileName   String
+  filePath   String
+  fileType   String
+  parsedData Json
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+  @@map("meeting_transcripts")
+}
+
+// meeting transcript and document text extraction ends here
 // project Related models and enums ends here
