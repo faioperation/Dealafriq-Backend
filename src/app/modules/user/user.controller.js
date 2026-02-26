@@ -10,8 +10,8 @@ import { sendResponse } from "../../utils/sendResponse.js";
 const registerUser = async (req, res, next) => {
   try {
     const picture = req.file ? {
-      url: `${req.protocol}://${req.get('host')}/uploads/avatars/${req.file.filename}`,
-      path: `uploads/avatars/${req.file.filename}`
+      url: `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`,
+      path: `uploads/${req.file.filename}`
     } : null;
     const payload = {
       prisma,
@@ -121,7 +121,7 @@ const updateProfile = async (req, res, next) => {
 
     // Handle profile picture update if a new file is uploaded
     if (req.file) {
-      const avatarUrlPath = `uploads/avatars/${req.file.filename}`;
+      const avatarUrlPath = `uploads/${req.file.filename}`;
       const avatarUrl = `${req.protocol}://${req.get('host')}/${avatarUrlPath}`;
       allowedUpdates.avatarUrl = avatarUrl;
       allowedUpdates.avatarUrlPath = avatarUrlPath;
@@ -224,7 +224,7 @@ const uploadAvatar = async (req, res, next) => {
       throw new DevBuildError("No file uploaded", 400);
     }
 
-    const avatarUrlPath = `uploads/avatars/${req.file.filename}`;
+    const avatarUrlPath = `uploads/${req.file.filename}`;
     const avatarUrl = `${req.protocol}://${req.get('host')}/${avatarUrlPath}`;
     const result = await UserService.updateAvatar(prisma, id, avatarUrl, avatarUrlPath);
 
