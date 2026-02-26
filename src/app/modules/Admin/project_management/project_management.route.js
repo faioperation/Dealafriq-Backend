@@ -3,16 +3,21 @@ import validateRequest from "../../../middleware/validateRequest.js";
 import { ProjectManagementController } from "./project_management.controller.js";
 import { ProjectManagementValidation } from "./project_management.validation.js";
 
-import { projectUpload } from "../../../config/projectUploads.config.js";
+import { fileUpload } from "../../../config/fileUpload.js";
 import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
 import { Role } from "../../../utils/role.js";
 
 const router = express.Router();
 
+const projectUploadFields = fileUpload.fields([
+    { name: "documents", maxCount: 10 },
+    { name: "agreements", maxCount: 10 },
+]);
+
 router.post(
     "/create",
     checkAuthMiddleware(Role.ADMIN),
-    projectUpload,
+    projectUploadFields,
     validateRequest(ProjectManagementValidation.createProjectSchema),
     ProjectManagementController.createProject,
 );

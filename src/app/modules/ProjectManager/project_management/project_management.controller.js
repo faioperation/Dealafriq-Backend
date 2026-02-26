@@ -23,8 +23,8 @@ const createProject = catchAsync(async (req, res) => {
     if (req.files && req.files.documents) {
         payload.documents = req.files.documents.map(file => ({
             fileName: file.originalname,
-            fileUrl: `${req.protocol}://${req.get("host")}/uploads/project-documents/${file.filename}`,
-            filePath: `uploads/project-documents/${file.filename}`,
+            fileUrl: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,
+            filePath: `uploads/${file.filename}`,
         }));
     }
 
@@ -32,8 +32,8 @@ const createProject = catchAsync(async (req, res) => {
     if (req.files && req.files.agreements) {
         payload.agreements = req.files.agreements.map(file => ({
             fileName: file.originalname,
-            fileUrl: `${req.protocol}://${req.get("host")}/uploads/project-agreements/${file.filename}`,
-            filePath: `uploads/project-agreements/${file.filename}`,
+            fileUrl: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,
+            filePath: `uploads/${file.filename}`,
             fileType: "SLA",
         }));
     }

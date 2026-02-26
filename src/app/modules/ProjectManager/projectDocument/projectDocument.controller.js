@@ -37,8 +37,8 @@ const uploadDocument = catchAsync(async (req, res) => {
         aiDocumentSummary,
         title,
         fileName: file.originalname,
-        fileUrl: `${req.protocol}://${req.get("host")}/uploads/project-documents/${file.filename}`,
-        filePath: `uploads/project-documents/${file.filename}`,
+        fileUrl: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,
+        filePath: `uploads/${file.filename}`,
         keyPoints,
         actionPoints,
     }));

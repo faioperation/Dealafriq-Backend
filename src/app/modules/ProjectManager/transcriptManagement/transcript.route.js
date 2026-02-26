@@ -1,8 +1,8 @@
 import express from "express";
-import uploadTranscript from "../../../config/uploadTranscript.js";
 import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
 import { Role } from "../../../utils/role.js";
 import { TranscriptController } from "./transcript.controller.js";
+import uploadTranscript from "../../../config/uploadTranscript.js";
 
 
 const router = express.Router();

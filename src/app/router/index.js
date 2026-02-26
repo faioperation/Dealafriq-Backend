@@ -14,6 +14,7 @@ import { ProjectMeetingRoutes } from "../modules/ProjectManager/projectMeeting/p
 import { ProjectMilestoneRoutes } from "../modules/ProjectManager/projectMilestone/projectMilestone.route.js";
 import { ProjectTaskRoutes } from "../modules/ProjectManager/projectTask/projectTask.route.js";
 import { TranscriptRoutes } from "../modules/ProjectManager/transcriptManagement/transcript.route.js";
+import { VendorRoutes } from "../modules/ProjectManager/vendorManagement/vendor.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
 
 
@@ -83,6 +84,10 @@ const moduleRoutes = [
   {
     path: "/project-manager/project-transcript",
     route: TranscriptRoutes,
+  },
+  {
+    path: "/project-manager/vendor-management",
+    route: VendorRoutes,
   },
   {
     path: "/email",

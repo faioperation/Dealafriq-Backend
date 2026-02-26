@@ -15,10 +15,16 @@ const uploadTranscriptController = async (req, res, next) => {
       req.body.projectId
     );
 
+    const filePath = transcript.filePath;
+    const fileUrl = `${req.protocol}://${req.get("host")}/${filePath}`;
+
     res.status(201).json({
       success: true,
       message: "Transcript uploaded and parsed successfully",
-      data: transcript,
+      data: {
+        ...transcript,
+        fileUrl
+      },
     });
   } catch (error) {
     next(error);
