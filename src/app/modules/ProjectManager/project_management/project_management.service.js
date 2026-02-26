@@ -35,6 +35,23 @@ export const PMProjectManagementService = {
                         status: h.status,
                     }))
                 } : undefined,
+
+                documents: payload.documents ? {
+                    create: payload.documents.map(doc => ({
+                        fileName: doc.fileName,
+                        filePath: doc.filePath,
+                        fileUrl: doc.fileUrl,
+                    }))
+                } : undefined,
+
+                agreements: payload.agreements ? {
+                    create: payload.agreements.map(agr => ({
+                        fileName: agr.fileName,
+                        filePath: agr.filePath,
+                        fileUrl: agr.fileUrl,
+                        fileType: agr.fileType,
+                    }))
+                } : undefined,
             },
             include: {
                 meetings: true,

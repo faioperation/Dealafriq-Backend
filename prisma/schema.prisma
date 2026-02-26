@@ -68,10 +68,30 @@ model User {
   projectsCreated         Project[]           @relation("ProjectCreatedBy")
   assignedProjects        Project[]           @relation("AssignedProject")
 
-  activityLogs ActivityLog[] @relation("UserActivityLogs")
+  activityLogs  ActivityLog[]  @relation("UserActivityLogs")
+  emailAccounts EmailAccount[]
+
+  vendorsCreated  Vendor[] @relation("VendorCreatedBy")
+  vendorsUpdated  Vendor[] @relation("VendorUpdatedBy")
+  vendorsApproved Vendor[] @relation("VendorApprovedBy")
+  vendorsDeleted  Vendor[] @relation("VendorDeletedBy")
 
   @@index([role])
   @@map("users")
+}
+
+model EmailAccount {
+  id           String   @id @default(uuid())
+  userId       String
+  provider     String
+  accessToken  String
+  refreshToken String
+  expiryDate   DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("email_accounts")
 }
 
 model ActivityLog {
@@ -219,6 +239,8 @@ model Project {
   projectAgreements ProjectAgreements[]
   activityLogs      ActivityLog[]           @relation("ProjectActivityLogs")
   transcripts       MeetingTranscript[]     @relation("ProjectTranscripts")
+  vendor            Vendor?                 @relation(fields: [vendorId], references: [id])
+  vendorId          String?
 
   @@map("projects")
 }
@@ -429,4 +451,49 @@ model MeetingTranscript {
 }
 
 // meeting transcript and document text extraction ends here
+
+model Vendor {
+  id               String  @id @default(uuid())
+  name             String
+  designation      String?
+  email            String?
+  phone            String?
+  numberOfProjects Int?    @default(0)
+  photoUrl         String?
+  photoPath        String?
+
+  // Key Point of Contact
+  contactPerson      String?
+  contactRole        String?
+  contactEmail       String?
+  contactPhone       String?
+  contactProjects    Int?    @default(0)
+  contactDesignation String?
+
+  // Dynamic Fields
+  meetingLinks Json? @default("[]") // Array of objects
+  documents    Json? @default("[]") // Array of objects
+  slas         Json? @default("[]") // Array of objects
+
+  // Relationships
+  projects Project[]
+
+  // Audit Fields
+  created_by  String?
+  updated_by  String?
+  approved_by String?
+  deleted_by  String?
+
+  createdBy  User? @relation("VendorCreatedBy", fields: [created_by], references: [id])
+  updatedBy  User? @relation("VendorUpdatedBy", fields: [updated_by], references: [id])
+  approvedBy User? @relation("VendorApprovedBy", fields: [approved_by], references: [id])
+  deletedBy  User? @relation("VendorDeletedBy", fields: [deleted_by], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("Deleted_at")
+
+  @@map("vendors")
+}
+
 // project Related models and enums ends here

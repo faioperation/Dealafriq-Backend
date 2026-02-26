@@ -15,13 +15,20 @@ function parseVtt(filePath) {
       const [startTime, endTime] = lines[0].split(" --> ");
       const textLine = lines[1] || "";
 
-      const [speaker, ...messageParts] = textLine.split(":");
+      let speaker = "Unknown";
+      let message = textLine;
+
+      if (textLine.includes(":")) {
+        const colonIndex = textLine.indexOf(":");
+        speaker = textLine.substring(0, colonIndex).trim();
+        message = textLine.substring(colonIndex + 1).trim();
+      }
 
       speeches.push({
         startTime,
         endTime,
-        speaker: speaker?.trim() || "Unknown",
-        message: messageParts.join(":").trim(),
+        speaker,
+        message,
       });
     }
   });
@@ -37,11 +44,18 @@ function parseTxt(filePath) {
   const speeches = lines
     .filter((line) => line.trim() !== "")
     .map((line) => {
-      const [speaker, ...messageParts] = line.split(":");
+      let speaker = "Unknown";
+      let message = line;
+
+      if (line.includes(":")) {
+        const colonIndex = line.indexOf(":");
+        speaker = line.substring(0, colonIndex).trim();
+        message = line.substring(colonIndex + 1).trim();
+      }
 
       return {
-        speaker: speaker?.trim() || "Unknown",
-        message: messageParts.join(":").trim(),
+        speaker,
+        message,
       };
     });
 
@@ -56,11 +70,18 @@ async function parseDocx(filePath) {
   const speeches = lines
     .filter((line) => line.trim() !== "")
     .map((line) => {
-      const [speaker, ...messageParts] = line.split(":");
+      let speaker = "Unknown";
+      let message = line;
+
+      if (line.includes(":")) {
+        const colonIndex = line.indexOf(":");
+        speaker = line.substring(0, colonIndex).trim();
+        message = line.substring(colonIndex + 1).trim();
+      }
 
       return {
-        speaker: speaker?.trim() || "Unknown",
-        message: messageParts.join(":").trim(),
+        speaker,
+        message,
       };
     });
 

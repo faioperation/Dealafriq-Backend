@@ -13,8 +13,8 @@ const uploadAgreement = catchAsync(async (req, res) => {
         projectId: req.body.projectId,
         fileType: req.body.fileType,
         fileName: file.originalname,
-        fileUrl: `${req.protocol}://${req.get("host")}/uploads/project-agreements/${file.filename}`,
-        filePath: `uploads/project-agreements/${file.filename}`,
+        fileUrl: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,
+        filePath: `uploads/${file.filename}`,
     }));
 
     const result = await ProjectAgreementService.uploadAgreements(prisma, payloads, req.user.id);

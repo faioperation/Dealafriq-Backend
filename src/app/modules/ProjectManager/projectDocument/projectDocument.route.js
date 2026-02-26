@@ -4,16 +4,15 @@ import validateRequest from "../../../middleware/validateRequest.js";
 import { ProjectDocumentValidation } from "./projectDocument.validation.js";
 import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
 import { Role } from "../../../utils/role.js";
-import { createMulterUpload } from "../../../config/multer.config.js";
+import { fileUpload } from "../../../config/fileUpload.js";
 
 const router = express.Router();
-const upload = createMulterUpload("project-documents");
 
 // General Documents
 router.post(
     "/upload-document",
     checkAuthMiddleware(Role.PROJECT_MANAGER),
-    upload.array("document", 10),
+    fileUpload.array("document", 10),
     validateRequest(ProjectDocumentValidation.uploadDocumentSchema),
     ProjectDocumentController.uploadDocument,
 );

@@ -1,8 +1,8 @@
 
 
 import jwt from "jsonwebtoken";
-import prisma from "../prisma/client.js";
 import { envVars } from "../config/env.js";
+import prisma from "../prisma/client.js";
 
 export const checkAuthMiddleware =
   (...allowedRoles) =>

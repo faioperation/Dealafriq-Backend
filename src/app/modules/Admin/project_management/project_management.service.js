@@ -104,7 +104,6 @@ export const ProjectManagementService = {
             include: {
                 meetings: true,
                 documents: true,
-                projectAgreements: true,
                 health: true,
                 manager: {
                     select: {
@@ -169,21 +168,7 @@ export const ProjectManagementService = {
                             actionPoints: true,
                         },
                     },
-                    projectAgreements: true,
                     health: true,
-                    assignments: {
-                        include: {
-                            user: {
-                                select: {
-                                    id: true,
-                                    firstName: true,
-                                    lastName: true,
-                                    email: true,
-                                    role: true,
-                                },
-                            },
-                        },
-                    },
                     transcripts: true,
                 },
             }),
@@ -218,20 +203,6 @@ export const ProjectManagementService = {
                 },
                 documents: true,
                 health: true,
-                projectAgreements: true,
-                assignments: {
-                    include: {
-                        user: {
-                            select: {
-                                id: true,
-                                firstName: true,
-                                lastName: true,
-                                email: true,
-                                role: true,
-                            },
-                        },
-                    },
-                },
                 transcripts: true,
             },
         });
