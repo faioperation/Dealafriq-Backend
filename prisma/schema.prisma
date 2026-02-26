@@ -68,10 +68,25 @@ model User {
   projectsCreated         Project[]           @relation("ProjectCreatedBy")
   assignedProjects        Project[]           @relation("AssignedProject")
 
-  activityLogs ActivityLog[] @relation("UserActivityLogs")
+  activityLogs  ActivityLog[]  @relation("UserActivityLogs")
+  emailAccounts EmailAccount[]
 
   @@index([role])
   @@map("users")
+}
+
+model EmailAccount {
+  id           String   @id @default(uuid())
+  userId       String
+  provider     String
+  accessToken  String
+  refreshToken String
+  expiryDate   DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("email_accounts")
 }
 
 model ActivityLog {
