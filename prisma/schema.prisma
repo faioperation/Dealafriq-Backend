@@ -76,6 +76,11 @@ model User {
   vendorsApproved Vendor[] @relation("VendorApprovedBy")
   vendorsDeleted  Vendor[] @relation("VendorDeletedBy")
 
+  emailsCreated  Email[] @relation("EmailCreatedBy")
+  emailsUpdated  Email[] @relation("EmailUpdatedBy")
+  emailsApproved Email[] @relation("EmailApprovedBy")
+  emailsDeleted  Email[] @relation("EmailDeletedBy")
+
   @@index([role])
   @@map("users")
 }
@@ -83,6 +88,7 @@ model User {
 model EmailAccount {
   id           String   @id @default(uuid())
   userId       String
+  email        String?
   provider     String
   accessToken  String
   refreshToken String
@@ -477,6 +483,7 @@ model Vendor {
 
   // Relationships
   projects Project[]
+  emails   Email[]
 
   // Audit Fields
   created_by  String?
@@ -494,6 +501,38 @@ model Vendor {
   deletedAt DateTime? @map("Deleted_at")
 
   @@map("vendors")
+}
+
+model Email {
+  id             String  @id @default(uuid())
+  subject        String?
+  body           String?
+  senderEmail    String
+  receiverEmail  String?
+  vendorEmail    String?
+  gmailMessageId String?
+  category       String?
+
+  vendorId String?
+  vendor   Vendor? @relation(fields: [vendorId], references: [id])
+
+  // Audit Fields
+  created_by  String?
+  updated_by  String?
+  approved_by String?
+  deleted_by  String?
+
+  createdBy  User? @relation("EmailCreatedBy", fields: [created_by], references: [id])
+  updatedBy  User? @relation("EmailUpdatedBy", fields: [updated_by], references: [id])
+  approvedBy User? @relation("EmailApprovedBy", fields: [approved_by], references: [id])
+  deletedBy  User? @relation("EmailDeletedBy", fields: [deleted_by], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("Deleted_at")
+
+  @@unique([gmailMessageId, receiverEmail])
+  @@map("emails")
 }
 
 // project Related models and enums ends here

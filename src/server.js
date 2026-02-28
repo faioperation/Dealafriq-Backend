@@ -2,6 +2,7 @@ import app from "./app.js";
 import { envVars } from "./app/config/env.js";
 import { connectRedis } from "./app/config/redis.config.js";
 import prisma from "./app/prisma/client.js";
+import { initEmailSyncCron } from "./app/cron/emailSyncCron.js";
 
 let server;
 
@@ -19,6 +20,9 @@ const startServer = async () => {
     server = app.listen(PORT, () => {
       console.log(`Server running on port 🛺✅ ${PORT}`);
     });
+
+    // Initialize Cron Jobs
+    initEmailSyncCron();
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);
