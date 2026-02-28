@@ -18,6 +18,26 @@ const loadEnvVars = () => {
     "REDIS_USERNAME",
     "REDIS_PASSWORD",
     "REDIS_URL",
+
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "SMTP_PASS",
+    "SMTP_FROM",
+
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GOOGLE_CALLBACK_URL",
+
+    "GOOGLE_CLIENT_ID_EMAIL",
+    "GOOGLE_CLIENT_SECRET_EMAIL",
+    "GOOGLE_CALLBACK_URL_EMAIL",
+
+    "FRONT_END_URL",
+
+    "ZOOM_ACCOUNT_ID",
+    "ZOOM_CLIENT_ID",
+    "ZOOM_CLIENT_SECRET",
   ];
 
   requiredVars.forEach((key) => {
@@ -49,7 +69,7 @@ const loadEnvVars = () => {
     // node mailer (SMTP)
     EMAIL_SENDER: {
       SMTP_HOST: process.env.SMTP_HOST,
-      SMTP_PORT: process.env.SMTP_PORT,
+      SMTP_PORT: Number(process.env.SMTP_PORT),
       SMTP_USER: process.env.SMTP_USER,
       SMTP_PASS: process.env.SMTP_PASS,
       SMTP_FROM: process.env.SMTP_FROM,
@@ -65,6 +85,11 @@ const loadEnvVars = () => {
     GOOGLE_CALLBACK_URL_EMAIL: process.env.GOOGLE_CALLBACK_URL_EMAIL,
     // Frontend
     FRONT_END_URL: process.env.FRONT_END_URL,
+
+    // Zoom
+    ZOOM_ACCOUNT_ID: process.env.ZOOM_ACCOUNT_ID,
+    ZOOM_CLIENT_ID: process.env.ZOOM_CLIENT_ID,
+    ZOOM_CLIENT_SECRET: process.env.ZOOM_CLIENT_SECRET,
   };
 };
 
