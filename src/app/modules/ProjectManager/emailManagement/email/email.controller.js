@@ -41,8 +41,18 @@ const getInbox = async (req, res) => {
     }
 };
 
-export const EmailController =  {
+const disconnect = async (req, res) => {
+    try {
+        await EmailService.disconnectEmailAccount(req.user.id);
+        res.status(200).json({ success: true, message: 'Gmail account disconnected successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const EmailController = {
     connect,
     callback,
     getInbox,
+    disconnect,
 };
