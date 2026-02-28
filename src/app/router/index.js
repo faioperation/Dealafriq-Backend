@@ -5,7 +5,7 @@ import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_m
 import { TeamRoutes } from "../modules/Admin/team/team.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
-import { EmailRoutes } from "../modules/ProjectManager/emailManagement/email.route.js";
+import { EmailAccountRoutes } from "../modules/ProjectManager/emailManagement/email/email.route.js";
 import { PMProjectManagementRoutes } from "../modules/ProjectManager/project_management/project_management.route.js";
 import { ProjectAgreementRoutes } from "../modules/ProjectManager/projectAgreement/projectAgreement.route.js";
 import { ProjectDocumentRoutes } from "../modules/ProjectManager/projectDocument/projectDocument.route.js";
@@ -15,6 +15,8 @@ import { ProjectMilestoneRoutes } from "../modules/ProjectManager/projectMilesto
 import { ProjectTaskRoutes } from "../modules/ProjectManager/projectTask/projectTask.route.js";
 import { TranscriptRoutes } from "../modules/ProjectManager/transcriptManagement/transcript.route.js";
 import { VendorRoutes } from "../modules/ProjectManager/vendorManagement/vendor.route.js";
+import { ZoomRoutes } from "../modules/ProjectManager/zoomManagement/zoom.route.js";
+import { VendorEmailRoutes } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
 
 
@@ -86,12 +88,20 @@ const moduleRoutes = [
     route: TranscriptRoutes,
   },
   {
+    path: "/project-manager/zoom",
+    route: ZoomRoutes,
+  },
+  {
     path: "/project-manager/vendor-management",
     route: VendorRoutes,
   },
   {
-    path: "/email",
-    route: EmailRoutes,
+    path: "/project-manager/vendor-email",
+    route: VendorEmailRoutes,
+  },
+  {
+    path: "/email-account-connection",
+    route: EmailAccountRoutes,
   },
   {
     path: "/activity-log",
