@@ -9,7 +9,7 @@ export const initEmailSyncCron = () => {
     // Schedule task to run every 30 minutes
     // Cron expression: minute, hour, day of month, month, day of week
     // cron.schedule("*/5 * * * *", async () => {
-    cron.schedule("* * * * *", async () => {
+    cron.schedule("*/30 * * * *", async () => {
         console.log("-----------------------------------------");
         console.log(`[${new Date().toISOString()}] Starting Email Sync Cron Job...`);
         try {

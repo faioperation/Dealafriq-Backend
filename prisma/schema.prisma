@@ -504,7 +504,7 @@ model Vendor {
 }
 
 model Email {
-  id             String  @id @default(uuid())
+  id             String    @id @default(uuid())
   subject        String?
   body           String?
   senderEmail    String
@@ -512,6 +512,7 @@ model Email {
   vendorEmail    String?
   gmailMessageId String?
   category       String?
+  receivedAt     DateTime?
 
   vendorId String?
   vendor   Vendor? @relation(fields: [vendorId], references: [id])

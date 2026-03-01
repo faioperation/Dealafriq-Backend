@@ -18,6 +18,7 @@ import { VendorRoutes } from "../modules/ProjectManager/vendorManagement/vendor.
 import { ZoomRoutes } from "../modules/ProjectManager/zoomManagement/zoom.route.js";
 import { VendorEmailRoutes } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
+import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
 
 
 
@@ -48,6 +49,10 @@ const moduleRoutes = [
   {
     path: "/admin/project-management",
     route: ProjectManagementRoutes,
+  },
+  {
+    path: "/admin/user-management",
+    route: UserManagementRoutes,
   },
   // Admin Routes ends here
   // Project Manager Routes starts here
