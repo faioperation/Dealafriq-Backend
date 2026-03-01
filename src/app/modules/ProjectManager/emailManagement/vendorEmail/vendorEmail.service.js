@@ -63,11 +63,11 @@ const getAllEmails = async (userId, filters = {}) => {
 
     return await prisma.email.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { receivedAt: 'desc' }, // Sort by actual email arrival time
         include: {
             vendor: true
         },
-        take: 5
+        take: 20 // Increased to 20 emails
     });
 };
 
@@ -126,7 +126,7 @@ const deleteEmail = async (id, userId) => {
  * Sync email from Gmail (prevents duplicates)
  */
 const syncEmail = async (payload) => {
-    const { gmailMessageId, senderEmail, receiverEmail } = payload;
+    const { gmailMessageId, senderEmail, receiverEmail, receivedAt } = payload;
 
     // Check if email already exists
     const existingEmail = await prisma.email.findUnique({
