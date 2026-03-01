@@ -103,7 +103,8 @@ const getInbox = async (userId, category = null) => {
             const headers = detail.data.payload.headers;
             const subject = headers.find((h) => h.name === 'Subject')?.value || '(No Subject)';
             const from = headers.find((h) => h.name === 'From')?.value || '(Unknown Sender)';
-            const date = headers.find((h) => h.name === 'Date')?.value || '';
+            const dateHeader = headers.find((h) => h.name === 'Date')?.value || '';
+            const receivedAt = dateHeader ? new Date(dateHeader) : null;
 
             const categoryLabel = detail.data.labelIds?.find(l => l.startsWith('CATEGORY_'));
             const category = categoryLabel ? categoryLabel.replace('CATEGORY_', '').toLowerCase() : null;
@@ -113,7 +114,8 @@ const getInbox = async (userId, category = null) => {
                 subject,
                 from,
                 snippet: detail.data.snippet,
-                date,
+                date: dateHeader,
+                receivedAt,
                 category
             };
         })
@@ -186,6 +188,9 @@ const syncAllConnectedAccounts = async () => {
                 // Extract body snippet or full body if needed
                 const body = detail.data.snippet || '';
 
+                const dateHeader = headers.find((h) => h.name === 'Date')?.value || '';
+                const receivedAt = dateHeader ? new Date(dateHeader) : null;
+
                 const categoryLabel = detail.data.labelIds?.find(l => l.startsWith('CATEGORY_'));
                 const category = categoryLabel ? categoryLabel.replace('CATEGORY_', '').toLowerCase() : null;
 
@@ -194,8 +199,9 @@ const syncAllConnectedAccounts = async () => {
                     subject,
                     body,
                     senderEmail,
-                    receiverEmail: account.userId, // Use the account owner's email as unique receiver
+                    receiverEmail: accountEmail, // Use the actual Gmail address
                     category,
+                    receivedAt,
                     created_by: account.userId // Audit as synced by this user's account
                 });
             }
