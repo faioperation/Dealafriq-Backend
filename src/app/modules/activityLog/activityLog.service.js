@@ -127,6 +127,9 @@ const populateLogData = async (prisma, logs) => {
                     case "projectHealth":
                         crudData = await prisma.projectHealth.findMany({ where: { projectId: log.crudId } });
                         break;
+                    case "ai-detection":
+                        crudData = await prisma.aiDetection.findUnique({ where: { id: log.crudId } });
+                        break;
                     default:
                         break;
                 }
