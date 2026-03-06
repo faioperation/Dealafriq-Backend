@@ -3,12 +3,16 @@ import { ZodError } from "zod";
 const validateRequest = (schema) => {
     return async (req, res, next) => {
         try {
-            await schema.parseAsync({
+            const result = await schema.parseAsync({
                 body: req.body,
                 query: req.query,
                 params: req.params,
                 cookies: req.cookies,
             });
+            if (result.body) req.body = result.body;
+            if (result.query) req.query = result.query;
+            if (result.params) req.params = result.params;
+            if (result.cookies) req.cookies = result.cookies;
             next();
         } catch (error) {
             if (error instanceof ZodError) {
