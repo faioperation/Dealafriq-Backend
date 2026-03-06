@@ -537,3 +537,20 @@ model Email {
 }
 
 // project Related models and enums ends here
+
+model AiDetection {
+  id         String    @id @default(uuid())
+  title      String
+  summary    String?
+  sourceType String
+  managerId  String? // this is taken from Ai dectection json response, but right now you can make it optional 
+  createdBy  String
+  updatedBy  String?
+  approvedBy String?
+  deletedBy  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  @@map("AI_detection")
+}
