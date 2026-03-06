@@ -136,7 +136,7 @@ export const OtpService = {
     // OTP is valid, generate a short-lived reset token
     const user = await prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true, role: true, tokenVersion: true },
     });
 
     if (!user) {
@@ -144,7 +144,7 @@ export const OtpService = {
     }
 
     const resetToken = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role, tokenVersion: user.tokenVersion },
       envVars.JWT_SECRET_TOKEN,
       { expiresIn: "10m" }
     );
