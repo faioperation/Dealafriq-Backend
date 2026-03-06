@@ -19,6 +19,7 @@ import { ZoomRoutes } from "../modules/ProjectManager/zoomManagement/zoom.route.
 import { VendorEmailRoutes } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
 import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
+import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
 
 
 
@@ -111,6 +112,10 @@ const moduleRoutes = [
   {
     path: "/activity-log",
     route: ActivityLogRoutes,
+  },
+  {
+    path: "/project-manager/ai-detection",
+    route: AiDetectionRoutes,
   },
   // Project Manager Routes ends here
 ];
