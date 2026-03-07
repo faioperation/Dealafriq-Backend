@@ -202,6 +202,7 @@ const syncAllConnectedAccounts = async () => {
                     receiverEmail: accountEmail, // Use the actual Gmail address
                     category,
                     receivedAt,
+                    source: 'email', // <-- Added source
                     created_by: account.userId // Audit as synced by this user's account
                 });
             }

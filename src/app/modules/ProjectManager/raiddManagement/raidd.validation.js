@@ -3,7 +3,7 @@ import { z } from "zod";
 const createRaiddSchema = z.object({
     body: z.object({
         projectId: z.string().uuid("Invalid project ID"),
-        title: z.string().min(1, "Title is required"),
+        title: z.string().optional(),
         description: z.string().optional(),
         type: z.preprocess(
             (val) => (typeof val === "string" ? val.toUpperCase() : val),
@@ -11,7 +11,7 @@ const createRaiddSchema = z.object({
         ),
         status: z.preprocess(
             (val) => (typeof val === "string" ? val.toUpperCase() : val),
-            z.enum(["LOW", "MEDIUM", "HIGH"])
+            z.enum(["LOW", "MEDIUM", "HIGH"]).optional()
         ),
     }),
 });
