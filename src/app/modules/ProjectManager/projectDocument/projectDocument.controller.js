@@ -9,8 +9,10 @@ const uploadDocument = catchAsync(async (req, res) => {
         throw new Error("Document files are required");
     }
 
-    const { projectId, aiDocumentSummary, title } = req.body;
+    const { projectId, aiDocumentSummary, projectsSummary, title } = req.body;
     let { keyPoints, actionPoints } = req.body;
+
+    const finalSummary = aiDocumentSummary || projectsSummary;
 
     // Robust JSON parsing for multipart/form-data (handles single string or array of strings)
     const parseNestedData = (data) => {
@@ -34,7 +36,7 @@ const uploadDocument = catchAsync(async (req, res) => {
 
     const payloads = req.files.map(file => ({
         projectId,
-        aiDocumentSummary,
+        aiDocumentSummary: finalSummary,
         title,
         fileName: file.originalname,
         fileUrl: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,

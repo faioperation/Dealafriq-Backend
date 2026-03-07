@@ -42,6 +42,22 @@ export const RaiddService = {
 
         return prisma.raidd.findMany({
             where: { projectId, deleted_at: null },
+            include: {
+                project: {
+                    select: {
+                        name: true,
+                        description: true,
+                        vendorName: true,
+                        startDate: true,
+                        endDate: true,
+                        vendor: {
+                            select: {
+                                email: true,
+                            },
+                        },
+                    },
+                },
+            },
             orderBy: { created_at: "desc" },
         });
     },
@@ -53,8 +69,18 @@ export const RaiddService = {
                 project: {
                     select: {
                         id: true,
+                        name: true,
+                        description: true,
+                        vendorName: true,
+                        startDate: true,
+                        endDate: true,
                         managerId: true,
                         deletedAt: true,
+                        vendor: {
+                            select: {
+                                email: true,
+                            },
+                        },
                     },
                 },
             },
@@ -163,6 +189,15 @@ export const RaiddService = {
                     select: {
                         id: true,
                         name: true,
+                        description: true,
+                        vendorName: true,
+                        startDate: true,
+                        endDate: true,
+                        vendor: {
+                            select: {
+                                email: true,
+                            },
+                        },
                     },
                 },
             },

@@ -3,7 +3,12 @@ import { z } from "zod";
 const uploadDocumentSchema = z.object({
     body: z.object({
         projectId: z.string().uuid("Invalid project ID"),
-    }),
+        title: z.string().optional(),
+        aiDocumentSummary: z.string().optional(),
+        projectsSummary: z.string().optional(), // Adding this as the user seemed to use it
+        keyPoints: z.any().optional(), // Will be parsed in controller
+        actionPoints: z.any().optional(), // Will be parsed in controller
+    }).passthrough(),
 });
 
 const uploadAgreementSchema = z.object({
