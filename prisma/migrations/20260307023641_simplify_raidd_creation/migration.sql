@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "raidd" ALTER COLUMN "title" DROP NOT NULL,
+ALTER COLUMN "status" DROP NOT NULL;

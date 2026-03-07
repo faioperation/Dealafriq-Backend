@@ -35,9 +35,11 @@ const loadEnvVars = () => {
 
     "FRONT_END_URL",
 
-    "ZOOM_ACCOUNT_ID",
-    "ZOOM_CLIENT_ID",
     "ZOOM_CLIENT_SECRET",
+    "OUTLOOK_CLIENT_ID",
+    "OUTLOOK_CLIENT_SECRET",
+    "OUTLOOK_TENANT_ID",
+    "OUTLOOK_CALLBACK_URL",
   ];
 
   requiredVars.forEach((key) => {
@@ -86,10 +88,14 @@ const loadEnvVars = () => {
     // Frontend
     FRONT_END_URL: process.env.FRONT_END_URL,
 
-    // Zoom
-    ZOOM_ACCOUNT_ID: process.env.ZOOM_ACCOUNT_ID,
     ZOOM_CLIENT_ID: process.env.ZOOM_CLIENT_ID,
     ZOOM_CLIENT_SECRET: process.env.ZOOM_CLIENT_SECRET,
+
+    // Outlook
+    OUTLOOK_CLIENT_ID: process.env.OUTLOOK_CLIENT_ID,
+    OUTLOOK_CLIENT_SECRET: process.env.OUTLOOK_CLIENT_SECRET,
+    OUTLOOK_TENANT_ID: process.env.OUTLOOK_TENANT_ID,
+    OUTLOOK_CALLBACK_URL: process.env.OUTLOOK_CALLBACK_URL,
   };
 };
 

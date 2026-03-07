@@ -20,6 +20,8 @@ import { VendorEmailRoutes } from "../modules/ProjectManager/emailManagement/ven
 import { UserRoutes } from "../modules/user/user.route.js";
 import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
 import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
+import { RaiddRoutes } from "../modules/ProjectManager/raiddManagement/raidd.route.js";
+import { OutlookRoutes } from "../modules/ProjectManager/outlookManagement/outlook.route.js";
 
 
 
@@ -116,6 +118,14 @@ const moduleRoutes = [
   {
     path: "/project-manager/ai-detection",
     route: AiDetectionRoutes,
+  },
+  {
+    path: "/project-manager/raidd",
+    route: RaiddRoutes,
+  },
+  {
+    path: "/project-manager/outlook",
+    route: OutlookRoutes,
   },
   // Project Manager Routes ends here
 ];

@@ -81,6 +81,11 @@ model User {
   emailsApproved Email[] @relation("EmailApprovedBy")
   emailsDeleted  Email[] @relation("EmailDeletedBy")
 
+  outlooksCreated  Outlook[] @relation("OutlookCreatedBy")
+  outlooksUpdated  Outlook[] @relation("OutlookUpdatedBy")
+  outlooksApproved Outlook[] @relation("OutlookApprovedBy")
+  outlooksDeleted  Outlook[] @relation("OutlookDeletedBy")
+
   @@index([role])
   @@map("users")
 }
@@ -170,6 +175,20 @@ model ProjectManager {
 }
 
 // Project related models and enums
+enum RaiddType {
+  RISK
+  ASSUMPTION
+  ISSUE
+  DECISION
+  DEPENDENCY
+}
+
+enum RaiddStatus {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 enum ProjectStatus {
   DRAFT
   IN_PROGRESS
@@ -247,6 +266,7 @@ model Project {
   transcripts       MeetingTranscript[]     @relation("ProjectTranscripts")
   vendor            Vendor?                 @relation(fields: [vendorId], references: [id])
   vendorId          String?
+  raidd             Raidd[]
 
   @@map("projects")
 }
@@ -484,6 +504,7 @@ model Vendor {
   // Relationships
   projects Project[]
   emails   Email[]
+  outlooks Outlook[]
 
   // Audit Fields
   created_by  String?
@@ -511,6 +532,7 @@ model Email {
   receiverEmail  String?
   vendorEmail    String?
   gmailMessageId String?
+  source         String? // <-- Added field
   category       String?
   receivedAt     DateTime?
 
@@ -536,6 +558,40 @@ model Email {
   @@map("emails")
 }
 
+model Outlook {
+  id               String    @id @default(uuid())
+  subject          String?
+  body             String?
+  senderEmail      String
+  receiverEmail    String?
+  vendorEmail      String?
+  outlookMessageId String?
+  source           String? // <-- Added field
+  category         String?
+  receivedAt       DateTime?
+
+  vendorId String?
+  vendor   Vendor? @relation(fields: [vendorId], references: [id])
+
+  // Audit Fields
+  created_by  String?
+  updated_by  String?
+  approved_by String?
+  deleted_by  String?
+
+  createdBy  User? @relation("OutlookCreatedBy", fields: [created_by], references: [id])
+  updatedBy  User? @relation("OutlookUpdatedBy", fields: [updated_by], references: [id])
+  approvedBy User? @relation("OutlookApprovedBy", fields: [approved_by], references: [id])
+  deletedBy  User? @relation("OutlookDeletedBy", fields: [deleted_by], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("Deleted_at")
+
+  @@unique([outlookMessageId, receiverEmail])
+  @@map("outlooks")
+}
+
 // project Related models and enums ends here
 
 model AiDetection {
@@ -553,4 +609,27 @@ model AiDetection {
   deletedAt  DateTime?
 
   @@map("AI_detection")
+}
+
+model Raidd {
+  id          String  @id @default(uuid())
+  projectId   String
+  title       String?
+  description String?
+
+  type   RaiddType
+  status RaiddStatus?
+
+  created_by  String
+  updated_by  String?
+  approved_by String?
+  deleted_by  String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("raidd")
 }

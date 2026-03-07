@@ -130,6 +130,9 @@ const populateLogData = async (prisma, logs) => {
                     case "ai-detection":
                         crudData = await prisma.aiDetection.findUnique({ where: { id: log.crudId } });
                         break;
+                    case "raidd":
+                        crudData = await prisma.raidd.findUnique({ where: { id: log.crudId } });
+                        break;
                     default:
                         break;
                 }
