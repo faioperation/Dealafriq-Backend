@@ -9,7 +9,7 @@ const uploadDocument = catchAsync(async (req, res) => {
         throw new Error("Document files are required");
     }
 
-    const { projectId, aiDocumentSummary, projectsSummary, title } = req.body;
+    const { projectId, aiDocumentSummary, projectsSummary, title, setDate } = req.body;
     let { keyPoints, actionPoints } = req.body;
 
     const finalSummary = aiDocumentSummary || projectsSummary;
@@ -38,6 +38,7 @@ const uploadDocument = catchAsync(async (req, res) => {
         projectId,
         aiDocumentSummary: finalSummary,
         title,
+        setDate,
         fileName: file.originalname,
         fileUrl: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,
         filePath: `uploads/${file.filename}`,

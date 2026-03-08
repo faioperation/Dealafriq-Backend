@@ -2,6 +2,7 @@ import axios from "axios";
 import prisma from "../../../prisma/client.js";
 import { OutlookOAuth } from "./outlook/utils/outlookOAuth.js";
 import { OutlookSyncService } from "./outlook/outlookSync.service.js";
+import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 
 const getValidToken = async (userId, forceRefresh = false) => {
     let account = await prisma.emailAccount.findFirst({
@@ -183,16 +184,24 @@ const syncAllConnectedAccounts = async () => {
     }
 };
 
-const getUnifiedInbox = async (userId) => {
+const getUnifiedInbox = async (userId, query) => {
+    const queryBuilder = new QueryBuilder(query).filter().build();
+
+    const where = {
+        ...queryBuilder.where,
+        created_by: userId,
+        deletedAt: null
+    };
+
     const gmailEmails = await prisma.email.findMany({
-        where: { created_by: userId, deletedAt: null },
+        where,
         include: { vendor: true },
         orderBy: { receivedAt: 'desc' },
         take: 20
     });
 
     const outlookEmails = await prisma.outlook.findMany({
-        where: { created_by: userId, deletedAt: null },
+        where,
         include: { vendor: true },
         orderBy: { receivedAt: 'desc' },
         take: 20

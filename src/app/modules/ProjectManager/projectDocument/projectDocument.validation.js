@@ -8,6 +8,7 @@ const uploadDocumentSchema = z.object({
         projectsSummary: z.string().optional(), // Adding this as the user seemed to use it
         keyPoints: z.any().optional(), // Will be parsed in controller
         actionPoints: z.any().optional(), // Will be parsed in controller
+        setDate: z.string().optional(),
     }).passthrough(),
 });
 

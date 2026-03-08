@@ -135,7 +135,7 @@ export const ProjectManagementService = {
         const queryBuilder = new QueryBuilder(query)
             .search(projectSearchableFields)
             .filter(relationConfig, { status: ["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"] })
-            .sort("createdAt", relationConfig)
+            .sort("-createdAt", relationConfig)
             .paginate();
 
         const buildQuery = queryBuilder.build();

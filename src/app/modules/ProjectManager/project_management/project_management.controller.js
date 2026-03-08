@@ -10,15 +10,6 @@ import { PMProjectManagementService } from "./project_management.service.js";
 const createProject = catchAsync(async (req, res) => {
     const payload = { ...req.body };
 
-    // Format meetings if provided
-    if (typeof payload.meetings === "string") {
-        try {
-            payload.meetings = JSON.parse(payload.meetings);
-        } catch (e) {
-            payload.meetings = [];
-        }
-    }
-
     // Handle uploaded documents
     if (req.files && req.files.documents) {
         payload.documents = req.files.documents.map(file => ({
