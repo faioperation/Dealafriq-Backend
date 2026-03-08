@@ -38,7 +38,11 @@ export const ProjectDocumentService = {
         const results = await Promise.all(payloads.map(async (payload) => {
             const { keyPoints, actionPoints, ...docData } = payload;
 
-            const nestedData = { ...docData };
+            const nestedData = {
+                ...docData,
+                title: docData.title || docData.fileName || "Untitled Document",
+                setDate: docData.setDate ? new Date(docData.setDate) : undefined
+            };
 
             if (keyPoints && Array.isArray(keyPoints)) {
                 const validPoints = keyPoints.flat().filter(kp => kp && kp.content);

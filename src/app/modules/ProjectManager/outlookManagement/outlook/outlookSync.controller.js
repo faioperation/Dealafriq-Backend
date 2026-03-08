@@ -8,7 +8,7 @@ import { OutlookSyncService } from './outlookSync.service.js';
 
 const getUnifiedInbox = catchAsync(async (req, res) => {
     const userId = req.user.id;
-    const result = await OutlookService.getUnifiedInbox(userId);
+    const result = await OutlookService.getUnifiedInbox(userId, req.query);
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
