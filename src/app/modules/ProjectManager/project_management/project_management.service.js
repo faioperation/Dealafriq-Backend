@@ -52,6 +52,13 @@ export const PMProjectManagementService = {
                         fileType: agr.fileType,
                     }))
                 } : undefined,
+                meetings: payload.meetings ? {
+                    create: payload.meetings.map(m => ({
+                        title: m.title || "Project Meeting",
+                        meetingUrl: m.meetingUrl,
+                        meetingDate: m.meetingDate ? new Date(m.meetingDate) : new Date(),
+                    }))
+                } : undefined,
             },
             include: {
                 meetings: true,
@@ -87,7 +94,7 @@ export const PMProjectManagementService = {
         const queryBuilder = new QueryBuilder(query)
             .search(projectSearchableFields)
             .filter(relationConfig, { status: ["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"] })
-            .sort("createdAt", relationConfig)
+            .sort("-createdAt", relationConfig)
             .paginate();
 
         const buildQuery = queryBuilder.build();

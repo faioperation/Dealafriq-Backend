@@ -348,6 +348,7 @@ model ProjectDocumentUpload {
   fileName          String
   fileUrl           String
   filePath          String
+  setDate           DateTime?
 
   keyPoints    DocumentKeyPoint[]
   actionPoints DocumentActionPoint[]

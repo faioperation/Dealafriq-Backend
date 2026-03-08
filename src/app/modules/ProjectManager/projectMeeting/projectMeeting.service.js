@@ -35,7 +35,8 @@ export const ProjectMeetingService = {
         const meeting = await prisma.projectMeeting.create({
             data: {
                 ...meetingData,
-                meetingDate: new Date(payload.meetingDate),
+                title: payload.title || "Project Meeting",
+                meetingDate: payload.meetingDate ? new Date(payload.meetingDate) : new Date(),
                 keyPoints: keyPoints ? {
                     create: keyPoints.map(kp => ({
                         content: kp.content,
