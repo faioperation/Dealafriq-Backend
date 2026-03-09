@@ -7,7 +7,7 @@ import { OutlookSyncRoutes } from "./outlook/outlookSync.route.js";
 
 const router = express.Router();
 
-router.use("/", OutlookSyncRoutes);
+
 
 router.get(
     "/connect",
@@ -31,5 +31,7 @@ router.delete(
     checkAuthMiddleware(Role.PROJECT_MANAGER),
     OutlookController.disconnect
 );
+
+router.use("/", OutlookSyncRoutes);
 
 export const OutlookRoutes = router;
