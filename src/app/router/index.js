@@ -1,11 +1,15 @@
 import { Router } from "express";
 import { ActivityLogRoutes } from "../modules/activityLog/activityLog.route.js";
-import { ProjectManagementRoutes } from "../modules/ProjectManager/project_management_admin/project_management.route.js";
+
 import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_manager.route.js";
-import { TeamRoutes } from "../modules/ProjectManager/team/team.route.js";
+import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
+import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
 import { EmailAccountRoutes } from "../modules/ProjectManager/emailManagement/email/email.route.js";
+import { VendorEmailRoutes } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.route.js";
+import { EmployeeRoutes } from "../modules/ProjectManager/employee/employee.route.js";
+import { OutlookRoutes } from "../modules/ProjectManager/outlookManagement/outlook.route.js";
 import { PMProjectManagementRoutes } from "../modules/ProjectManager/project_management/project_management.route.js";
 import { ProjectAgreementRoutes } from "../modules/ProjectManager/projectAgreement/projectAgreement.route.js";
 import { ProjectDocumentRoutes } from "../modules/ProjectManager/projectDocument/projectDocument.route.js";
@@ -13,16 +17,12 @@ import { ProjectHealthRoutes } from "../modules/ProjectManager/projectHealth/pro
 import { ProjectMeetingRoutes } from "../modules/ProjectManager/projectMeeting/projectMeeting.route.js";
 import { ProjectMilestoneRoutes } from "../modules/ProjectManager/projectMilestone/projectMilestone.route.js";
 import { ProjectTaskRoutes } from "../modules/ProjectManager/projectTask/projectTask.route.js";
+import { RaiddRoutes } from "../modules/ProjectManager/raiddManagement/raidd.route.js";
+import { TeamRoutes } from "../modules/ProjectManager/team/team.route.js";
 import { TranscriptRoutes } from "../modules/ProjectManager/transcriptManagement/transcript.route.js";
 import { VendorRoutes } from "../modules/ProjectManager/vendorManagement/vendor.route.js";
 import { ZoomRoutes } from "../modules/ProjectManager/zoomManagement/zoom.route.js";
-import { VendorEmailRoutes } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
-import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
-import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
-import { RaiddRoutes } from "../modules/ProjectManager/raiddManagement/raidd.route.js";
-import { OutlookRoutes } from "../modules/ProjectManager/outlookManagement/outlook.route.js";
-import { EmployeeRoutes } from "../modules/ProjectManager/employee/employee.route.js";
 
 
 
@@ -50,10 +50,7 @@ const moduleRoutes = [
     path: "/admin/project-manager",
     route: ProjectManagerRoutes,
   },
-  {
-    path: "/admin/project-management",
-    route: ProjectManagementRoutes,
-  },
+
   {
     path: "/admin/user-management",
     route: UserManagementRoutes,
@@ -116,10 +113,7 @@ const moduleRoutes = [
     path: "/project-manager/vendor-email",
     route: VendorEmailRoutes,
   },
-  {
-    path: "/project-manager/project-management-admin",
-    route: ProjectManagementRoutes,
-  },
+
   {
     path: "/email-account-connection",
     route: EmailAccountRoutes,
