@@ -11,6 +11,9 @@ const router = express.Router();
 router.get('/connect', checkAuthMiddleware(...Object.values(Role)), EmailController.connect);
 router.get('/callback', EmailController.callback);
 
+// Connection status route
+router.get('/status', checkAuthMiddleware(...Object.values(Role)), EmailController.getStatus);
+
 // Inbox routes
 router.get('/inbox', checkAuthMiddleware(...Object.values(Role)), EmailController.getInbox);
 

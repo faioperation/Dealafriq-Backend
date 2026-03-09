@@ -240,9 +240,21 @@ const disconnectEmailAccount = async (userId) => {
     });
 };
 
+const getAllConnectionStatus = async (userId) => {
+    return await prisma.emailAccount.findMany({
+        where: { userId },
+        select: {
+            provider: true,
+            email: true,
+            isConnected: true
+        }
+    });
+};
+
 export const EmailService = {
     connectEmailAccount,
     getInbox,
     syncAllConnectedAccounts,
-    disconnectEmailAccount
+    disconnectEmailAccount,
+    getAllConnectionStatus
 };

@@ -6,9 +6,7 @@ import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 
 export const ProjectManagementService = {
     createProject: async (prisma, payload, userId) => {
-        // Initialize fallback
         let targetManagerId = payload.managerId;
-        let teamId = payload.teamId;
 
         // Try to find the Project Manager record first (user might have sent ProjectManager.id or ProjectManager.userId)
         const pmRecord = await prisma.projectManager.findFirst({
@@ -22,9 +20,7 @@ export const ProjectManagementService = {
         });
 
         if (pmRecord) {
-            // If found, use the related userId and teamId
             targetManagerId = pmRecord.userId;
-            teamId = pmRecord.teamId;
         } else {
             // If not found in ProjectManager table, check if it's a direct User ID with PM role
             const user = await prisma.user.findUnique({
@@ -34,12 +30,9 @@ export const ProjectManagementService = {
             if (!user || user.role !== "PROJECT_MANAGER") {
                 throw new AppError(StatusCodes.NOT_FOUND, "Project Manager not found");
             }
-            teamId = user.teamId;
         }
 
-        // Update payload with the verified User ID and Team ID
         payload.managerId = targetManagerId;
-        payload.teamId = teamId;
 
         const project = await prisma.project.create({
             data: {
@@ -51,7 +44,8 @@ export const ProjectManagementService = {
                 status: payload.status || "ONGOING",
                 manager: { connect: { id: payload.managerId } },
                 createdBy: { connect: { id: userId } },
-                team: payload.teamId ? { connect: { id: payload.teamId } } : undefined,
+                projectOwnerId: userId,
+                assignTeamId: payload.assignTeamId || undefined,
 
                 // Integrated creation of sub-entities
                 meetings: payload.meetings ? {
@@ -129,7 +123,7 @@ export const ProjectManagementService = {
     getAllProjects: async (prisma, query) => {
         const relationConfig = {
             manager: ["firstName", "lastName", "email"],
-            team: ["name"],
+            assignTeam: ["name"],
         };
 
         const queryBuilder = new QueryBuilder(query)
@@ -152,7 +146,7 @@ export const ProjectManagementService = {
                             role: true,
                         },
                     },
-                    team: true,
+                    assignTeam: true,
                     tasks: true,
                     milestones: true,
                     health: true,
@@ -192,7 +186,7 @@ export const ProjectManagementService = {
                         role: true,
                     },
                 },
-                team: true,
+                assignTeam: true,
                 tasks: true,
                 milestones: true,
                 meetings: {
@@ -227,15 +221,7 @@ export const ProjectManagementService = {
         if (payload.startDate) updateData.startDate = new Date(payload.startDate);
         if (payload.endDate) updateData.endDate = new Date(payload.endDate);
 
-        // If manager changes, automatically update team
-        if (payload.managerId && payload.managerId !== project.managerId) {
-            const projectManager = await prisma.user.findUnique({
-                where: { id: payload.managerId },
-            });
-            if (projectManager) {
-                updateData.teamId = projectManager.teamId;
-            }
-        }
+        // If manager changes, we don't auto-update assignTeam in admin view anymore
 
         const updatedProject = await prisma.project.update({
             where: { id },

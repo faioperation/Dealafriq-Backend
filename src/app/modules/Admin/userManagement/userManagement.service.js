@@ -30,7 +30,7 @@ const getAllSystemEmails = async (filters = {}) => {
         };
     }
 
-    return await prisma.email.findMany({
+    const gmailEmails = await prisma.email.findMany({
         where,
         orderBy: { receivedAt: 'desc' },
         include: {
@@ -44,8 +44,33 @@ const getAllSystemEmails = async (filters = {}) => {
                 }
             }
         },
-        take: 50 // Admins get more visibility
+        take: 50
     });
+
+    const outlookEmails = await prisma.outlook.findMany({
+        where,
+        orderBy: { receivedAt: 'desc' },
+        include: {
+            vendor: true,
+            createdBy: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true
+                }
+            }
+        },
+        take: 50
+    });
+
+    // Combine and sort
+    const allEmails = [
+        ...gmailEmails.map(e => ({ ...e, source: 'GMAIL' })),
+        ...outlookEmails.map(e => ({ ...e, source: 'OUTLOOK' }))
+    ].sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt));
+
+    return allEmails.slice(0, 100); // Admin gets top 100 recent
 };
 
 /**
@@ -65,13 +90,29 @@ const getEmailsByUserId = async (userId, filters = {}) => {
         };
     }
 
-    return await prisma.email.findMany({
+    const gmailEmails = await prisma.email.findMany({
         where,
         orderBy: { receivedAt: 'desc' },
         include: {
             vendor: true
         }
     });
+
+    const outlookEmails = await prisma.outlook.findMany({
+        where,
+        orderBy: { receivedAt: 'desc' },
+        include: {
+            vendor: true
+        }
+    });
+
+    // Combine and sort
+    const allEmails = [
+        ...gmailEmails.map(e => ({ ...e, source: 'GMAIL' })),
+        ...outlookEmails.map(e => ({ ...e, source: 'OUTLOOK' }))
+    ].sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt));
+
+    return allEmails;
 };
 
 /**
