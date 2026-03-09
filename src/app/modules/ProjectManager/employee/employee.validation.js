@@ -6,6 +6,7 @@ const createEmployeeSchema = z.object({
         lastName: z.string().optional(),
         email: z.string().email("Invalid email address"),
         phoneNumber: z.string().optional(),
+        designation: z.string().optional(),
         teamId: z.string().optional(),
     }),
 });
@@ -16,6 +17,7 @@ const updateEmployeeSchema = z.object({
         lastName: z.string().optional(),
         email: z.string().email("Invalid email address").optional(),
         phoneNumber: z.string().optional(),
+        designation: z.string().optional(),
         teamId: z.string().optional(),
     }),
 });

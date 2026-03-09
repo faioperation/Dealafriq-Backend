@@ -650,6 +650,7 @@ model Employee {
   lastName    String?
   email       String  @unique
   phoneNumber String?
+  designation String?
   teamId      String?
   team        Team?   @relation(fields: [teamId], references: [id])
 

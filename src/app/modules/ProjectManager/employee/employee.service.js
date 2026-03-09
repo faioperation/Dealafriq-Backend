@@ -9,6 +9,8 @@ export const EmployeeService = {
                 lastName: payload.lastName,
                 email: payload.email,
                 phoneNumber: payload.phoneNumber,
+                designation: payload.designation,
+                teamId: payload.teamId,
                 created_by: userId,
             },
         });
