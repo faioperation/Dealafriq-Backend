@@ -16,7 +16,7 @@ const projectUploadFields = fileUpload.fields([
 
 router.post(
     "/create",
-    checkAuthMiddleware(Role.PROJECT_MANAGER),
+    checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER, Role.PROJECT_MANAGER),
     projectUploadFields,
     validateRequest(ProjectManagerProjectValidation.createProjectSchema),
     PMProjectManagementController.createProject,
@@ -24,25 +24,25 @@ router.post(
 
 router.get(
     "/my-projects",
-    checkAuthMiddleware(Role.PROJECT_MANAGER),
+    checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER, Role.PROJECT_MANAGER),
     PMProjectManagementController.getMyProjects,
 );
 
 router.get(
     "/:id",
-    checkAuthMiddleware(Role.PROJECT_MANAGER),
+    checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER, Role.PROJECT_MANAGER),
     PMProjectManagementController.getSingleProject,
 );
 
 router.patch(
     "/:id",
-    checkAuthMiddleware(Role.PROJECT_MANAGER),
+    checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER, Role.PROJECT_MANAGER),
     validateRequest(ProjectManagerProjectValidation.updateProjectSchema),
     PMProjectManagementController.updateProject,
 );
 router.delete(
     "/:id",
-    checkAuthMiddleware(Role.PROJECT_MANAGER),
+    checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER, Role.PROJECT_MANAGER),
     PMProjectManagementController.deleteSingleProject,
 );
 

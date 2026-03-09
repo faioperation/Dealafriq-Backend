@@ -7,7 +7,6 @@ const createProjectManagerSchema = z.object({
         email: z.string().email("Invalid email address"),
         password: z.string().min(6, "Password must be at least 6 characters"),
         projectId: z.string().optional(),
-        teamId: z.string().optional(),
     }),
 });
 
@@ -18,7 +17,6 @@ const updateProjectManagerSchema = z.object({
         email: z.string().email("Invalid email address").optional(),
         password: z.string().min(6, "Password must be at least 6 characters").optional(),
         projectId: z.string().optional(),
-        teamId: z.string().optional(),
     }),
 });
 

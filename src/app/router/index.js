@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { ActivityLogRoutes } from "../modules/activityLog/activityLog.route.js";
-import { ProjectManagementRoutes } from "../modules/Admin/project_management/project_management.route.js";
+import { ProjectManagementRoutes } from "../modules/ProjectManager/project_management_admin/project_management.route.js";
 import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_manager.route.js";
-import { TeamRoutes } from "../modules/Admin/team/team.route.js";
+import { TeamRoutes } from "../modules/ProjectManager/team/team.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { EmailAccountRoutes } from "../modules/ProjectManager/emailManagement/email/email.route.js";
@@ -22,6 +22,7 @@ import { UserManagementRoutes } from "../modules/Admin/userManagement/userManage
 import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
 import { RaiddRoutes } from "../modules/ProjectManager/raiddManagement/raidd.route.js";
 import { OutlookRoutes } from "../modules/ProjectManager/outlookManagement/outlook.route.js";
+import { EmployeeRoutes } from "../modules/ProjectManager/employee/employee.route.js";
 
 
 
@@ -92,6 +93,14 @@ const moduleRoutes = [
     route: ProjectAgreementRoutes,
   },
   {
+    path: "/project-manager/team",
+    route: TeamRoutes,
+  },
+  {
+    path: "/project-manager/employees",
+    route: EmployeeRoutes,
+  },
+  {
     path: "/project-manager/project-transcript",
     route: TranscriptRoutes,
   },
@@ -106,6 +115,10 @@ const moduleRoutes = [
   {
     path: "/project-manager/vendor-email",
     route: VendorEmailRoutes,
+  },
+  {
+    path: "/project-manager/project-management-admin",
+    route: ProjectManagementRoutes,
   },
   {
     path: "/email-account-connection",

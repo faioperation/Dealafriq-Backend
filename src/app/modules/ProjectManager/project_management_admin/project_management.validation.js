@@ -8,6 +8,7 @@ const createProjectSchema = z.object({
         startDate: z.string().optional(),
         endDate: z.string().optional(),
         managerId: z.string().uuid("Invalid manager ID"),
+        assignTeamId: z.string().uuid("Invalid assign team ID").optional(),
         status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
         weeklyMeetingSummary: z.string().optional(),
         health: z.array(z.object({
@@ -31,7 +32,7 @@ const updateProjectSchema = z.object({
         startDate: z.string().optional(),
         endDate: z.string().optional(),
         managerId: z.string().uuid("Invalid manager ID").optional(),
-        teamId: z.string().uuid("Invalid team ID").optional(),
+        assignTeamId: z.string().uuid("Invalid assign team ID").optional(),
         status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
         weeklyMeetingSummary: z.string().optional(),
     }),

@@ -9,6 +9,7 @@ const router = express.Router();
 router.use(checkAuthMiddleware('PROJECT_MANAGER'));
 
 router.get('/unified-inbox', OutlookSyncController.getUnifiedInbox);
+router.get('/unified/:id', OutlookSyncController.getSingleUnifiedMessage);
 router.get('/all-synced', OutlookSyncController.getAllOutlooks);
 router.delete('/:id', OutlookSyncController.deleteOutlook);
 router.post('/sync', OutlookSyncController.syncInbox);

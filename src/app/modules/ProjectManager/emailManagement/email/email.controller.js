@@ -66,9 +66,29 @@ const disconnect = async (req, res) => {
     }
 };
 
+const getStatus = async (req, res) => {
+    try {
+        const result = await EmailService.getAllConnectionStatus(req.user.id);
+        const formattedData = result.map(acc => ({
+            source: acc.provider === 'google' ? 'GMAIL' : acc.provider,
+            email: acc.email,
+            isConnected: acc.isConnected
+        }));
+
+        res.status(200).json({
+            success: true,
+            message: "Fetched Successfully",
+            data: formattedData
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export const EmailController = {
     connect,
     callback,
     getInbox,
     disconnect,
+    getStatus
 };

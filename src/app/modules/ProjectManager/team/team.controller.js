@@ -23,7 +23,7 @@ export const TeamController = {
   }),
 
   getAllTeams: catchAsync(async (req, res) => {
-    const result = await TeamService.getAllTeams(prisma);
+    const result = await TeamService.getAllTeams(prisma, req.user.id);
 
     sendResponse(res, {
       statusCode: StatusCodes.OK,
