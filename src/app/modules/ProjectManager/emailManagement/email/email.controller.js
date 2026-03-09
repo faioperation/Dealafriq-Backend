@@ -1,11 +1,19 @@
 
 import { EmailService } from './email.service.js';
+import prisma from '../../../../prisma/client.js';
 import { getAuthUrl, getTokens } from './utils/googleEmailOAuth.js';
 
 const connect = async (req, res) => {
     try {
         const url = getAuthUrl(req.user.id);
-        res.status(200).json({ success: true, url });
+        const account = await prisma.emailAccount.findFirst({
+            where: { userId: req.user.id, provider: 'google' }
+        });
+        res.status(200).json({
+            success: true,
+            url,
+            isConnected: account ? account.isConnected : false
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -22,9 +30,13 @@ const callback = async (req, res) => {
         }
 
         const tokens = await getTokens(code);
-        await EmailService.connectEmailAccount(userId, tokens);
+        const account = await EmailService.connectEmailAccount(userId, tokens);
 
-        res.status(200).json({ success: true, message: 'Gmail connected successfully' });
+        res.status(200).json({
+            success: true,
+            message: 'Gmail connected successfully',
+            isConnected: account.isConnected
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -44,7 +56,11 @@ const getInbox = async (req, res) => {
 const disconnect = async (req, res) => {
     try {
         await EmailService.disconnectEmailAccount(req.user.id);
-        res.status(200).json({ success: true, message: 'Gmail account disconnected successfully' });
+        res.status(200).json({
+            success: true,
+            message: 'Gmail account disconnected successfully',
+            isConnected: false
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
