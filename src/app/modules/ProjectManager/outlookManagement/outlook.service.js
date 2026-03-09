@@ -15,15 +15,24 @@ const getValidToken = async (userId, forceRefresh = false) => {
 
     // Check if expired (with 5 min buffer) or if refresh is forced
     if (forceRefresh || new Date() >= new Date(account.expiryDate.getTime() - 5 * 60 * 1000)) {
-        const tokens = await OutlookOAuth.refreshToken(account.refreshToken);
-        account = await prisma.emailAccount.update({
-            where: { id: account.id },
-            data: {
-                accessToken: tokens.access_token,
-                refreshToken: tokens.refresh_token || account.refreshToken,
-                expiryDate: new Date(Date.now() + tokens.expires_in * 1000),
-            },
-        });
+        try {
+            const tokens = await OutlookOAuth.refreshToken(account.refreshToken);
+            account = await prisma.emailAccount.update({
+                where: { id: account.id },
+                data: {
+                    accessToken: tokens.access_token,
+                    refreshToken: tokens.refresh_token || account.refreshToken,
+                    expiryDate: new Date(Date.now() + tokens.expires_in * 1000),
+                    isConnected: true,
+                },
+            });
+        } catch (refreshError) {
+            await prisma.emailAccount.updateMany({
+                where: { userId, provider: 'outlook' },
+                data: { isConnected: false }
+            });
+            throw refreshError;
+        }
     }
 
     return account.accessToken;
@@ -54,6 +63,7 @@ const connectAccount = async (userId, code) => {
                 refreshToken: tokens.refresh_token || existingAccount.refreshToken,
                 expiryDate,
                 email: email || existingAccount.email,
+                isConnected: true,
             },
         });
     }
@@ -66,6 +76,7 @@ const connectAccount = async (userId, code) => {
             accessToken: tokens.access_token,
             refreshToken: tokens.refresh_token,
             expiryDate,
+            isConnected: true,
         },
     });
 };
@@ -173,7 +184,7 @@ const syncAllConnectedAccounts = async () => {
                     receiverEmail: account.email,
                     category: null, // Outlook graph doesn't give category easily like Gmail
                     receivedAt: msg.receivedDateTime,
-                    source: 'outlook', // <-- Added source
+                    source: 'outlook',
                     created_by: account.userId
                 });
             }
