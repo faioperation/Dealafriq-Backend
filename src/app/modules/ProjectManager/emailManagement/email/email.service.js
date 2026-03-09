@@ -20,24 +20,35 @@ const getGmailClient = async (userId) => {
         expiry_date: account.expiryDate.getTime(),
     });
 
-    // Automatically refresh token if expired
-    oauth2Client.on('tokens', async (tokens) => {
-        const updateData = {
-            accessToken: tokens.access_token,
-            expiryDate: new Date(tokens.expiry_date),
-        };
-        if (tokens.refresh_token) {
-            updateData.refreshToken = tokens.refresh_token;
-        }
+    try {
+        // Automatically refresh token if expired
+        oauth2Client.on('tokens', async (tokens) => {
+            const updateData = {
+                accessToken: tokens.access_token,
+                expiryDate: new Date(tokens.expiry_date),
+            };
+            if (tokens.refresh_token) {
+                updateData.refreshToken = tokens.refresh_token;
+            }
 
+            await prisma.emailAccount.update({
+                where: { id: account.id },
+                data: {
+                    ...updateData,
+                    isConnected: true
+                },
+            });
+        });
+
+        return google.gmail({ version: 'v1', auth: oauth2Client });
+    } catch (error) {
         await prisma.emailAccount.update({
             where: { id: account.id },
-            data: updateData,
+            data: { isConnected: false }
         });
-    });
-
-    return google.gmail({ version: 'v1', auth: oauth2Client });
-};
+        throw error;
+    }
+}
 
 const connectEmailAccount = async (userId, tokens) => {
     const expiryDate = new Date(tokens.expiry_date);
@@ -61,6 +72,7 @@ const connectEmailAccount = async (userId, tokens) => {
                 refreshToken: tokens.refresh_token || existingAccount.refreshToken,
                 expiryDate,
                 email: email || existingAccount.email,
+                isConnected: true,
             },
         });
     }
@@ -73,6 +85,7 @@ const connectEmailAccount = async (userId, tokens) => {
             accessToken: tokens.access_token,
             refreshToken: tokens.refresh_token,
             expiryDate,
+            isConnected: true,
         },
     });
 };
@@ -202,7 +215,7 @@ const syncAllConnectedAccounts = async () => {
                     receiverEmail: accountEmail, // Use the actual Gmail address
                     category,
                     receivedAt,
-                    source: 'email', // <-- Added source
+                    source: 'email',
                     created_by: account.userId // Audit as synced by this user's account
                 });
             }

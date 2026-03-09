@@ -3,14 +3,21 @@ import { OutlookOAuth } from "./outlook/utils/outlookOAuth.js";
 import { catchAsync } from "../../../utils/catchAsync.js";
 import { sendResponse } from "../../../utils/sendResponse.js";
 import { StatusCodes } from "http-status-codes";
+import prisma from "../../../prisma/client.js";
 
 const connect = catchAsync(async (req, res) => {
     const url = OutlookOAuth.getAuthUrl(req.user.id);
+    const account = await prisma.emailAccount.findFirst({
+        where: { userId: req.user.id, provider: 'outlook' }
+    });
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
         message: "Outlook auth URL generated",
-        data: { url },
+        data: {
+            url,
+            isConnected: account ? account.isConnected : false
+        },
     });
 });
 
@@ -20,7 +27,7 @@ const callback = catchAsync(async (req, res) => {
         throw new Error("Code is required");
     }
 
-    await OutlookService.connectAccount(userId, code);
+    const account = await OutlookService.connectAccount(userId, code);
 
     // Redirect or send success response
     // For now, consistent with Gmail implementation:
@@ -28,6 +35,9 @@ const callback = catchAsync(async (req, res) => {
         statusCode: StatusCodes.OK,
         success: true,
         message: "Outlook connected successfully",
+        data: {
+            isConnected: account.isConnected
+        }
     });
 });
 
@@ -47,6 +57,9 @@ const disconnect = catchAsync(async (req, res) => {
         statusCode: StatusCodes.OK,
         success: true,
         message: "Outlook account disconnected successfully",
+        data: {
+            isConnected: false
+        }
     });
 });
 
