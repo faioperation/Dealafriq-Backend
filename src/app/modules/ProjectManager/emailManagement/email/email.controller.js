@@ -2,10 +2,20 @@
 import { EmailService } from './email.service.js';
 import prisma from '../../../../prisma/client.js';
 import { getAuthUrl, getTokens } from './utils/googleEmailOAuth.js';
+import { envVars } from '../../../../config/env.js';
 
 const connect = async (req, res) => {
     try {
-        const url = getAuthUrl(req.user.id);
+        const { redirectUrl } = req.query;
+
+        // Encode both userId and redirectUrl into the state parameter
+        const stateObj = {
+            userId: req.user.id,
+            redirectUrl: redirectUrl || `${envVars.FRONT_END_URL}/data-source`
+        };
+        const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
+
+        const url = getAuthUrl(state);
         const account = await prisma.emailAccount.findFirst({
             where: { userId: req.user.id, provider: 'google' }
         });
@@ -21,22 +31,24 @@ const connect = async (req, res) => {
 
 const callback = async (req, res) => {
     try {
-        const { code, state: userId } = req.query;
+        const { code, state: encodedState } = req.query;
         if (!code) {
             return res.status(400).json({ success: false, message: 'Code is required' });
         }
-        if (!userId) {
+        if (!encodedState) {
             return res.status(400).json({ success: false, message: 'User state is required' });
         }
+
+        // Decode the state parameter to get userId and redirectUrl
+        const stateObj = JSON.parse(Buffer.from(encodedState, 'base64').toString('ascii'));
+        const userId = stateObj.userId;
+        const redirectUrl = stateObj.redirectUrl;
 
         const tokens = await getTokens(code);
         const account = await EmailService.connectEmailAccount(userId, tokens);
 
-        res.status(200).json({
-            success: true,
-            message: 'Gmail connected successfully',
-            isConnected: account.isConnected
-        });
+        // Redirect to the frontend data-source page dynamically
+        res.redirect(redirectUrl);
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
