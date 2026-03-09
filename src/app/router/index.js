@@ -18,6 +18,7 @@ import { TranscriptRoutes } from "../modules/ProjectManager/transcriptManagement
 import { VendorRoutes } from "../modules/ProjectManager/vendorManagement/vendor.route.js";
 import { ZoomRoutes } from "../modules/ProjectManager/zoomManagement/zoom.route.js";
 import { VendorEmailRoutes } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.route.js";
+import { PMDashboardRoutes } from "../modules/ProjectManager/dashboard/pm_dashboard.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
 import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
 import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
@@ -64,6 +65,10 @@ const moduleRoutes = [
   },
   // Admin Routes ends here
   // Project Manager Routes starts here
+  {
+    path: "/project-manager/dashboard",
+    route: PMDashboardRoutes,
+  },
   {
     path: "/project-manager/project-management",
     route: PMProjectManagementRoutes,
