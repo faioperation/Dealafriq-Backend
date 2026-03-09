@@ -3,6 +3,7 @@ import { ActivityLogRoutes } from "../modules/activityLog/activityLog.route.js";
 import { ProjectManagementRoutes } from "../modules/Admin/project_management/project_management.route.js";
 import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_manager.route.js";
 import { TeamRoutes } from "../modules/Admin/team/team.route.js";
+import { DashboardRoutes } from "../modules/Admin/dashboard/dashboard.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { EmailAccountRoutes } from "../modules/ProjectManager/emailManagement/email/email.route.js";
@@ -41,6 +42,10 @@ const moduleRoutes = [
     route: OtpRouter,
   },
   // Admin Routes starts here
+  {
+    path: "/admin/dashboard",
+    route: DashboardRoutes,
+  },
   {
     path: "/admin/team",
     route: TeamRoutes,
