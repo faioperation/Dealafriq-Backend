@@ -227,10 +227,35 @@ const getUnifiedInbox = async (userId, query) => {
     return unified.slice(0, 20);
 };
 
+const getSingleUnifiedMessage = async (id, userId) => {
+    // Try searching in Gmail emails first
+    const gmailEmail = await prisma.email.findFirst({
+        where: { id, created_by: userId },
+        include: { vendor: true }
+    });
+
+    if (gmailEmail) {
+        return { ...gmailEmail, type: 'gmail' };
+    }
+
+    // Try searching in Outlook emails
+    const outlookEmail = await prisma.outlook.findFirst({
+        where: { id, created_by: userId },
+        include: { vendor: true }
+    });
+
+    if (outlookEmail) {
+        return { ...outlookEmail, type: 'outlook' };
+    }
+
+    return null;
+};
+
 export const OutlookService = {
     connectAccount,
     getInbox,
     disconnectAccount,
     syncAllConnectedAccounts,
-    getUnifiedInbox
+    getUnifiedInbox,
+    getSingleUnifiedMessage
 };

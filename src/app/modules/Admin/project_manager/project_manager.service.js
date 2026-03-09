@@ -27,7 +27,6 @@ export const ProjectManagerService = {
                     role: Role.PROJECT_MANAGER,
                     isVerified: true, // Internal users are pre-verified
                     oauthProvider: "email",
-                    teamId: payload.teamId, // Sync teamId to user table
                 },
             });
 
@@ -40,11 +39,6 @@ export const ProjectManagerService = {
                     user: {
                         connect: { id: user.id },
                     },
-                    team: payload.teamId
-                        ? {
-                            connect: { id: payload.teamId },
-                        }
-                        : undefined,
                     createdBy: {
                         connect: { id: userId },
                     },
@@ -59,13 +53,12 @@ export const ProjectManagerService = {
         return prisma.projectManager.findMany({
             where: { deletedAt: null },
             include: {
-                team: true,
+                teams: true,
                 user: {
                     select: {
                         id: true,
                         email: true,
                         role: true,
-                        teamId: true,
                         isVerified: true,
                         firstName: true,
                         lastName: true,
@@ -79,7 +72,7 @@ export const ProjectManagerService = {
         const projectManager = await prisma.projectManager.findFirst({
             where: { id, deletedAt: null },
             include: {
-                team: true,
+                teams: true,
                 user: {
                     select: {
                         id: true,
@@ -123,7 +116,6 @@ export const ProjectManagerService = {
                     firstName: payload.firstName,
                     lastName: payload.lastName,
                     projectId: payload.projectId,
-                    teamId: payload.teamId,
                     updatedById: userId,
                 },
             });
@@ -135,7 +127,6 @@ export const ProjectManagerService = {
                     data: {
                         firstName: payload.firstName,
                         lastName: payload.lastName,
-                        teamId: payload.teamId, // Sync teamId to user table
                     },
                 });
             }

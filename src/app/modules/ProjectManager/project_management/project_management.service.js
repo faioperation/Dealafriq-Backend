@@ -25,7 +25,8 @@ export const PMProjectManagementService = {
                 status: payload.status || "ONGOING",
                 manager: { connect: { id: userId } },
                 createdBy: { connect: { id: userId } },
-                team: user.teamId ? { connect: { id: user.teamId } } : undefined,
+                projectOwnerId: userId,
+                assignTeamId: payload.assignTeamId || undefined,
 
                 health: payload.health ? {
                     create: payload.health.map(h => ({
@@ -88,7 +89,7 @@ export const PMProjectManagementService = {
     getMyProjects: async (prisma, userId, query) => {
         const relationConfig = {
             manager: ["firstName", "lastName", "email"],
-            team: ["name"],
+            assignTeam: ["name"],
         };
 
         const queryBuilder = new QueryBuilder(query)
@@ -116,7 +117,7 @@ export const PMProjectManagementService = {
                             role: true,
                         },
                     },
-                    team: true,
+                    assignTeam: true,
                     tasks: true,
                     milestones: true,
                     health: true,
@@ -161,7 +162,7 @@ export const PMProjectManagementService = {
                         role: true,
                     },
                 },
-                team: true,
+                assignTeam: true,
                 tasks: true,
                 milestones: true,
                 health: true,

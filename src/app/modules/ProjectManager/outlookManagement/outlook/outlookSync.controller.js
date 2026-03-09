@@ -17,6 +17,27 @@ const getUnifiedInbox = catchAsync(async (req, res) => {
     });
 });
 
+const getSingleUnifiedMessage = catchAsync(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const result = await OutlookService.getSingleUnifiedMessage(id, userId);
+
+    if (!result) {
+        return sendResponse(res, {
+            statusCode: httpStatus.NOT_FOUND,
+            success: false,
+            message: 'Message not found',
+        });
+    }
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Message retrieved successfully',
+        data: result,
+    });
+});
+
 const getAllOutlooks = catchAsync(async (req, res) => {
     const userId = req.user.id;
     const result = await OutlookSyncService.getAllOutlooks(userId, req.query);
@@ -51,6 +72,7 @@ const syncInbox = catchAsync(async (req, res) => {
 
 export const OutlookSyncController = {
     getUnifiedInbox,
+    getSingleUnifiedMessage,
     getAllOutlooks,
     deleteOutlook,
     syncInbox
