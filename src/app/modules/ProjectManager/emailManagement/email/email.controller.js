@@ -13,7 +13,7 @@ const connect = async (req, res) => {
             userId: req.user.id,
             redirectUrl: redirectUrl || `${envVars.FRONT_END_URL}/data-source`
         };
-        const state = Buffer.from(JSON.stringify(stateObj)).toString('base64');
+        const state = Buffer.from(JSON.stringify(stateObj)).toString('base64url');
 
         const url = getAuthUrl(state);
         const account = await prisma.emailAccount.findFirst({
@@ -40,7 +40,7 @@ const callback = async (req, res) => {
         }
 
         // Decode the state parameter to get userId and redirectUrl
-        const stateObj = JSON.parse(Buffer.from(encodedState, 'base64').toString('ascii'));
+        const stateObj = JSON.parse(Buffer.from(encodedState, 'base64url').toString('utf-8'));
         const userId = stateObj.userId;
         const redirectUrl = stateObj.redirectUrl;
 
