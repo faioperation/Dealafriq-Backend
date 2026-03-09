@@ -1,8 +1,8 @@
 import app from "./app.js";
 import { envVars } from "./app/config/env.js";
 import { connectRedis } from "./app/config/redis.config.js";
-import prisma from "./app/prisma/client.js";
 import { initEmailSyncCron } from "./app/cron/emailSyncCron.js";
+import prisma from "./app/prisma/client.js";
 
 let server;
 
@@ -13,7 +13,8 @@ const startServer = async () => {
     console.log(`Environment: ${envVars.NODE_ENV}`);
 
     // Connect Redis
-    await connectRedis();
+    // await connectRedis();
+     connectRedis();
     console.log("Redis Connected Successfully 🚚✅");
 
     // Start server
