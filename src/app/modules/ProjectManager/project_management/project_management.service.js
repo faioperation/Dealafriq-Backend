@@ -15,6 +15,8 @@ export const PMProjectManagementService = {
             throw new AppError(StatusCodes.FORBIDDEN, "Only Project Managers can create projects this way");
         }
 
+        const actualAssignTeamId = payload.assignTeamId || payload.assignTeam;
+
         const project = await prisma.project.create({
             data: {
                 name: payload.name,
@@ -25,8 +27,8 @@ export const PMProjectManagementService = {
                 status: payload.status || "ONGOING",
                 manager: { connect: { id: userId } },
                 createdBy: { connect: { id: userId } },
-                projectOwnerId: userId,
-                assignTeamId: payload.assignTeamId || undefined,
+                projectOwner: { connect: { id: userId } },
+                assignTeam: actualAssignTeamId ? { connect: { id: actualAssignTeamId } } : undefined,
 
                 health: payload.health ? {
                     create: payload.health.map(h => ({
@@ -65,6 +67,11 @@ export const PMProjectManagementService = {
                 meetings: true,
                 documents: true,
                 health: true,
+                tasks: true,
+                projectAgreements: true,
+                transcripts: true,
+                milestones: true,
+                assignTeam: true,
                 manager: {
                     select: {
                         firstName: true,

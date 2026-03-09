@@ -47,6 +47,8 @@ const createProjectSchema = z.object({
         vendorName: z.string().optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
+        assignTeamId: z.string().uuid("Invalid assign team ID").optional(),
+        assignTeam: z.string().uuid("Invalid assign team ID").optional(),
         status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
         weeklyMeetingSummary: z.string().optional(),
         health: z.preprocess(parseJSON, z.array(z.object({
