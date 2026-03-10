@@ -1,0 +1,102 @@
+import { projectSearchableFields } from "../../../constant.js";
+import { QueryBuilder } from "../../../utils/QueryBuilder.js";
+
+export const AdminProjectService = {
+    getAllProjects: async (prisma, query) => {
+        const relationConfig = {
+            manager: ["firstName", "lastName", "email"],
+            assignTeam: ["name"],
+        };
+
+        const queryBuilder = new QueryBuilder(query)
+            .search(projectSearchableFields)
+            .filter(relationConfig, { status: ["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"] })
+            .sort("-createdAt", relationConfig)
+            .paginate();
+
+        const buildQuery = queryBuilder.build();
+        buildQuery.where = {
+            ...buildQuery.where,
+            deletedAt: null
+        };
+
+        const [result, total] = await Promise.all([
+            prisma.project.findMany({
+                ...buildQuery,
+                include: {
+                    manager: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            id: true,
+                            role: true,
+                        },
+                    },
+                    assignTeam: true,
+                    tasks: true,
+                    milestones: true,
+                    health: true,
+                    meetings: {
+                        include: {
+                            keyPoints: true,
+                            actionPoints: true,
+                        },
+                    },
+                    documents: {
+                        include: {
+                            keyPoints: true,
+                            actionPoints: true,
+                        },
+                    },
+                    health: true,
+                    transcripts: true,
+                },
+            }),
+            prisma.project.count({ where: buildQuery.where }),
+        ]);
+
+        return {
+            meta: queryBuilder.getMeta(total),
+            data: result,
+        };
+    },
+
+    getSingleProject: async (prisma, id) => {
+        const project = await prisma.project.findFirst({
+            where: {
+                id,
+                deletedAt: null
+            },
+            include: {
+                manager: {
+                    select: {
+                        firstName: true,
+                        id: true,
+                        lastName: true,
+                        role: true,
+                    },
+                },
+                assignTeam: true,
+                tasks: true,
+                milestones: true,
+                health: true,
+                documents: true,
+                transcripts: true,
+                meetings: {
+                    include: {
+                        keyPoints: true,
+                        actionPoints: true,
+                    },
+                },
+            },
+        });
+
+        if (!project) {
+            const { AppError } = await import("../../../errorHelper/appError.js");
+            const { StatusCodes } = await import("http-status-codes");
+            throw new AppError(StatusCodes.NOT_FOUND, "Project not found");
+        }
+
+        return project;
+    },
+};

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { ActivityLogRoutes } from "../modules/activityLog/activityLog.route.js";
 
 import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_manager.route.js";
+import { AdminProjectRoutes } from "../modules/Admin/project/project.route.js";
 import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
@@ -54,6 +55,10 @@ const moduleRoutes = [
   {
     path: "/admin/user-management",
     route: UserManagementRoutes,
+  },
+  {
+    path: "/admin/project",
+    route: AdminProjectRoutes,
   },
   // Admin Routes ends here
   // Project Manager Routes starts here
