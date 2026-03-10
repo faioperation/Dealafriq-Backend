@@ -3,6 +3,64 @@ import prisma from '../../../../prisma/client.js';
 import { createOAuth2Client } from './utils/googleEmailOAuth.js';
 import { VendorEmailService } from '../vendorEmail/vendorEmail.service.js';
 
+const getEmailBody = (payload) => {
+    if (!payload) return '';
+    let bodyData = '';
+    
+    const findBodyPart = (parts) => {
+        for (const part of parts) {
+            if (part.mimeType === 'text/plain' && part.body && part.body.data) {
+                return part.body.data;
+            }
+            if (part.mimeType === 'text/html' && part.body && part.body.data) {
+                return part.body.data;
+            }
+            if (part.parts) {
+                const found = findBodyPart(part.parts);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
+
+    if (payload.parts) {
+        bodyData = findBodyPart(payload.parts) || '';
+    } else if (payload.body && payload.body.data) {
+        bodyData = payload.body.data;
+    }
+
+    if (!bodyData) return '';
+
+    try {
+        const base64Data = bodyData.replace(/-/g, '+').replace(/_/g, '/');
+        const buff = Buffer.from(base64Data, 'base64');
+        let decodedText = buff.toString('utf-8');
+        
+        // Clean up format: normalize newlines, handle soft wraps
+        // Replace literal string "\r\n" and actual \r\n characters with standard \n
+        decodedText = decodedText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        
+        // Handle escaped literals which occasionally come from stringified JSON representations
+        decodedText = decodedText.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n');
+        
+        // Split text by 2 or more newlines (paragraph boundaries)
+        const paragraphs = decodedText.split(/\n{2,}/);
+        
+        // Clean each paragraph: replace single newlines with spaces, strip HTML tags just in case
+        const cleanParagraphs = paragraphs.map(p => {
+            // Remove basic HTML tags if any sneaked into text/plain
+            const noHtml = p.replace(/<[^>]*>?/gm, '');
+            // Replace single newlines with spaces and collapse multiple spaces
+            return noHtml.replace(/\n/g, ' ').replace(/\s{2,}/g, ' ').trim();
+        });
+        
+        // Rejoin paragraphs with a space to completely remove \n from the response
+        return cleanParagraphs.filter(p => p.length > 0).join(' ');
+    } catch (e) {
+        return '';
+    }
+};
+
 
 const getGmailClient = async (userId) => {
     const account = await prisma.emailAccount.findFirst({
@@ -127,6 +185,7 @@ const getInbox = async (userId, category = null) => {
                 subject,
                 from,
                 snippet: detail.data.snippet,
+                body: getEmailBody(detail.data.payload) || detail.data.snippet || '',
                 date: dateHeader,
                 receivedAt,
                 category
@@ -199,7 +258,7 @@ const syncAllConnectedAccounts = async () => {
                 const toHeader = headers.find((h) => h.name === 'To')?.value || '';
 
                 // Extract body snippet or full body if needed
-                const body = detail.data.snippet || '';
+                const body = getEmailBody(detail.data.payload) || detail.data.snippet || '';
 
                 const dateHeader = headers.find((h) => h.name === 'Date')?.value || '';
                 const receivedAt = dateHeader ? new Date(dateHeader) : null;
