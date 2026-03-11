@@ -111,6 +111,10 @@ const moduleRoutes = [
     route: ZoomRoutes,
   },
   {
+    path: "/zoom",
+    route: ZoomRoutes,
+  },
+  {
     path: "/project-manager/vendor-management",
     route: VendorRoutes,
   },
