@@ -2,6 +2,7 @@ import { catchAsync } from "../../../utils/catchAsync.js";
 import { sendResponse } from "../../../utils/sendResponse.js";
 import { ZoomService } from "./zoom.service.js";
 import httpStatus from "http-status-codes";
+import { envVars } from "../../../config/env.js";
 
 const authorizeZoom = catchAsync(async (req, res) => {
     const userId = req.user.id;
@@ -27,7 +28,7 @@ const zoomCallback = catchAsync(async (req, res) => {
 
     const result = await ZoomService.handleZoomCallback(code, userId);
 
-    const frontendRedirectUrl = "https://ai-powered-project-management-system.vercel.app/data-source";
+    const frontendRedirectUrl = `${envVars.FRONT_END_URL}/data-source`;
     res.redirect(frontendRedirectUrl);
 });
 
