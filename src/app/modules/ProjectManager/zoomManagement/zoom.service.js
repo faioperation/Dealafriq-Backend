@@ -22,21 +22,27 @@ const handleZoomCallback = async (code, userId) => {
     const { ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, ZOOM_REDIRECT_URI } = envVars;
     const authString = Buffer.from(`${ZOOM_CLIENT_ID}:${ZOOM_CLIENT_SECRET}`).toString("base64");
 
-    const response = await axios.post(
-        ZOOM_OAUTH_URL,
-        null,
-        {
-            params: {
-                grant_type: "authorization_code",
-                code,
-                redirect_uri: ZOOM_REDIRECT_URI,
-            },
-            headers: {
-                Authorization: `Basic ${authString}`,
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-        }
-    );
+    let response;
+    try {
+        response = await axios.post(
+            ZOOM_OAUTH_URL,
+            null,
+            {
+                params: {
+                    grant_type: "authorization_code",
+                    code,
+                    redirect_uri: ZOOM_REDIRECT_URI,
+                },
+                headers: {
+                    Authorization: `Basic ${authString}`,
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+            }
+        );
+    } catch (err) {
+        console.error("Zoom Token Exchange Error:", err.response?.data || err.message);
+        throw new Error(`Zoom token exchange failed: ${JSON.stringify(err.response?.data || err.message)}`);
+    }
 
     const { access_token, refresh_token, expires_in } = response.data;
     const tokenExpiry = new Date(Date.now() + expires_in * 1000);
@@ -48,6 +54,15 @@ const handleZoomCallback = async (code, userId) => {
     
     const zoomUserId = userRes.data.id;
     const zoomEmail = userRes.data.email;
+
+    // Verify user still exists before saving
+    const userExists = await prisma.user.findUnique({
+        where: { id: userId },
+    });
+
+    if (!userExists) {
+        throw new Error(`The Dealafriq user ID (${userId}) no longer exists. Please generate a new Authorization link and try again.`);
+    }
 
     // Save or update in DB
     let zoomAccount = await prisma.zoomAccount.findFirst({
