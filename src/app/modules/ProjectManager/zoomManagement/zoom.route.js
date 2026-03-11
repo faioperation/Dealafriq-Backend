@@ -1,25 +1,25 @@
 import { Router } from "express";
 import { ZoomController } from "./zoom.controller.js";
+import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
 
 const router = Router();
 
-// GET /api/project-manager/zoom/meetings/:email
-router.get("/meetings/:email", ZoomController.getUserMeetings);
+// GET /api/zoom/authorize
+router.get("/authorize", checkAuthMiddleware(), ZoomController.authorizeZoom);
 
-// POST /api/project-manager/zoom/meetings - create meeting
-router.post("/meetings", ZoomController.createMeeting);
+// GET /api/zoom/callback
+router.get("/callback", ZoomController.zoomCallback);
 
-// {
-//   "email": "user@example.com",
-//   "topic": "Frontend Development Discussion",
-//   "start_time": "2024-03-10T15:30:00Z"
-// }
-// Create Meeting ends......
+// GET /api/.../zoom/meetings
+router.get("/meetings", checkAuthMiddleware(), ZoomController.getUserMeetings);
 
-// GET /api/project-manager/zoom/recordings/:email
-router.get("/recordings/:email", ZoomController.getUserRecordings);
+// POST /api/.../zoom/meetings - create meeting
+router.post("/meetings", checkAuthMiddleware(), ZoomController.createMeeting);
 
-// POST /api/project-manager/zoom/webhook
+// GET /api/.../zoom/recordings
+router.get("/recordings", checkAuthMiddleware(), ZoomController.getUserRecordings);
+
+// POST /api/.../zoom/webhook
 router.post("/webhook", ZoomController.handleWebhook);
 
 export const ZoomRoutes = router;
