@@ -293,6 +293,27 @@ const handleMeetingEndedWebhook = async (payload) => {
     }
 };
 
+/**
+ * Disconnect a user's Zoom account by deleting their tokens from the database.
+ * @param {string} userId - The internal Dealafriq user ID.
+ * @returns {Promise<boolean>} - True if successful.
+ */
+const disconnectZoomAccount = async (userId) => {
+    const zoomAccount = await prisma.zoomAccount.findFirst({
+        where: { connectedUserId: userId },
+    });
+
+    if (!zoomAccount) {
+        throw new Error("No connected Zoom account found for this user.");
+    }
+
+    await prisma.zoomAccount.delete({
+        where: { id: zoomAccount.id },
+    });
+
+    return true;
+};
+
 export const ZoomService = {
     generateZoomAuthUrl,
     handleZoomCallback,
@@ -300,4 +321,5 @@ export const ZoomService = {
     createMeeting,
     getUserRecordings,
     handleMeetingEndedWebhook,
+    disconnectZoomAccount,
 };

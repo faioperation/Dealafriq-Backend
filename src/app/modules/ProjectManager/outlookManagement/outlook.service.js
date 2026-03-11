@@ -93,13 +93,23 @@ const getInbox = async (userId) => {
             }
         });
 
-        return response.data.value.map(msg => ({
-            id: msg.id,
-            subject: msg.subject,
-            from: msg.from.emailAddress.address,
-            snippet: msg.bodyPreview,
-            receivedAt: msg.receivedDateTime,
-        }));
+        return response.data.value.map(msg => {
+            let snippet = msg.bodyPreview || '';
+            if (typeof snippet === 'string') {
+                snippet = snippet.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+                snippet = snippet.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+                snippet = snippet.replace(/<[^>]*>?/gm, '');
+                snippet = snippet.replace(/\n/g, ' ').replace(/\r/g, '').replace(/\s{2,}/g, ' ').trim();
+            }
+
+            return {
+                id: msg.id,
+                subject: msg.subject,
+                from: msg.from.emailAddress.address,
+                snippet: snippet,
+                receivedAt: msg.receivedDateTime,
+            };
+        });
     } catch (error) {
         console.error("Outlook GetInbox Error:", error.response?.data || error.message);
         if (error.response?.headers?.['www-authenticate']) {
@@ -118,13 +128,23 @@ const getInbox = async (userId) => {
                     }
                 });
 
-                return retryResponse.data.value.map(msg => ({
-                    id: msg.id,
-                    subject: msg.subject,
-                    from: msg.from.emailAddress.address,
-                    snippet: msg.bodyPreview,
-                    receivedAt: msg.receivedDateTime,
-                }));
+                return retryResponse.data.value.map(msg => {
+                    let snippet = msg.bodyPreview || '';
+                    if (typeof snippet === 'string') {
+                        snippet = snippet.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+                        snippet = snippet.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+                        snippet = snippet.replace(/<[^>]*>?/gm, '');
+                        snippet = snippet.replace(/\n/g, ' ').replace(/\r/g, '').replace(/\s{2,}/g, ' ').trim();
+                    }
+
+                    return {
+                        id: msg.id,
+                        subject: msg.subject,
+                        from: msg.from.emailAddress.address,
+                        snippet: snippet,
+                        receivedAt: msg.receivedDateTime,
+                    };
+                });
             } catch (retryError) {
                 console.error("Outlook Retry Error Body:", retryError.response?.data || retryError.message);
                 if (retryError.response?.headers?.['www-authenticate']) {
@@ -176,10 +196,19 @@ const syncAllConnectedAccounts = async () => {
             for (const msg of messages) {
                 const senderEmail = msg.from.emailAddress.address;
 
+                // Clean the outlook HTML body to prevent CSS/JS from persisting
+                let rawBody = msg.body?.content || msg.bodyPreview || '';
+                if (typeof rawBody === 'string') {
+                    rawBody = rawBody.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+                    rawBody = rawBody.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+                    rawBody = rawBody.replace(/<[^>]*>?/gm, ''); // Remove all other HTML tags
+                    rawBody = rawBody.replace(/\n/g, ' ').replace(/\r/g, '').replace(/\s{2,}/g, ' ').trim();
+                }
+
                 await OutlookSyncService.syncOutlookEmail({
                     outlookMessageId: msg.id,
                     subject: msg.subject,
-                    body: msg.body?.content || msg.bodyPreview,
+                    body: rawBody,
                     senderEmail,
                     receiverEmail: account.email,
                     category: null, // Outlook graph doesn't give category easily like Gmail

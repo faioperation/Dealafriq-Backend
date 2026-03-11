@@ -87,6 +87,25 @@ const getStatus = async (req, res) => {
             isConnected: acc.isConnected
         }));
 
+        // Also fetch Zoom connection status
+        const zoomAccount = await prisma.zoomAccount.findFirst({
+            where: { connectedUserId: req.user.id }
+        });
+
+        if (zoomAccount) {
+            formattedData.push({
+                source: 'ZOOM',
+                email: zoomAccount.zoomEmail,
+                isConnected: true
+            });
+        } else {
+            formattedData.push({
+                source: 'ZOOM',
+                email: null,
+                isConnected: false
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: "Fetched Successfully",
