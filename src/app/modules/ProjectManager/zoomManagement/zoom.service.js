@@ -1,10 +1,10 @@
 import axios from "axios";
-import { redisClient } from "../../../config/redis.config.js";
 import { envVars } from "../../../config/env.js";
 import fs from "fs";
 import path from "path";
 import { TranscriptService } from "../transcriptManagement/transcript.service.js";
 import { fileURLToPath } from 'url';
+import prisma from "../../../prisma/client.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,76 +13,123 @@ const __dirname = path.dirname(__filename);
 const ZOOM_API_BASE_URL = "https://api.zoom.us/v2";
 const ZOOM_OAUTH_URL = "https://zoom.us/oauth/token";
 
-const getZoomAccessToken = async () => {
-    const cacheKey = "zoom_access_token";
+const generateZoomAuthUrl = async (userId) => {
+    const { ZOOM_CLIENT_ID, ZOOM_REDIRECT_URI } = envVars;
+    return `https://zoom.us/oauth/authorize?response_type=code&client_id=${ZOOM_CLIENT_ID}&redirect_uri=${ZOOM_REDIRECT_URI}&state=${userId}`;
+};
 
-    // Try to get token from cache
-    const cachedToken = await redisClient.get(cacheKey);
-    if (cachedToken) {
-        return cachedToken;
+const handleZoomCallback = async (code, userId) => {
+    const { ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, ZOOM_REDIRECT_URI } = envVars;
+    const authString = Buffer.from(`${ZOOM_CLIENT_ID}:${ZOOM_CLIENT_SECRET}`).toString("base64");
+
+    const response = await axios.post(
+        ZOOM_OAUTH_URL,
+        null,
+        {
+            params: {
+                grant_type: "authorization_code",
+                code,
+                redirect_uri: ZOOM_REDIRECT_URI,
+            },
+            headers: {
+                Authorization: `Basic ${authString}`,
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        }
+    );
+
+    const { access_token, refresh_token, expires_in } = response.data;
+    const tokenExpiry = new Date(Date.now() + expires_in * 1000);
+
+    // Get user details
+    const userRes = await axios.get(`${ZOOM_API_BASE_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${access_token}` },
+    });
+    
+    const zoomUserId = userRes.data.id;
+    const zoomEmail = userRes.data.email;
+
+    // Save or update in DB
+    let zoomAccount = await prisma.zoomAccount.findFirst({
+        where: { connectedUserId: userId },
+    });
+
+    if (zoomAccount) {
+        zoomAccount = await prisma.zoomAccount.update({
+            where: { id: zoomAccount.id },
+            data: { zoomUserId, zoomEmail, accessToken: access_token, refreshToken: refresh_token, tokenExpiry },
+        });
+    } else {
+        zoomAccount = await prisma.zoomAccount.create({
+            data: { zoomUserId, zoomEmail, accessToken: access_token, refreshToken: refresh_token, tokenExpiry, connectedUserId: userId },
+        });
     }
 
-    const { ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET } = envVars;
+    return zoomAccount;
+};
 
-    if (!ZOOM_ACCOUNT_ID || !ZOOM_CLIENT_ID || !ZOOM_CLIENT_SECRET) {
-        throw new Error("Missing Zoom OAuth environment variables in centralized config");
+const getValidAccessToken = async (userId) => {
+    const zoomAccount = await prisma.zoomAccount.findFirst({
+        where: { connectedUserId: userId },
+    });
+
+    if (!zoomAccount) {
+        throw new Error(`User ${userId} has not connected a Zoom account.`);
     }
 
-    const authString = Buffer.from(`${ZOOM_CLIENT_ID.trim()}:${ZOOM_CLIENT_SECRET.trim()}`).toString("base64");
+    // Refresh if expiring in less than 5 minutes
+    if (new Date(zoomAccount.tokenExpiry).getTime() < Date.now() + 5 * 60 * 1000) {
+        const { ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET } = envVars;
+        const authString = Buffer.from(`${ZOOM_CLIENT_ID}:${ZOOM_CLIENT_SECRET}`).toString("base64");
 
-    try {
         const response = await axios.post(
             ZOOM_OAUTH_URL,
             null,
             {
                 params: {
-                    grant_type: "account_credentials",
-                    account_id: ZOOM_ACCOUNT_ID.trim(),
+                    grant_type: "refresh_token",
+                    refresh_token: zoomAccount.refreshToken,
                 },
                 headers: {
                     Authorization: `Basic ${authString}`,
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
             }
-        );
+        ).catch(err => {
+            console.error("Error refreshing token:", err.response?.data || err.message);
+            throw new Error("Failed to refresh Zoom token. Please reconnect.");
+        });
 
-        const { access_token, expires_in } = response.data;
+        const { access_token, refresh_token, expires_in } = response.data;
+        const tokenExpiry = new Date(Date.now() + expires_in * 1000);
 
-        // Cache token (subtract 60 seconds for safety)
-        await redisClient.set(cacheKey, access_token, {
-            EX: expires_in - 60,
+        await prisma.zoomAccount.update({
+            where: { id: zoomAccount.id },
+            data: { accessToken: access_token, refreshToken: refresh_token, tokenExpiry },
         });
 
         return access_token;
-    } catch (error) {
-        const zoomError = error.response?.data;
-        console.error("Zoom Auth Error Details:", zoomError || error.message);
-
-        const errorMessage = zoomError
-            ? `Zoom Auth Failed: ${zoomError.reason || zoomError.error || "Unknown reason"} - ${zoomError.error_description || ""}`
-            : "Failed to authenticate with Zoom";
-
-        throw new Error(errorMessage);
     }
+
+    return zoomAccount.accessToken;
 };
 
 /**
- * Fetch meetings for a specific user email
+ * Fetch meetings for a specific user id
  */
-const getUserMeetings = async (email) => {
-    const token = await getZoomAccessToken();
+const getUserMeetings = async (userId) => {
+    const token = await getValidAccessToken(userId);
 
     try {
-        const response = await axios.get(`${ZOOM_API_BASE_URL}/users/${email}/meetings`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+        const response = await axios.get(`${ZOOM_API_BASE_URL}/users/me/meetings`, {
+            headers: { Authorization: `Bearer ${token}` },
         });
 
         return response.data.meetings;
     } catch (error) {
-        console.error(`Error fetching meetings for ${email}:`, error.response?.data || error.message);
-        throw new Error(`Failed to fetch meetings for ${email}`);
+        const errorMessage = error.response?.data?.message || error.response?.data || error.message;
+        console.error(`Error fetching meetings for ${userId}:`, errorMessage);
+        throw new Error(`Failed to fetch meetings: ${JSON.stringify(errorMessage)}`);
     }
 };
 
@@ -90,11 +137,14 @@ const getUserMeetings = async (email) => {
  * Create a new meeting
  */
 const createMeeting = async (data) => {
-    const token = await getZoomAccessToken();
+    // If you pass userId in body, we use it to authenticate.
+    // Otherwise fallback to email param if UI is sending it as such
+    const userId = data.userId || data.email; 
+    const token = await getValidAccessToken(userId);
 
     try {
         const response = await axios.post(
-            `${ZOOM_API_BASE_URL}/users/${data.email}/meetings`,
+            `${ZOOM_API_BASE_URL}/users/me/meetings`,
             {
                 topic: data.topic,
                 type: 2, // Scheduled meeting
@@ -112,36 +162,34 @@ const createMeeting = async (data) => {
                 },
             },
             {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` },
             }
         );
 
         return response.data;
     } catch (error) {
-        console.error(`Error creating meeting for ${data.email}:`, error.response?.data || error.message);
-        throw new Error(`Failed to create meeting for ${data.email}`);
+        const errorMessage = error.response?.data?.message || error.response?.data || error.message;
+        console.error(`Error creating meeting for ${userId}:`, errorMessage);
+        throw new Error(`Failed to create meeting: ${JSON.stringify(errorMessage)}`);
     }
 };
 
 /**
  * Fetch cloud recordings for a specific user
  */
-const getUserRecordings = async (email) => {
-    const token = await getZoomAccessToken();
+const getUserRecordings = async (userId) => {
+    const token = await getValidAccessToken(userId);
 
     try {
-        const response = await axios.get(`${ZOOM_API_BASE_URL}/users/${email}/recordings`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+        const response = await axios.get(`${ZOOM_API_BASE_URL}/users/me/recordings`, {
+            headers: { Authorization: `Bearer ${token}` },
         });
 
         return response.data.meetings;
     } catch (error) {
-        console.error(`Error fetching recordings for ${email}:`, error.response?.data || error.message);
-        throw new Error(`Failed to fetch recordings for ${email}`);
+        const errorMessage = error.response?.data?.message || error.response?.data || error.message;
+        console.error(`Error fetching recordings for ${userId}:`, errorMessage);
+        throw new Error(`Failed to fetch recordings: ${JSON.stringify(errorMessage)}`);
     }
 };
 
@@ -151,24 +199,32 @@ const getUserRecordings = async (email) => {
 const handleMeetingEndedWebhook = async (payload) => {
     const { object } = payload;
     const meetingId = object.id;
-    const userId = object.host_id;
+    const hostId = object.host_id;
 
     console.log(`Processing meeting.ended for meeting ID: ${meetingId}`);
 
-    const token = await getZoomAccessToken();
+    // Map Zoom host to our internal user
+    const zoomAccount = await prisma.zoomAccount.findFirst({
+        where: { zoomUserId: hostId }
+    });
+
+    if (!zoomAccount) {
+        console.log(`No linked Zoom account found for host ${hostId}`);
+        return;
+    }
+    
+    const token = await getValidAccessToken(zoomAccount.connectedUserId);
 
     try {
         // Step 1: Fetch meeting recordings
         const response = await axios.get(`${ZOOM_API_BASE_URL}/meetings/${meetingId}/recordings`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
         });
 
         const recordingData = response.data;
         const recordingFiles = recordingData.recording_files;
 
-        // Step 2: Find transcript file (file_type = "TRANSCRIPT")
+        // Step 2: Find transcript file
         const transcriptFile = recordingFiles.find((file) => file.file_type === "TRANSCRIPT" || (file.file_extension === "VTT" && file.recording_type === "audio_transcript"));
 
         if (!transcriptFile) {
@@ -176,7 +232,7 @@ const handleMeetingEndedWebhook = async (payload) => {
             return;
         }
 
-        // Step 3: Download transcript (VTT file)
+        // Step 3: Download transcript 
         const downloadUrl = `${transcriptFile.download_url}?access_token=${token}`;
         const fileName = `zoom_transcript_${meetingId}_${Date.now()}.vtt`;
         const uploadsDir = path.join(process.cwd(), "uploads", "transcripts");
@@ -199,15 +255,12 @@ const handleMeetingEndedWebhook = async (payload) => {
         return new Promise((resolve, reject) => {
             writer.on('finish', async () => {
                 try {
-                    // Step 4 & 5: Call existing transcript service method
-                    // Mocking what uploadTranscriptService expects: { path, originalname }
+                    // Send to existing transcript service
                     const mockFile = {
                         path: filePath,
                         originalname: fileName
                     };
 
-                    // Note: projectId is not directly available from Zoom webhook payload unless tracked in DB
-                    // For now, passing null or you might want to look it up by meeting ID if saved previously
                     const transcript = await TranscriptService.uploadTranscriptService(mockFile, null);
                     console.log(`Transcript processed and saved: ${transcript.id}`);
                     resolve(transcript);
@@ -226,7 +279,8 @@ const handleMeetingEndedWebhook = async (payload) => {
 };
 
 export const ZoomService = {
-    getZoomAccessToken,
+    generateZoomAuthUrl,
+    handleZoomCallback,
     getUserMeetings,
     createMeeting,
     getUserRecordings,
