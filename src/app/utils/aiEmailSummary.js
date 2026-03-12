@@ -13,7 +13,16 @@ const getAiEmailSummary = async (body) => {
             body: body
         });
 
-        const data = response.data;
+        let data = response.data;
+        console.log('AI API Response Data:', JSON.stringify(data, null, 2));
+        
+        if (!data) return null;
+
+        // The AI API returns an array of objects, take the first one
+        if (Array.isArray(data)) {
+            data = data[0];
+        }
+
         if (!data) return null;
 
         // Extract tasks
