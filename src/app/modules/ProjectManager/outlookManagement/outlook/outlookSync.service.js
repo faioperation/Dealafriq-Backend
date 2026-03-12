@@ -1,5 +1,6 @@
 import prisma from '../../../../prisma/client.js';
 import { AiEmailSummaryUtils } from '../../../../utils/aiEmailSummary.js';
+import { AiDetectionService } from '../../aiDetection/aiDetection.service.js';
 
 
 /**
@@ -64,6 +65,25 @@ const syncOutlookEmail = async (payload) => {
                     sentiment: aiResult.sentiment
                 }
             });
+
+            // Automatically create AI Detection record
+            const summaryParts = [];
+            if (aiResult.tasks && Array.isArray(aiResult.tasks) && aiResult.tasks.length > 0) {
+                summaryParts.push(`Tasks:\n${aiResult.tasks.join('\n')}`);
+            }
+            if (aiResult.raiddAnalysis) {
+                summaryParts.push(`RAIDD Analysis:\n${aiResult.raiddAnalysis}`);
+            }
+            if (aiResult.decisions) {
+                summaryParts.push(`Decisions:\n${aiResult.decisions}`);
+            }
+
+            await AiDetectionService.createAiDetection(prisma, {
+                title: createdEmail.subject || 'New AI Detection from Outlook',
+                summary: summaryParts.join('\n\n'),
+                sourceType: createdEmail.source || 'outlook',
+                managerId: createdEmail.created_by
+            }, createdEmail.created_by);
         }
     }
 
