@@ -1,10 +1,6 @@
 import axios from 'axios';
 
-/**
- * Call AI API to get email summary and metadata
- * @param {string} body - The email content
- * @returns {Promise<object>} - AI analysis result
- */
+
 const getAiEmailSummary = async (body) => {
     if (!body) return null;
 
@@ -19,7 +15,7 @@ const getAiEmailSummary = async (body) => {
 
         let data = response.data;
         console.log('AI API Raw Response:', JSON.stringify(data, null, 2));
-        
+
         if (!data) return null;
 
         // The AI API might return an array or an object with a 'data' array
@@ -38,13 +34,13 @@ const getAiEmailSummary = async (body) => {
 
         // Extract tasks
         const tasks = data.tasks || [];
-        
+
         let raiddAnalysisStr = null;
         let decisionsStr = null;
 
         if (data.raiddAnalysis) {
             const raidd = data.raiddAnalysis;
-            
+
             // Extract decisions separately as requested
             if (raidd.decisions && Array.isArray(raidd.decisions) && raidd.decisions.length > 0) {
                 decisionsStr = raidd.decisions.join('\n');
