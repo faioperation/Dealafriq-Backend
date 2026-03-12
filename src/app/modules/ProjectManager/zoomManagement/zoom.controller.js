@@ -98,6 +98,21 @@ const handleWebhook = catchAsync(async (req, res) => {
     res.status(200).send("OK");
 });
 
+/**
+ * Disconnect Zoom Account
+ */
+const disconnectZoom = catchAsync(async (req, res) => {
+    const userId = req.user.id;
+    await ZoomService.disconnectZoomAccount(userId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Zoom account disconnected successfully",
+        isConnected: false
+    });
+});
+
 export const ZoomController = {
     authorizeZoom,
     zoomCallback,
@@ -105,4 +120,5 @@ export const ZoomController = {
     createMeeting,
     getUserRecordings,
     handleWebhook,
+    disconnectZoom,
 };

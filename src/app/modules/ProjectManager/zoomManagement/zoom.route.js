@@ -22,4 +22,7 @@ router.get("/recordings", checkAuthMiddleware(), ZoomController.getUserRecording
 // POST /api/.../zoom/webhook
 router.post("/webhook", ZoomController.handleWebhook);
 
+// DELETE /api/.../zoom/disconnect
+router.delete("/disconnect", checkAuthMiddleware(), ZoomController.disconnectZoom);
+
 export const ZoomRoutes = router;

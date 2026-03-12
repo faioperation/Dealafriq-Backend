@@ -36,6 +36,10 @@ const getEmailBody = (payload) => {
         const buff = Buffer.from(base64Data, 'base64');
         let decodedText = buff.toString('utf-8');
         
+        // CRITICAL FIX: Strip entire style and script blocks before parsing the rest
+        decodedText = decodedText.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+        decodedText = decodedText.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+        
         // Clean up format: normalize newlines, handle soft wraps
         // Replace literal string "\r\n" and actual \r\n characters with standard \n
         decodedText = decodedText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');

@@ -546,6 +546,10 @@ model Email {
   source         String? // <-- Added field
   category       String?
   receivedAt     DateTime?
+  tasks          Json?
+  raiddAnalysis  String?
+  decisions      String?
+  sentiment      String?
 
   vendorId String?
   vendor   Vendor? @relation(fields: [vendorId], references: [id])
@@ -580,6 +584,10 @@ model Outlook {
   source           String? // <-- Added field
   category         String?
   receivedAt       DateTime?
+  tasks            Json?
+  raiddAnalysis    String?
+  decisions        String?
+  sentiment        String?
 
   vendorId String?
   vendor   Vendor? @relation(fields: [vendorId], references: [id])
