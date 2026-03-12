@@ -1,4 +1,4 @@
-name: Deploy Backend to VPS
+name: Deploy Node App to VPS
 
 on:
   push:
@@ -10,7 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to VPS
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -18,29 +21,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-
-            export PATH=/usr/bin:/usr/local/bin:$PATH
-
-            echo "Starting deployment..."
-
             cd /var/www/project-management-system/backend-server
-
-            echo "Pull latest code"
-            git fetch origin
-            git reset --hard origin/main
-
-            echo "Install dependencies"
+            git pull origin main
             npm install
-
-            echo "Generate Prisma client"
             npx prisma generate
-
-            echo "Run migrations"
             npx prisma migrate deploy
-
-            echo "Reload backend"
-            pm2 reload backend-server
-
-            pm2 save
-
-            echo "Deployment finished"
+            pm2 restart backend-server
