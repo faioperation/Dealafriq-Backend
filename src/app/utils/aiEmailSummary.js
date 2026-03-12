@@ -11,19 +11,30 @@ const getAiEmailSummary = async (body) => {
     try {
         const response = await axios.post('https://test4.fireai.agency/summary/emails', {
             body: body
+        }, {
+            headers: {
+                'x-backend-service': 'PROJECT_AI_BACKEND'
+            }
         });
 
         let data = response.data;
-        console.log('AI API Response Data:', JSON.stringify(data, null, 2));
+        console.log('AI API Raw Response:', JSON.stringify(data, null, 2));
         
         if (!data) return null;
 
-        // The AI API returns an array of objects, take the first one
-        if (Array.isArray(data)) {
+        // The AI API might return an array or an object with a 'data' array
+        if (data.data && Array.isArray(data.data)) {
+            data = data.data[0];
+        } else if (Array.isArray(data)) {
             data = data[0];
         }
 
-        if (!data) return null;
+        if (!data) {
+            console.log('AI API: No data found after parsing response');
+            return null;
+        }
+
+        console.log('AI API: Parsed data object:', JSON.stringify(data, null, 2));
 
         // Extract tasks
         const tasks = data.tasks || [];
