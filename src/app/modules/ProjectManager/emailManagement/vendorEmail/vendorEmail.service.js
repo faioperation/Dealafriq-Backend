@@ -1,4 +1,6 @@
 import prisma from '../../../../prisma/client.js';
+import { AiEmailSummaryUtils } from '../../../../utils/aiEmailSummary.js';
+
 
 /**
  * Find vendor by email or contact email
@@ -151,9 +153,27 @@ const syncEmail = async (payload) => {
         vendorEmail: vendor ? (vendor.email === senderEmail ? vendor.email : vendor.contactEmail) : null
     };
 
-    return await prisma.email.create({
+    const createdEmail = await prisma.email.create({
         data: emailData
     });
+
+    // Call AI Summary API
+    if (createdEmail.body) {
+        const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(createdEmail.body);
+        if (aiResult) {
+            await prisma.email.update({
+                where: { id: createdEmail.id },
+                data: {
+                    tasks: aiResult.tasks,
+                    raiddAnalysis: aiResult.raiddAnalysis,
+                    decisions: aiResult.decisions,
+                    sentiment: aiResult.sentiment
+                }
+            });
+        }
+    }
+
+    return createdEmail;
 };
 
 export const VendorEmailService = {

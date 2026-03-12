@@ -1,0 +1,64 @@
+import axios from 'axios';
+
+/**
+ * Call AI API to get email summary and metadata
+ * @param {string} body - The email content
+ * @returns {Promise<object>} - AI analysis result
+ */
+const getAiEmailSummary = async (body) => {
+    if (!body) return null;
+
+    try {
+        const response = await axios.post('https://test4.fireai.agency/summary/emails', {
+            body: body
+        });
+
+        const data = response.data;
+        if (!data) return null;
+
+        // Extract tasks
+        const tasks = data.tasks || [];
+        
+        let raiddAnalysisStr = null;
+        let decisionsStr = null;
+
+        if (data.raiddAnalysis) {
+            const raidd = data.raiddAnalysis;
+            
+            // Extract decisions separately as requested
+            if (raidd.decisions && Array.isArray(raidd.decisions) && raidd.decisions.length > 0) {
+                decisionsStr = raidd.decisions.join('\n');
+            } else if (raidd.decisions && typeof raidd.decisions === 'string') {
+                decisionsStr = raidd.decisions;
+            }
+
+            // Find first field that has value for raiddAnalysis (excluding decisions since it's separate)
+            const keys = ['risks', 'assumptions', 'issues', 'dependencies'];
+            for (const key of keys) {
+                if (raidd[key]) {
+                    if (Array.isArray(raidd[key]) && raidd[key].length > 0) {
+                        raiddAnalysisStr = raidd[key].join('\n');
+                        break;
+                    } else if (typeof raidd[key] === 'string' && raidd[key].trim() !== '') {
+                        raiddAnalysisStr = raidd[key];
+                        break;
+                    }
+                }
+            }
+        }
+
+        return {
+            tasks,
+            raiddAnalysis: raiddAnalysisStr,
+            decisions: decisionsStr,
+            sentiment: data.sentiment || null
+        };
+    } catch (error) {
+        console.error('AI Summary API Error:', error.response?.data || error.message);
+        return null;
+    }
+};
+
+export const AiEmailSummaryUtils = {
+    getAiEmailSummary
+};
