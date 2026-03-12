@@ -158,19 +158,42 @@ const syncEmail = async (payload) => {
     });
 
     // Call AI Summary API
-    if (createdEmail.body) {
-        const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(createdEmail.body);
-        if (aiResult) {
-            await prisma.email.update({
-                where: { id: createdEmail.id },
-                data: {
-                    tasks: aiResult.tasks,
-                    raiddAnalysis: aiResult.raiddAnalysis,
-                    decisions: aiResult.decisions,
-                    sentiment: aiResult.sentiment
-                }
-            });
+    if (createdEmail.body && createdEmail.body.trim() !== '') {
+        try {
+            console.log(`[AI Sync] Calling AI Summary for Email ID: ${createdEmail.id}`);
+            const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(createdEmail.body);
+            
+            if (aiResult) {
+                console.log(`[AI Sync] AI Result received for Email ID: ${createdEmail.id}. Updating email record...`);
+                await prisma.email.update({
+                    where: { id: createdEmail.id },
+                    data: {
+                        tasks: aiResult.tasks,
+                        raiddAnalysis: aiResult.raiddAnalysis,
+                        decisions: aiResult.decisions,
+                        sentiment: aiResult.sentiment
+                    }
+                });
+
+                // Create AI Detection record
+                console.log(`[AI Sync] Creating AI Detection record for Email ID: ${createdEmail.id}`);
+                const aiDetection = await prisma.aiDetection.create({
+                    data: {
+                        title: createdEmail.body || createdEmail.subject || 'No Content',
+                        summary: aiResult.summary,
+                        sourceType: 'GMAIL',
+                        createdBy: createdEmail.created_by || 'SYSTEM',
+                    }
+                });
+                console.log(`[AI Sync] AI Detection record created successfully: ${aiDetection.id}`);
+            } else {
+                console.warn(`[AI Sync] AI Summary utility returned null for Email ID: ${createdEmail.id}`);
+            }
+        } catch (error) {
+            console.error(`[AI Sync] Critical error in AI sync process for Email ID: ${createdEmail.id}:`, error);
         }
+    } else {
+        console.log(`[AI Sync] Skipping AI summary for Email ID: ${createdEmail.id} (Empty body)`);
     }
 
     return createdEmail;

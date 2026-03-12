@@ -7,6 +7,517 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                      String              @id @default(uuid())
+  firstName               String
+  lastName                String?
+  username                String?             @unique
+  email                   String              @unique
+  passwordHash            String?
+  avatarUrl               String?
+  avatarUrlPath           String?
+  isActive                Boolean             @default(true)
+  isDeleted               Boolean             @default(false)
+  role                    UserRole            @default(PROJECT_MANAGER)
+  isVerified              Boolean             @default(false)
+  oauthProvider           OAuthProvider       @default(email)
+  oauthProviderId         String?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  deletedAt               DateTime?
+  forgotPasswordStatus    Boolean             @default(false)
+  country                 String?
+  gender                  String?
+  language                String?
+  timezone                String?
+  tokenVersion            Int                 @default(0)
+  activityLogs            ActivityLog[]       @relation("UserActivityLogs")
+  emailAccounts           EmailAccount[]
+  emailsApproved          Email[]             @relation("EmailApprovedBy")
+  emailsCreated           Email[]             @relation("EmailCreatedBy")
+  emailsDeleted           Email[]             @relation("EmailDeletedBy")
+  emailsUpdated           Email[]             @relation("EmailUpdatedBy")
+  employeesApproved       Employee[]          @relation("EmployeeApprovedBy")
+  employeesCreated        Employee[]          @relation("EmployeeCreatedBy")
+  employeesDeleted        Employee[]          @relation("EmployeeDeletedBy")
+  employeesUpdated        Employee[]          @relation("EmployeeUpdatedBy")
+  outlooksApproved        Outlook[]           @relation("OutlookApprovedBy")
+  outlooksCreated         Outlook[]           @relation("OutlookCreatedBy")
+  outlooksDeleted         Outlook[]           @relation("OutlookDeletedBy")
+  outlooksUpdated         Outlook[]           @relation("OutlookUpdatedBy")
+  projectAssignments      ProjectAssignment[]
+  projectManagersApproved ProjectManager[]    @relation("ProjectManagerApprovedBy")
+  projectManagersCreated  ProjectManager[]    @relation("ProjectManagerCreatedBy")
+  projectManagersDeleted  ProjectManager[]    @relation("ProjectManagerDeletedBy")
+  projectManagersUpdated  ProjectManager[]    @relation("ProjectManagerUpdatedBy")
+  projectManagers         ProjectManager?
+  projectsCreated         Project[]           @relation("ProjectCreatedBy")
+  projectsManaged         Project[]           @relation("ProjectManager")
+  projectsOwned           Project[]           @relation("ProjectOwner")
+  assignedProjects        Project[]           @relation("AssignedProject")
+  approvedTeams           Team[]              @relation("TeamApprovedBy")
+  createdTeams            Team[]              @relation("TeamCreatedBy")
+  deletedTeams            Team[]              @relation("TeamDeletedBy")
+  updatedTeams            Team[]              @relation("TeamUpdatedBy")
+  vendorsApproved         Vendor[]            @relation("VendorApprovedBy")
+  vendorsCreated          Vendor[]            @relation("VendorCreatedBy")
+  vendorsDeleted          Vendor[]            @relation("VendorDeletedBy")
+  vendorsUpdated          Vendor[]            @relation("VendorUpdatedBy")
+  zoomAccounts            ZoomAccount[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model EmailAccount {
+  id           String   @id @default(uuid())
+  userId       String
+  provider     String
+  accessToken  String
+  refreshToken String
+  expiryDate   DateTime
+  createdAt    DateTime @default(now())
+  email        String?
+  isConnected  Boolean  @default(true)
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@map("email_accounts")
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  type      String
+  crudId    String
+  action    String
+  userId    String
+  timestamp DateTime @default(now())
+  projectId String?
+  project   Project? @relation("ProjectActivityLogs", fields: [projectId], references: [id])
+  user      User     @relation("UserActivityLogs", fields: [userId], references: [id])
+
+  @@map("activity_logs")
+}
+
+model Team {
+  id               String          @id @default(uuid())
+  name             String
+  createdById      String?
+  updatedById      String?
+  approvedById     String?
+  deletedById      String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+  projectManagerId String?
+  employees        Employee[]
+  assignedProjects Project[]       @relation("AssignTeam")
+  approvedBy       User?           @relation("TeamApprovedBy", fields: [approvedById], references: [id])
+  createdBy        User?           @relation("TeamCreatedBy", fields: [createdById], references: [id])
+  deletedBy        User?           @relation("TeamDeletedBy", fields: [deletedById], references: [id])
+  projectManager   ProjectManager? @relation("PMTeams", fields: [projectManagerId], references: [id])
+  updatedBy        User?           @relation("TeamUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("teams")
+}
+
+model ProjectManager {
+  id           String    @id @default(uuid())
+  firstName    String    @map("firstName")
+  lastName     String?   @map("lastName")
+  projectId    String?   @map("project_id")
+  createdById  String?   @map("created_by")
+  updatedById  String?   @map("updated_by")
+  approvedById String?   @map("approved_by")
+  deletedById  String?   @map("deleted_by")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("Deleted_at")
+  userId       String?   @unique
+  approvedBy   User?     @relation("ProjectManagerApprovedBy", fields: [approvedById], references: [id])
+  createdBy    User?     @relation("ProjectManagerCreatedBy", fields: [createdById], references: [id])
+  deletedBy    User?     @relation("ProjectManagerDeletedBy", fields: [deletedById], references: [id])
+  updatedBy    User?     @relation("ProjectManagerUpdatedBy", fields: [updatedById], references: [id])
+  user         User?     @relation(fields: [userId], references: [id])
+  teams        Team[]    @relation("PMTeams")
+
+  @@map("project_managers")
+}
+
+model Project {
+  id                   String                  @id @default(uuid())
+  name                 String
+  description          String?
+  vendorName           String?
+  startDate            DateTime?
+  endDate              DateTime?
+  status               ProjectStatus           @default(ONGOING)
+  managerId            String
+  createdById          String
+  deletedAt            DateTime?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  userId               String?
+  weeklyMeetingSummary String?
+  vendorId             String?
+  assignTeamId         String?
+  projectOwnerId       String?
+  activityLogs         ActivityLog[]           @relation("ProjectActivityLogs")
+  transcripts          MeetingTranscript[]     @relation("ProjectTranscripts")
+  projectAgreements    ProjectAgreements[]
+  assignments          ProjectAssignment[]
+  documents            ProjectDocumentUpload[]
+  health               ProjectHealth[]
+  meetings             ProjectMeeting[]
+  milestones           ProjectMilestone[]
+  tasks                ProjectTask[]
+  assignTeam           Team?                   @relation("AssignTeam", fields: [assignTeamId], references: [id])
+  createdBy            User                    @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+  manager              User                    @relation("ProjectManager", fields: [managerId], references: [id])
+  projectOwner         User?                   @relation("ProjectOwner", fields: [projectOwnerId], references: [id])
+  assignedTo           User?                   @relation("AssignedProject", fields: [userId], references: [id])
+  vendor               Vendor?                 @relation(fields: [vendorId], references: [id])
+  raidd                Raidd[]
+
+  @@map("projects")
+}
+
+model ProjectTask {
+  id        String       @id @default(uuid())
+  projectId String
+  title     String
+  startDate DateTime?
+  endDate   DateTime?
+  priority  TaskPriority
+  status    TaskStatus   @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_tasks")
+}
+
+model ProjectMeeting {
+  id                 String        @id @default(uuid())
+  projectId          String
+  title              String?
+  meetingUrl         String?
+  meetingDate        DateTime?
+  createdAt          DateTime      @default(now())
+  projectSummary     String?
+  aiMeetingSummary   String?
+  lastMeetingSummary String?
+  actionPoints       ActionPoint[]
+  keyPoints          KeyPoint[]
+  project            Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_meetings")
+}
+
+model KeyPoint {
+  id        String         @id @default(uuid())
+  meetingId String
+  content   String
+  createdAt DateTime       @default(now())
+  status    String?
+  meeting   ProjectMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@map("meeting_key_points")
+}
+
+model ActionPoint {
+  id        String         @id @default(uuid())
+  meetingId String
+  content   String
+  createdAt DateTime       @default(now())
+  status    String?
+  meeting   ProjectMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@map("meeting_action_points")
+}
+
+model ProjectDocumentUpload {
+  id                String                @id @default(uuid())
+  projectId         String
+  fileName          String
+  fileUrl           String
+  filePath          String
+  createdAt         DateTime              @default(now())
+  title             String?
+  aiDocumentSummary String?
+  setDate           DateTime?
+  actionPoints      DocumentActionPoint[]
+  keyPoints         DocumentKeyPoint[]
+  project           Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_documents")
+}
+
+model DocumentKeyPoint {
+  id         String                @id @default(uuid())
+  documentId String
+  content    String
+  status     String?
+  createdAt  DateTime              @default(now())
+  document   ProjectDocumentUpload @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_key_points")
+}
+
+model DocumentActionPoint {
+  id         String                @id @default(uuid())
+  documentId String
+  content    String
+  status     String?
+  createdAt  DateTime              @default(now())
+  document   ProjectDocumentUpload @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_action_points")
+}
+
+model ProjectAgreements {
+  id        String   @id @default(uuid())
+  projectId String
+  fileName  String
+  fileUrl   String
+  filePath  String
+  createdAt DateTime @default(now())
+  fileType  String?
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_agreements")
+}
+
+model ProjectMilestone {
+  id            String          @id @default(uuid())
+  projectId     String
+  title         String
+  description   String?
+  milestoneDate DateTime
+  status        MilestoneStatus
+  createdAt     DateTime        @default(now())
+  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_milestones")
+}
+
+model ProjectAssignment {
+  id        String      @id @default(uuid())
+  projectId String
+  userId    String
+  role      ProjectRole
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+  @@map("project_assignments")
+}
+
+model ProjectHealth {
+  id           String        @id @default(uuid())
+  projectId    String
+  score        Int?
+  status       String?
+  createdAt    DateTime      @default(now())
+  healthStatus HealthStatus?
+  type         HealthType?
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_health")
+}
+
+model MeetingTranscript {
+  id         String   @id @default(uuid())
+  meetingId  String?
+  platform   String
+  fileName   String
+  filePath   String
+  fileType   String
+  parsedData Json
+  createdAt  DateTime @default(now())
+  projectId  String?
+  project    Project? @relation("ProjectTranscripts", fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@map("meeting_transcripts")
+}
+
+model Vendor {
+  id                 String    @id @default(uuid())
+  name               String
+  designation        String?
+  email              String?
+  phone              String?
+  numberOfProjects   Int?      @default(0)
+  photoUrl           String?
+  photoPath          String?
+  contactPerson      String?
+  contactRole        String?
+  contactEmail       String?
+  contactPhone       String?
+  contactProjects    Int?      @default(0)
+  contactDesignation String?
+  meetingLinks       Json?     @default("[]")
+  documents          Json?     @default("[]")
+  slas               Json?     @default("[]")
+  created_by         String?
+  updated_by         String?
+  approved_by        String?
+  deleted_by         String?
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("Deleted_at")
+  emails             Email[]
+  outlooks           Outlook[]
+  projects           Project[]
+  approvedBy         User?     @relation("VendorApprovedBy", fields: [approved_by], references: [id])
+  createdBy          User?     @relation("VendorCreatedBy", fields: [created_by], references: [id])
+  deletedBy          User?     @relation("VendorDeletedBy", fields: [deleted_by], references: [id])
+  updatedBy          User?     @relation("VendorUpdatedBy", fields: [updated_by], references: [id])
+
+  @@map("vendors")
+}
+
+model Email {
+  id             String    @id @default(uuid())
+  subject        String?
+  body           String?
+  senderEmail    String
+  receiverEmail  String?
+  vendorEmail    String?
+  vendorId       String?
+  created_by     String?
+  updated_by     String?
+  approved_by    String?
+  deleted_by     String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("Deleted_at")
+  gmailMessageId String?
+  category       String?
+  receivedAt     DateTime?
+  source         String?
+  raiddAnalysis  String?
+  tasks          Json?
+  sentiment      String?
+  decisions      Json?
+  approvedBy     User?     @relation("EmailApprovedBy", fields: [approved_by], references: [id])
+  createdBy      User?     @relation("EmailCreatedBy", fields: [created_by], references: [id])
+  deletedBy      User?     @relation("EmailDeletedBy", fields: [deleted_by], references: [id])
+  updatedBy      User?     @relation("EmailUpdatedBy", fields: [updated_by], references: [id])
+  vendor         Vendor?   @relation(fields: [vendorId], references: [id])
+
+  @@unique([gmailMessageId, receiverEmail])
+  @@map("emails")
+}
+
+model Outlook {
+  id               String    @id @default(uuid())
+  subject          String?
+  body             String?
+  senderEmail      String
+  receiverEmail    String?
+  vendorEmail      String?
+  outlookMessageId String?
+  category         String?
+  receivedAt       DateTime?
+  vendorId         String?
+  created_by       String?
+  updated_by       String?
+  approved_by      String?
+  deleted_by       String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("Deleted_at")
+  source           String?
+  raiddAnalysis    String?
+  tasks            Json?
+  sentiment        String?
+  decisions        Json?
+  approvedBy       User?     @relation("OutlookApprovedBy", fields: [approved_by], references: [id])
+  createdBy        User?     @relation("OutlookCreatedBy", fields: [created_by], references: [id])
+  deletedBy        User?     @relation("OutlookDeletedBy", fields: [deleted_by], references: [id])
+  updatedBy        User?     @relation("OutlookUpdatedBy", fields: [updated_by], references: [id])
+  vendor           Vendor?   @relation(fields: [vendorId], references: [id])
+
+  @@unique([outlookMessageId, receiverEmail])
+  @@map("outlooks")
+}
+
+model AiDetection {
+  id         String    @id @default(uuid())
+  title      String
+  summary    String?
+  sourceType String
+  managerId  String?
+  createdBy  String
+  updatedBy  String?
+  approvedBy String?
+  deletedBy  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  @@map("AI_detection")
+}
+
+model Raidd {
+  id          String       @id @default(uuid())
+  projectId   String
+  title       String?
+  description String?
+  type        RaiddType
+  status      RaiddStatus?
+  created_by  String
+  updated_by  String?
+  approved_by String?
+  deleted_by  String?
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
+  deleted_at  DateTime?
+  project     Project      @relation(fields: [projectId], references: [id])
+
+  @@map("raidd")
+}
+
+model Employee {
+  id          String    @id @default(uuid())
+  firstName   String
+  lastName    String?
+  email       String    @unique
+  phoneNumber String?
+  teamId      String?
+  created_by  String
+  updated_by  String?
+  approved_by String?
+  deleted_by  String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("Deleted_at")
+  designation String?
+  approvedBy  User?     @relation("EmployeeApprovedBy", fields: [approved_by], references: [id])
+  createdBy   User      @relation("EmployeeCreatedBy", fields: [created_by], references: [id])
+  deletedBy   User?     @relation("EmployeeDeletedBy", fields: [deleted_by], references: [id])
+  team        Team?     @relation(fields: [teamId], references: [id])
+  updatedBy   User?     @relation("EmployeeUpdatedBy", fields: [updated_by], references: [id])
+
+  @@map("employees")
+}
+
+model ZoomAccount {
+  id              String   @id @default(uuid())
+  zoomUserId      String
+  zoomEmail       String
+  accessToken     String
+  refreshToken    String
+  tokenExpiry     DateTime
+  connectedUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [connectedUserId], references: [id])
+
+  @@map("zoom_accounts")
+}
+
 enum UserRole {
   SYSTEM_OWNER    @map("system_owner")
   BUSINESS_OWNER  @map("business_owner")
@@ -21,167 +532,6 @@ enum OAuthProvider {
   apple
 }
 
-model User {
-  id String @id @default(uuid())
-
-  firstName     String
-  lastName      String?
-  username      String? @unique
-  email         String  @unique
-  passwordHash  String?
-  avatarUrl     String?
-  avatarUrlPath String?
-
-  gender   String?
-  country  String?
-  language String?
-  timezone String?
-
-  isActive  Boolean @default(true)
-  isDeleted Boolean @default(false)
-
-  role            UserRole      @default(PROJECT_MANAGER)
-  isVerified      Boolean       @default(false)
-  oauthProvider   OAuthProvider @default(email)
-  oauthProviderId String?
-  tokenVersion    Int           @default(0)
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  forgotPasswordStatus Boolean @default(false)
-
-  createdTeams            Team[]              @relation("TeamCreatedBy")
-  updatedTeams            Team[]              @relation("TeamUpdatedBy")
-  approvedTeams           Team[]              @relation("TeamApprovedBy")
-  deletedTeams            Team[]              @relation("TeamDeletedBy")
-  projectManagers         ProjectManager[]
-  projectManagersCreated  ProjectManager[]    @relation("ProjectManagerCreatedBy")
-  projectManagersUpdated  ProjectManager[]    @relation("ProjectManagerUpdatedBy")
-  projectManagersApproved ProjectManager[]    @relation("ProjectManagerApprovedBy")
-  projectManagersDeleted  ProjectManager[]    @relation("ProjectManagerDeletedBy")
-  projectAssignments      ProjectAssignment[]
-  projectsManaged         Project[]           @relation("ProjectManager")
-  projectsCreated         Project[]           @relation("ProjectCreatedBy")
-  assignedProjects        Project[]           @relation("AssignedProject")
-  projectsOwned           Project[]           @relation("ProjectOwner")
-
-  activityLogs  ActivityLog[]  @relation("UserActivityLogs")
-  emailAccounts EmailAccount[]
-  zoomAccounts  ZoomAccount[]
-
-  vendorsCreated  Vendor[] @relation("VendorCreatedBy")
-  vendorsUpdated  Vendor[] @relation("VendorUpdatedBy")
-  vendorsApproved Vendor[] @relation("VendorApprovedBy")
-  vendorsDeleted  Vendor[] @relation("VendorDeletedBy")
-
-  emailsCreated  Email[] @relation("EmailCreatedBy")
-  emailsUpdated  Email[] @relation("EmailUpdatedBy")
-  emailsApproved Email[] @relation("EmailApprovedBy")
-  emailsDeleted  Email[] @relation("EmailDeletedBy")
-
-  outlooksCreated  Outlook[] @relation("OutlookCreatedBy")
-  outlooksUpdated  Outlook[] @relation("OutlookUpdatedBy")
-  outlooksApproved Outlook[] @relation("OutlookApprovedBy")
-  outlooksDeleted  Outlook[] @relation("OutlookDeletedBy")
-
-  employeesCreated  Employee[] @relation("EmployeeCreatedBy")
-  employeesUpdated  Employee[] @relation("EmployeeUpdatedBy")
-  employeesApproved Employee[] @relation("EmployeeApprovedBy")
-  employeesDeleted  Employee[] @relation("EmployeeDeletedBy")
-
-  @@index([role])
-  @@map("users")
-}
-
-model EmailAccount {
-  id           String   @id @default(uuid())
-  userId       String
-  email        String?
-  provider     String
-  accessToken  String
-  refreshToken String
-  expiryDate   DateTime
-  isConnected  Boolean  @default(true)
-  createdAt    DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@map("email_accounts")
-}
-
-model ActivityLog {
-  id        String   @id @default(uuid())
-  type      String // project, task, meeting, document, milestone, projectHealth
-  crudId    String // ID of the affected entity
-  action    String // create, update, delete
-  projectId String?
-  project   Project? @relation("ProjectActivityLogs", fields: [projectId], references: [id])
-  userId    String
-  user      User     @relation("UserActivityLogs", fields: [userId], references: [id])
-  timestamp DateTime @default(now())
-
-  @@map("activity_logs")
-}
-
-model Team {
-  id   String @id @default(uuid())
-  name String
-
-  createdById  String?
-  updatedById  String?
-  approvedById String?
-  deletedById  String?
-
-  createdBy  User? @relation("TeamCreatedBy", fields: [createdById], references: [id])
-  updatedBy  User? @relation("TeamUpdatedBy", fields: [updatedById], references: [id])
-  approvedBy User? @relation("TeamApprovedBy", fields: [approvedById], references: [id])
-  deletedBy  User? @relation("TeamDeletedBy", fields: [deletedById], references: [id])
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  projectManagerId String?
-  projectManager   ProjectManager? @relation("PMTeams", fields: [projectManagerId], references: [id])
-
-  employees        Employee[]
-  assignedProjects Project[]  @relation("AssignTeam")
-
-  @@map("teams")
-}
-
-model ProjectManager {
-  id        String  @id @default(uuid())
-  firstName String  @map("firstName")
-  lastName  String? @map("lastName")
-
-  teams Team[] @relation("PMTeams")
-
-  projectId String? @map("project_id")
-
-  createdById  String? @map("created_by")
-  updatedById  String? @map("updated_by")
-  approvedById String? @map("approved_by")
-  deletedById  String? @map("deleted_by")
-
-  createdBy  User? @relation("ProjectManagerCreatedBy", fields: [createdById], references: [id])
-  updatedBy  User? @relation("ProjectManagerUpdatedBy", fields: [updatedById], references: [id])
-  approvedBy User? @relation("ProjectManagerApprovedBy", fields: [approvedById], references: [id])
-  deletedBy  User? @relation("ProjectManagerDeletedBy", fields: [deletedById], references: [id])
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("Deleted_at")
-
-  userId String? @unique
-  user   User?   @relation(fields: [userId], references: [id])
-
-  @@map("project_managers")
-}
-
-// Project related models and enums
 enum RaiddType {
   RISK
   ASSUMPTION
@@ -199,10 +549,10 @@ enum RaiddStatus {
 enum ProjectStatus {
   DRAFT
   IN_PROGRESS
-  ONGOING
   ON_HOLD
   COMPLETED
   CANCELLED
+  ONGOING
 }
 
 enum TaskPriority {
@@ -235,210 +585,6 @@ enum ProjectRole {
   CLIENT
 }
 
-model Project {
-  id                   String    @id @default(uuid())
-  name                 String
-  description          String?
-  vendorName           String?
-  weeklyMeetingSummary String?
-  startDate            DateTime?
-  endDate              DateTime?
-
-  status ProjectStatus @default(ONGOING)
-
-  managerId String
-  manager   User   @relation("ProjectManager", fields: [managerId], references: [id])
-
-  createdById String
-  createdBy   User   @relation("ProjectCreatedBy", fields: [createdById], references: [id])
-
-  projectOwnerId String?
-  projectOwner   User?   @relation("ProjectOwner", fields: [projectOwnerId], references: [id])
-
-  assignTeamId String?
-  assignTeam   Team?   @relation("AssignTeam", fields: [assignTeamId], references: [id])
-
-  deletedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tasks             ProjectTask[]
-  meetings          ProjectMeeting[]
-  documents         ProjectDocumentUpload[]
-  milestones        ProjectMilestone[]
-  assignments       ProjectAssignment[]
-  health            ProjectHealth[]
-  assignedTo        User?                   @relation("AssignedProject", fields: [userId], references: [id])
-  userId            String?
-  projectAgreements ProjectAgreements[]
-  activityLogs      ActivityLog[]           @relation("ProjectActivityLogs")
-  transcripts       MeetingTranscript[]     @relation("ProjectTranscripts")
-  vendor            Vendor?                 @relation(fields: [vendorId], references: [id])
-  vendorId          String?
-  raidd             Raidd[]
-
-  @@map("projects")
-}
-
-model ProjectTask {
-  id        String  @id @default(uuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  title     String
-  startDate DateTime?
-  endDate   DateTime?
-
-  priority TaskPriority
-  status   TaskStatus   @default(PENDING)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("project_tasks")
-}
-
-// project meetings starts here
-
-model ProjectMeeting {
-  id        String  @id @default(uuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  title              String?
-  lastMeetingSummary String?
-  aiMeetingSummary   String?
-  projectSummary     String?
-  meetingUrl         String?
-  meetingDate        DateTime?
-
-  keyPoints    KeyPoint[]
-  actionPoints ActionPoint[]
-
-  createdAt DateTime @default(now())
-
-  @@map("project_meetings")
-}
-
-model KeyPoint {
-  id        String         @id @default(uuid())
-  meetingId String
-  meeting   ProjectMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-
-  content String
-  status  String?
-
-  createdAt DateTime @default(now())
-
-  @@map("meeting_key_points")
-}
-
-model ActionPoint {
-  id        String         @id @default(uuid())
-  meetingId String
-  meeting   ProjectMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-
-  content String
-  status  String?
-
-  createdAt DateTime @default(now())
-
-  @@map("meeting_action_points")
-}
-
-// project meetings ends here
-model ProjectDocumentUpload {
-  id        String  @id @default(uuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  aiDocumentSummary String?
-  title             String?
-  fileName          String
-  fileUrl           String
-  filePath          String
-  setDate           DateTime?
-
-  keyPoints    DocumentKeyPoint[]
-  actionPoints DocumentActionPoint[]
-
-  createdAt DateTime @default(now())
-
-  @@map("project_documents")
-}
-
-model DocumentKeyPoint {
-  id         String                @id @default(uuid())
-  documentId String
-  document   ProjectDocumentUpload @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  content String
-  status  String?
-
-  createdAt DateTime @default(now())
-
-  @@map("document_key_points")
-}
-
-model DocumentActionPoint {
-  id         String                @id @default(uuid())
-  documentId String
-  document   ProjectDocumentUpload @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  content String
-  status  String?
-
-  createdAt DateTime @default(now())
-
-  @@map("document_action_points")
-}
-
-model ProjectAgreements {
-  id        String  @id @default(uuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  fileName String
-  fileUrl  String
-  filePath String
-  fileType String?
-
-  createdAt DateTime @default(now())
-
-  @@map("project_agreements")
-}
-
-model ProjectMilestone {
-  id        String  @id @default(uuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  title         String
-  description   String?
-  milestoneDate DateTime
-
-  status MilestoneStatus
-
-  createdAt DateTime @default(now())
-
-  @@map("project_milestones")
-}
-
-model ProjectAssignment {
-  id        String @id @default(uuid())
-  projectId String
-  userId    String
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id])
-
-  role ProjectRole
-
-  @@unique([projectId, userId])
-  @@map("project_assignments")
-}
-
 enum HealthType {
   OVERALL_STATUS
   BUDGET_STATUS
@@ -453,247 +599,4 @@ enum HealthStatus {
   GOOD
   EXCELLENT
   LOW
-}
-
-model ProjectHealth {
-  id        String  @id @default(uuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  score     Int?
-
-  type         HealthType?
-  healthStatus HealthStatus?
-  status       String?
-  createdAt    DateTime      @default(now())
-
-  @@map("project_health")
-}
-
-// for meeting transcript and document text extraction
-
-model MeetingTranscript {
-  id         String   @id @default(uuid())
-  meetingId  String? // optional relation if you have meeting table
-  projectId  String?
-  project    Project? @relation("ProjectTranscripts", fields: [projectId], references: [id])
-  platform   String // zoom | google | unknown
-  fileName   String
-  filePath   String
-  fileType   String
-  parsedData Json
-  createdAt  DateTime @default(now())
-
-  @@index([projectId])
-  @@map("meeting_transcripts")
-}
-
-// meeting transcript and document text extraction ends here
-
-model Vendor {
-  id               String  @id @default(uuid())
-  name             String
-  designation      String?
-  email            String?
-  phone            String?
-  numberOfProjects Int?    @default(0)
-  photoUrl         String?
-  photoPath        String?
-
-  // Key Point of Contact
-  contactPerson      String?
-  contactRole        String?
-  contactEmail       String?
-  contactPhone       String?
-  contactProjects    Int?    @default(0)
-  contactDesignation String?
-
-  // Dynamic Fields
-  meetingLinks Json? @default("[]") // Array of objects
-  documents    Json? @default("[]") // Array of objects
-  slas         Json? @default("[]") // Array of objects
-
-  // Relationships
-  projects Project[]
-  emails   Email[]
-  outlooks Outlook[]
-
-  // Audit Fields
-  created_by  String?
-  updated_by  String?
-  approved_by String?
-  deleted_by  String?
-
-  createdBy  User? @relation("VendorCreatedBy", fields: [created_by], references: [id])
-  updatedBy  User? @relation("VendorUpdatedBy", fields: [updated_by], references: [id])
-  approvedBy User? @relation("VendorApprovedBy", fields: [approved_by], references: [id])
-  deletedBy  User? @relation("VendorDeletedBy", fields: [deleted_by], references: [id])
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("Deleted_at")
-
-  @@map("vendors")
-}
-
-model Email {
-  id             String    @id @default(uuid())
-  subject        String?
-  body           String?
-  senderEmail    String
-  receiverEmail  String?
-  vendorEmail    String?
-  gmailMessageId String?
-  source         String? // <-- Added field
-  category       String?
-  receivedAt     DateTime?
-  tasks          Json?
-  raiddAnalysis  String?
-  decisions      String?
-  sentiment      String?
-
-  vendorId String?
-  vendor   Vendor? @relation(fields: [vendorId], references: [id])
-
-  // Audit Fields
-  created_by  String?
-  updated_by  String?
-  approved_by String?
-  deleted_by  String?
-
-  createdBy  User? @relation("EmailCreatedBy", fields: [created_by], references: [id])
-  updatedBy  User? @relation("EmailUpdatedBy", fields: [updated_by], references: [id])
-  approvedBy User? @relation("EmailApprovedBy", fields: [approved_by], references: [id])
-  deletedBy  User? @relation("EmailDeletedBy", fields: [deleted_by], references: [id])
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("Deleted_at")
-
-  @@unique([gmailMessageId, receiverEmail])
-  @@map("emails")
-}
-
-model Outlook {
-  id               String    @id @default(uuid())
-  subject          String?
-  body             String?
-  senderEmail      String
-  receiverEmail    String?
-  vendorEmail      String?
-  outlookMessageId String?
-  source           String? // <-- Added field
-  category         String?
-  receivedAt       DateTime?
-  tasks            Json?
-  raiddAnalysis    String?
-  decisions        String?
-  sentiment        String?
-
-  vendorId String?
-  vendor   Vendor? @relation(fields: [vendorId], references: [id])
-
-  // Audit Fields
-  created_by  String?
-  updated_by  String?
-  approved_by String?
-  deleted_by  String?
-
-  createdBy  User? @relation("OutlookCreatedBy", fields: [created_by], references: [id])
-  updatedBy  User? @relation("OutlookUpdatedBy", fields: [updated_by], references: [id])
-  approvedBy User? @relation("OutlookApprovedBy", fields: [approved_by], references: [id])
-  deletedBy  User? @relation("OutlookDeletedBy", fields: [deleted_by], references: [id])
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("Deleted_at")
-
-  @@unique([outlookMessageId, receiverEmail])
-  @@map("outlooks")
-}
-
-// project Related models and enums ends here
-
-model AiDetection {
-  id         String    @id @default(uuid())
-  title      String
-  summary    String?
-  sourceType String
-  managerId  String? // this is taken from Ai dectection json response, but right now you can make it optional 
-  createdBy  String
-  updatedBy  String?
-  approvedBy String?
-  deletedBy  String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
-
-  @@map("AI_detection")
-}
-
-model Raidd {
-  id          String  @id @default(uuid())
-  projectId   String
-  title       String?
-  description String?
-
-  type   RaiddType
-  status RaiddStatus?
-
-  created_by  String
-  updated_by  String?
-  approved_by String?
-  deleted_by  String?
-
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
-
-  project Project @relation(fields: [projectId], references: [id])
-
-  @@map("raidd")
-}
-
-model Employee {
-  id          String  @id @default(uuid())
-  firstName   String
-  lastName    String?
-  email       String  @unique
-  phoneNumber String?
-  designation String?
-  teamId      String?
-  team        Team?   @relation(fields: [teamId], references: [id])
-
-  // Audit Fields
-  created_by  String
-  updated_by  String?
-  approved_by String?
-  deleted_by  String?
-
-  createdBy  User  @relation("EmployeeCreatedBy", fields: [created_by], references: [id])
-  updatedBy  User? @relation("EmployeeUpdatedBy", fields: [updated_by], references: [id])
-  approvedBy User? @relation("EmployeeApprovedBy", fields: [approved_by], references: [id])
-  deletedBy  User? @relation("EmployeeDeletedBy", fields: [deleted_by], references: [id])
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("Deleted_at")
-
-  @@map("employees")
-}
-
-model ZoomAccount {
-  id              String   @id @default(uuid())
-  zoomUserId      String
-  zoomEmail       String
-  accessToken     String
-  refreshToken    String
-  tokenExpiry     DateTime
-  connectedUserId String
-
-  user User @relation(fields: [connectedUserId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("zoom_accounts")
 }

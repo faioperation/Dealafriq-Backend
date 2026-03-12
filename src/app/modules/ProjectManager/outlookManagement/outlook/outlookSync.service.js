@@ -52,19 +52,42 @@ const syncOutlookEmail = async (payload) => {
     });
 
     // Call AI Summary API
-    if (createdEmail.body) {
-        const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(createdEmail.body);
-        if (aiResult) {
-            await prisma.outlook.update({
-                where: { id: createdEmail.id },
-                data: {
-                    tasks: aiResult.tasks,
-                    raiddAnalysis: aiResult.raiddAnalysis,
-                    decisions: aiResult.decisions,
-                    sentiment: aiResult.sentiment
-                }
-            });
+    if (createdEmail.body && createdEmail.body.trim() !== '') {
+        try {
+            console.log(`[AI Sync Outlook] Calling AI Summary for ID: ${createdEmail.id}`);
+            const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(createdEmail.body);
+            
+            if (aiResult) {
+                console.log(`[AI Sync Outlook] AI Result received. Updating outlook record...`);
+                await prisma.outlook.update({
+                    where: { id: createdEmail.id },
+                    data: {
+                        tasks: aiResult.tasks,
+                        raiddAnalysis: aiResult.raiddAnalysis,
+                        decisions: aiResult.decisions,
+                        sentiment: aiResult.sentiment
+                    }
+                });
+
+                // Create AI Detection record
+                console.log(`[AI Sync Outlook] Creating AI Detection record...`);
+                const aiDetection = await prisma.aiDetection.create({
+                    data: {
+                        title: createdEmail.body || createdEmail.subject || 'No Content',
+                        summary: aiResult.summary,
+                        sourceType: 'OUTLOOK',
+                        createdBy: createdEmail.created_by || 'SYSTEM',
+                    }
+                });
+                console.log(`[AI Sync Outlook] AI Detection record created: ${aiDetection.id}`);
+            } else {
+                console.warn(`[AI Sync Outlook] AI Summary utility returned null for ID: ${createdEmail.id}`);
+            }
+        } catch (error) {
+            console.error(`[AI Sync Outlook] Critical error for ID: ${createdEmail.id}:`, error);
         }
+    } else {
+        console.log(`[AI Sync Outlook] Skipping AI summary for ID: ${createdEmail.id} (Empty body)`);
     }
 
     return createdEmail;

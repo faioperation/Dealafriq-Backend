@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { envVars } from '../config/env.js';
 
 /**
  * Call AI API to get email summary and metadata
@@ -9,7 +10,7 @@ const getAiEmailSummary = async (body) => {
     if (!body) return null;
 
     try {
-        const response = await axios.post('https://test4.fireai.agency/summary/emails', {
+        const response = await axios.post( `${envVars.API_AIj}/summary/emails`, {
             body: body
         }, {
             headers: {
@@ -39,19 +40,24 @@ const getAiEmailSummary = async (body) => {
         // Extract tasks
         const tasks = data.tasks || [];
         
-        let raiddAnalysisStr = null;
-        let decisionsStr = null;
+        // Extract decisions from decisionPoints (top level) or raiddAnalysis.decisions
+        const topLevelDecisions = data.decisionPoints;
+        const raiddDecisions = data.raiddAnalysis?.decisions;
+        let decisions = [];
+
+        if (Array.isArray(topLevelDecisions) && topLevelDecisions.length > 0) {
+            decisions = topLevelDecisions;
+        } else if (typeof topLevelDecisions === 'string' && topLevelDecisions.trim() !== '') {
+            decisions = [topLevelDecisions];
+        } else if (Array.isArray(raiddDecisions) && raiddDecisions.length > 0) {
+            decisions = raiddDecisions;
+        } else if (typeof raiddDecisions === 'string' && raiddDecisions.trim() !== '') {
+            decisions = [raiddDecisions];
+        }
 
         if (data.raiddAnalysis) {
             const raidd = data.raiddAnalysis;
             
-            // Extract decisions separately as requested
-            if (raidd.decisions && Array.isArray(raidd.decisions) && raidd.decisions.length > 0) {
-                decisionsStr = raidd.decisions.join('\n');
-            } else if (raidd.decisions && typeof raidd.decisions === 'string') {
-                decisionsStr = raidd.decisions;
-            }
-
             // Find first field that has value for raiddAnalysis (excluding decisions since it's separate)
             const keys = ['risks', 'assumptions', 'issues', 'dependencies'];
             for (const key of keys) {
@@ -70,8 +76,9 @@ const getAiEmailSummary = async (body) => {
         return {
             tasks,
             raiddAnalysis: raiddAnalysisStr,
-            decisions: decisionsStr,
-            sentiment: data.sentiment || null
+            decisions,
+            sentiment: data.sentiment || null,
+            summary: data.summary || null
         };
     } catch (error) {
         console.error('AI Summary API Error:', error.response?.data || error.message);
