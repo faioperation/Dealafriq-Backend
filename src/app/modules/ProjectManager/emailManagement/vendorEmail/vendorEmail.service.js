@@ -1,5 +1,6 @@
 import prisma from '../../../../prisma/client.js';
 import { AiEmailSummaryUtils } from '../../../../utils/aiEmailSummary.js';
+import { AiDetectionService } from '../../aiDetection/aiDetection.service.js';
 
 
 /**
@@ -158,39 +159,37 @@ const syncEmail = async (payload) => {
     });
 
     // Call AI Summary API
-    if (createdEmail.body && createdEmail.body.trim() !== '') {
-        try {
-            console.log(`[AI Sync] Calling AI Summary for Email ID: ${createdEmail.id}`);
-            const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(createdEmail.body);
-            
-            if (aiResult) {
-                console.log(`[AI Sync] AI Result received for Email ID: ${createdEmail.id}. Updating email record...`);
-                await prisma.email.update({
-                    where: { id: createdEmail.id },
-                    data: {
-                        tasks: aiResult.tasks,
-                        raiddAnalysis: aiResult.raiddAnalysis,
-                        decisions: aiResult.decisions,
-                        sentiment: aiResult.sentiment
-                    }
-                });
+    if (createdEmail.body) {
+        const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(createdEmail.body);
+        if (aiResult) {
+            await prisma.email.update({
+                where: { id: createdEmail.id },
+                data: {
+                    tasks: aiResult.tasks,
+                    raiddAnalysis: aiResult.raiddAnalysis,
+                    decisions: aiResult.decisions,
+                    sentiment: aiResult.sentiment
+                }
+            });
 
-                // Create AI Detection record
-                console.log(`[AI Sync] Creating AI Detection record for Email ID: ${createdEmail.id}`);
-                const aiDetection = await prisma.aiDetection.create({
-                    data: {
-                        title: createdEmail.body || createdEmail.subject || 'No Content',
-                        summary: aiResult.summary,
-                        sourceType: 'GMAIL',
-                        createdBy: createdEmail.created_by || 'SYSTEM',
-                    }
-                });
-                console.log(`[AI Sync] AI Detection record created successfully: ${aiDetection.id}`);
-            } else {
-                console.warn(`[AI Sync] AI Summary utility returned null for Email ID: ${createdEmail.id}`);
+            // Automatically create AI Detection record
+            const summaryParts = [];
+            if (aiResult.tasks && Array.isArray(aiResult.tasks) && aiResult.tasks.length > 0) {
+                summaryParts.push(`Tasks:\n${aiResult.tasks.join('\n')}`);
             }
-        } catch (error) {
-            console.error(`[AI Sync] Critical error in AI sync process for Email ID: ${createdEmail.id}:`, error);
+            if (aiResult.raiddAnalysis) {
+                summaryParts.push(`RAIDD Analysis:\n${aiResult.raiddAnalysis}`);
+            }
+            if (aiResult.decisions) {
+                summaryParts.push(`Decisions:\n${aiResult.decisions}`);
+            }
+
+            await AiDetectionService.createAiDetection(prisma, {
+                title: createdEmail.subject || 'New AI Detection from Email',
+                summary: summaryParts.join('\n\n'),
+                sourceType: createdEmail.source || 'email',
+                managerId: createdEmail.created_by
+            }, createdEmail.created_by);
         }
     } else {
         console.log(`[AI Sync] Skipping AI summary for Email ID: ${createdEmail.id} (Empty body)`);

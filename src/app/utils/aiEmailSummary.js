@@ -1,11 +1,7 @@
 import axios from 'axios';
 import { envVars } from '../config/env.js';
 
-/**
- * Call AI API to get email summary and metadata
- * @param {string} body - The email content
- * @returns {Promise<object>} - AI analysis result
- */
+
 const getAiEmailSummary = async (body) => {
     if (!body) return null;
 
@@ -20,7 +16,7 @@ const getAiEmailSummary = async (body) => {
 
         let data = response.data;
         console.log('AI API Raw Response:', JSON.stringify(data, null, 2));
-        
+
         if (!data) return null;
 
         // The AI API might return an array or an object with a 'data' array
@@ -39,25 +35,20 @@ const getAiEmailSummary = async (body) => {
 
         // Extract tasks
         const tasks = data.tasks || [];
-        
-        // Extract decisions from decisionPoints (top level) or raiddAnalysis.decisions
-        const topLevelDecisions = data.decisionPoints;
-        const raiddDecisions = data.raiddAnalysis?.decisions;
-        let decisions = [];
 
-        if (Array.isArray(topLevelDecisions) && topLevelDecisions.length > 0) {
-            decisions = topLevelDecisions;
-        } else if (typeof topLevelDecisions === 'string' && topLevelDecisions.trim() !== '') {
-            decisions = [topLevelDecisions];
-        } else if (Array.isArray(raiddDecisions) && raiddDecisions.length > 0) {
-            decisions = raiddDecisions;
-        } else if (typeof raiddDecisions === 'string' && raiddDecisions.trim() !== '') {
-            decisions = [raiddDecisions];
-        }
+        let raiddAnalysisStr = null;
+        let decisionsStr = null;
 
         if (data.raiddAnalysis) {
             const raidd = data.raiddAnalysis;
-            
+
+            // Extract decisions separately as requested
+            if (raidd.decisions && Array.isArray(raidd.decisions) && raidd.decisions.length > 0) {
+                decisionsStr = raidd.decisions.join('\n');
+            } else if (raidd.decisions && typeof raidd.decisions === 'string') {
+                decisionsStr = raidd.decisions;
+            }
+
             // Find first field that has value for raiddAnalysis (excluding decisions since it's separate)
             const keys = ['risks', 'assumptions', 'issues', 'dependencies'];
             for (const key of keys) {

@@ -1,5 +1,6 @@
 import prisma from '../../../../prisma/client.js';
 import { AiEmailSummaryUtils } from '../../../../utils/aiEmailSummary.js';
+import { AiDetectionService } from '../../aiDetection/aiDetection.service.js';
 
 
 /**
@@ -52,39 +53,37 @@ const syncOutlookEmail = async (payload) => {
     });
 
     // Call AI Summary API
-    if (createdEmail.body && createdEmail.body.trim() !== '') {
-        try {
-            console.log(`[AI Sync Outlook] Calling AI Summary for ID: ${createdEmail.id}`);
-            const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(createdEmail.body);
-            
-            if (aiResult) {
-                console.log(`[AI Sync Outlook] AI Result received. Updating outlook record...`);
-                await prisma.outlook.update({
-                    where: { id: createdEmail.id },
-                    data: {
-                        tasks: aiResult.tasks,
-                        raiddAnalysis: aiResult.raiddAnalysis,
-                        decisions: aiResult.decisions,
-                        sentiment: aiResult.sentiment
-                    }
-                });
+    if (createdEmail.body) {
+        const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(createdEmail.body);
+        if (aiResult) {
+            await prisma.outlook.update({
+                where: { id: createdEmail.id },
+                data: {
+                    tasks: aiResult.tasks,
+                    raiddAnalysis: aiResult.raiddAnalysis,
+                    decisions: aiResult.decisions,
+                    sentiment: aiResult.sentiment
+                }
+            });
 
-                // Create AI Detection record
-                console.log(`[AI Sync Outlook] Creating AI Detection record...`);
-                const aiDetection = await prisma.aiDetection.create({
-                    data: {
-                        title: createdEmail.body || createdEmail.subject || 'No Content',
-                        summary: aiResult.summary,
-                        sourceType: 'OUTLOOK',
-                        createdBy: createdEmail.created_by || 'SYSTEM',
-                    }
-                });
-                console.log(`[AI Sync Outlook] AI Detection record created: ${aiDetection.id}`);
-            } else {
-                console.warn(`[AI Sync Outlook] AI Summary utility returned null for ID: ${createdEmail.id}`);
+            // Automatically create AI Detection record
+            const summaryParts = [];
+            if (aiResult.tasks && Array.isArray(aiResult.tasks) && aiResult.tasks.length > 0) {
+                summaryParts.push(`Tasks:\n${aiResult.tasks.join('\n')}`);
             }
-        } catch (error) {
-            console.error(`[AI Sync Outlook] Critical error for ID: ${createdEmail.id}:`, error);
+            if (aiResult.raiddAnalysis) {
+                summaryParts.push(`RAIDD Analysis:\n${aiResult.raiddAnalysis}`);
+            }
+            if (aiResult.decisions) {
+                summaryParts.push(`Decisions:\n${aiResult.decisions}`);
+            }
+
+            await AiDetectionService.createAiDetection(prisma, {
+                title: createdEmail.subject || 'New AI Detection from Outlook',
+                summary: summaryParts.join('\n\n'),
+                sourceType: createdEmail.source || 'outlook',
+                managerId: createdEmail.created_by
+            }, createdEmail.created_by);
         }
     } else {
         console.log(`[AI Sync Outlook] Skipping AI summary for ID: ${createdEmail.id} (Empty body)`);
