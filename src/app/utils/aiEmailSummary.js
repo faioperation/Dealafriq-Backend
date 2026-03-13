@@ -1,11 +1,12 @@
 import axios from 'axios';
+import { envVars } from '../config/env.js';
 
 
 const getAiEmailSummary = async (body) => {
     if (!body) return null;
 
     try {
-        const response = await axios.post('https://test4.fireai.agency/summary/emails', {
+        const response = await axios.post( `${envVars.API_AIj}/summary/emails`, {
             body: body
         }, {
             headers: {
@@ -66,8 +67,9 @@ const getAiEmailSummary = async (body) => {
         return {
             tasks,
             raiddAnalysis: raiddAnalysisStr,
-            decisions: decisionsStr,
-            sentiment: data.sentiment || null
+            decisions,
+            sentiment: data.sentiment || null,
+            summary: data.summary || null
         };
     } catch (error) {
         console.error('AI Summary API Error:', error.response?.data || error.message);
