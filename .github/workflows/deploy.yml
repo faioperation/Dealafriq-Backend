@@ -19,26 +19,28 @@ jobs:
           script: |
             set -e
 
+            export PATH=/usr/bin:/usr/local/bin:$PATH
+
             echo "Starting deployment..."
 
             cd /var/www/project-management-system/backend-server
 
-            echo "Pulling latest code..."
+            echo "Pull latest code"
             git fetch origin
             git reset --hard origin/main
 
-            echo "Installing dependencies..."
+            echo "Install dependencies"
             npm install
 
-            echo "Generating Prisma client..."
+            echo "Generate Prisma client"
             npx prisma generate
 
-            echo "Running database migrations..."
+            echo "Run migrations"
             npx prisma migrate deploy
 
-            echo "Restarting backend with PM2..."
-            pm2 restart backend-server
+            echo "Reload backend"
+            pm2 reload backend-server
 
             pm2 save
 
-            echo "Deployment finished successfully"
+            echo "Deployment finished"
