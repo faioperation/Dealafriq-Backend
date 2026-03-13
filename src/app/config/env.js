@@ -42,6 +42,8 @@ const loadEnvVars = () => {
     "OUTLOOK_CLIENT_SECRET",
     "OUTLOOK_TENANT_ID",
     "OUTLOOK_CALLBACK_URL",
+
+    "API_AI",
   ];
 
   requiredVars.forEach((key) => {
@@ -99,6 +101,9 @@ const loadEnvVars = () => {
     OUTLOOK_CLIENT_SECRET: process.env.OUTLOOK_CLIENT_SECRET,
     OUTLOOK_TENANT_ID: process.env.OUTLOOK_TENANT_ID,
     OUTLOOK_CALLBACK_URL: process.env.OUTLOOK_CALLBACK_URL,
+
+    // AI API 
+    API_AI: process.env.API_AI,
   };
 };
 

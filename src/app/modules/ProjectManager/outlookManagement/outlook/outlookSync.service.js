@@ -85,6 +85,8 @@ const syncOutlookEmail = async (payload) => {
                 managerId: createdEmail.created_by
             }, createdEmail.created_by);
         }
+    } else {
+        console.log(`[AI Sync Outlook] Skipping AI summary for ID: ${createdEmail.id} (Empty body)`);
     }
 
     return createdEmail;

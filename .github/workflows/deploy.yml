@@ -1,4 +1,4 @@
-name: Deploy Node App to VPS
+name: Deploy Backend to VPS
 
 on:
   push:
@@ -10,19 +10,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Deploy to VPS via SSH
+      - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /home/munna/dealafriq/dealafriq-backend
-            git pull origin main
+            set -e
+
+            echo "Starting deployment..."
+
+            cd /var/www/project-management-system/backend-server
+
+            echo "Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/main
+
+            echo "Installing dependencies..."
             npm install
+
+            echo "Generating Prisma client..."
             npx prisma generate
+
+            echo "Running database migrations..."
             npx prisma migrate deploy
-            pm2 restart dealafriq-backend
+
+            echo "Restarting backend with PM2..."
+            pm2 restart backend-server
+
+            pm2 save
+
+            echo "Deployment finished successfully"

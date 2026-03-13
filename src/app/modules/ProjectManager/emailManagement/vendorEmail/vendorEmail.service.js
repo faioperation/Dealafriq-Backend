@@ -191,6 +191,8 @@ const syncEmail = async (payload) => {
                 managerId: createdEmail.created_by
             }, createdEmail.created_by);
         }
+    } else {
+        console.log(`[AI Sync] Skipping AI summary for Email ID: ${createdEmail.id} (Empty body)`);
     }
 
     return createdEmail;

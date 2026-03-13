@@ -126,8 +126,8 @@ const connectEmailAccount = async (userId, tokens) => {
         where: { userId, provider: 'google' }
     });
 
-    if (existingAccount) {
-        return await prisma.emailAccount.update({
+    const result = await (existingAccount ? 
+        prisma.emailAccount.update({
             where: { id: existingAccount.id },
             data: {
                 accessToken: tokens.access_token,
@@ -136,20 +136,28 @@ const connectEmailAccount = async (userId, tokens) => {
                 email: email || existingAccount.email,
                 isConnected: true,
             },
-        });
-    }
+        }) :
+        prisma.emailAccount.create({
+            data: {
+                userId,
+                email,
+                provider: 'google',
+                accessToken: tokens.access_token,
+                refreshToken: tokens.refresh_token,
+                expiryDate,
+                isConnected: true,
+            },
+        })
+    );
 
-    return await prisma.emailAccount.create({
-        data: {
-            userId,
-            email,
-            provider: 'google',
-            accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token,
-            expiryDate,
-            isConnected: true,
-        },
-    });
+    // Trigger immediate sync in background
+    setTimeout(() => {
+        EmailService.syncAllConnectedAccounts().catch(err => {
+            console.error('Initial Gmail sync failed:', err);
+        });
+    }, 1000);
+
+    return result;
 };
 
 const getInbox = async (userId, category = null) => {

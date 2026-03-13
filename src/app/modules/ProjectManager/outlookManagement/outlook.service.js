@@ -55,8 +55,8 @@ const connectAccount = async (userId, code) => {
         where: { userId, provider: 'outlook' }
     });
 
-    if (existingAccount) {
-        return await prisma.emailAccount.update({
+    const result = await (existingAccount ? 
+        prisma.emailAccount.update({
             where: { id: existingAccount.id },
             data: {
                 accessToken: tokens.access_token,
@@ -65,20 +65,28 @@ const connectAccount = async (userId, code) => {
                 email: email || existingAccount.email,
                 isConnected: true,
             },
-        });
-    }
+        }) :
+        prisma.emailAccount.create({
+            data: {
+                userId,
+                email,
+                provider: 'outlook',
+                accessToken: tokens.access_token,
+                refreshToken: tokens.refresh_token,
+                expiryDate,
+                isConnected: true,
+            },
+        })
+    );
 
-    return await prisma.emailAccount.create({
-        data: {
-            userId,
-            email,
-            provider: 'outlook',
-            accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token,
-            expiryDate,
-            isConnected: true,
-        },
-    });
+    // Trigger immediate sync in background
+    setTimeout(() => {
+        OutlookService.syncAllConnectedAccounts().catch(err => {
+            console.error('Initial Outlook sync failed:', err);
+        });
+    }, 1000);
+
+    return result;
 };
 
 const getInbox = async (userId) => {
