@@ -154,48 +154,55 @@ const syncEmail = async (payload) => {
         vendorEmail: vendor ? (vendor.email === senderEmail ? vendor.email : vendor.contactEmail) : null
     };
 
-    const createdEmail = await prisma.email.create({
+    // 1. Create the record in the database first (as requested)
+    let email = await prisma.email.create({
         data: emailData
     });
 
-    // Call AI Summary API
-    if (createdEmail.body) {
-        const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(createdEmail.body);
+    // 2. Call AI Summary API and wait for response (blocks here)
+    if (email.body) {
+        console.log(`[AI Sync] Requesting AI summary for Gmail Message ID: ${gmailMessageId} (ID: ${email.id})`);
+        const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(email.body);
+
         if (aiResult) {
-            await prisma.email.update({
-                where: { id: createdEmail.id },
+            console.log(`[AI Sync] AI Result received for Email ID: ${email.id}. tasks: ${aiResult.tasks?.length || 0}, raiddAnalysis: ${aiResult.raiddAnalysis}`);
+
+            // 3. Update those values in the database
+            email = await prisma.email.update({
+                where: { id: email.id },
                 data: {
                     tasks: aiResult.tasks,
                     raiddAnalysis: aiResult.raiddAnalysis,
+                    raiddMessage: aiResult.raiddMessage,
                     decisions: aiResult.decisions,
                     sentiment: aiResult.sentiment
                 }
             });
+            console.log(`[AI Sync] Record updated successfully for Email ID: ${email.id}`);
 
-            // Automatically create AI Detection record
+            // 4. Create AI detection record
             const summaryParts = [];
             if (aiResult.tasks && Array.isArray(aiResult.tasks) && aiResult.tasks.length > 0) {
                 summaryParts.push(`Tasks:\n${aiResult.tasks.join('\n')}`);
-            }
-            if (aiResult.raiddAnalysis) {
-                summaryParts.push(`RAIDD Analysis:\n${aiResult.raiddAnalysis}`);
             }
             if (aiResult.decisions) {
                 summaryParts.push(`Decisions:\n${aiResult.decisions}`);
             }
 
             await AiDetectionService.createAiDetection(prisma, {
-                title: createdEmail.subject || 'New AI Detection from Email',
+                title: email.subject || 'New AI Detection from Email',
                 summary: summaryParts.join('\n\n'),
-                sourceType: createdEmail.source || 'email',
-                managerId: createdEmail.created_by
-            }, createdEmail.created_by);
+                raiddAnalysis: aiResult.raiddAnalysis,
+                raiddMessage: aiResult.raiddMessage,
+                sourceType: email.source || 'email',
+                managerId: email.created_by
+            }, email.created_by);
         }
     } else {
-        console.log(`[AI Sync] Skipping AI summary for Email ID: ${createdEmail.id} (Empty body)`);
+        console.log(`[AI Sync] Skipping AI summary for Gmail Message ID: ${gmailMessageId} (Empty body)`);
     }
 
-    return createdEmail;
+    return email;
 };
 
 export const VendorEmailService = {

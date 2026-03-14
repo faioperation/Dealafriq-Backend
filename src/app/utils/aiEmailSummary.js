@@ -6,18 +6,25 @@ const getAiEmailSummary = async (body) => {
     if (!body) return null;
 
     try {
-        const response = await axios.post( `${envVars.API_AIj}/summary/emails`, {
+        const apiUrl = `${envVars.API_AI}/summary/emails`;
+        console.log(`[AI Utility] Calling AI API: ${apiUrl} (Body length: ${body.length})`);
+        
+        const response = await axios.post(apiUrl, {
             body: body
         }, {
             headers: {
                 'x-backend-service': 'PROJECT_AI_BACKEND'
-            }
+            },
+            timeout: 300000 // 5 minutes
         });
 
         let data = response.data;
-        console.log('AI API Raw Response:', JSON.stringify(data, null, 2));
+        console.log('[AI Utility] AI API Raw Response received');
 
-        if (!data) return null;
+        if (!data) {
+            console.log('[AI Utility] AI API: No data found in response');
+            return null;
+        }
 
         // The AI API might return an array or an object with a 'data' array
         if (data.data && Array.isArray(data.data)) {
@@ -27,26 +34,41 @@ const getAiEmailSummary = async (body) => {
         }
 
         if (!data) {
-            console.log('AI API: No data found after parsing response');
+            console.log('[AI Utility] AI API: No data found after parsing response array');
             return null;
         }
 
-        console.log('AI API: Parsed data object:', JSON.stringify(data, null, 2));
+        console.log('[AI Utility] AI API: Parsed data object:', JSON.stringify(data, null, 2));
 
-        // Extract tasks
-        const tasks = data.tasks || [];
+        // Extract tasks (prefer tasks, fallback to actionPoints)
+        let tasks = data.tasks || [];
+        if ((!tasks || tasks.length === 0) && data.actionPoints) {
+            tasks = data.actionPoints;
+        }
 
-        let raiddAnalysisStr = null;
+        let raiddAnalysisKey = null;
+        let raiddMessageValue = null;
         let decisionsStr = null;
+
+        // Try to get decisions from root first if available
+        if (data.decisionPoints) {
+            if (Array.isArray(data.decisionPoints) && data.decisionPoints.length > 0) {
+                decisionsStr = data.decisionPoints.join('\n');
+            } else if (typeof data.decisionPoints === 'string') {
+                decisionsStr = data.decisionPoints;
+            }
+        }
 
         if (data.raiddAnalysis) {
             const raidd = data.raiddAnalysis;
 
-            // Extract decisions separately as requested
-            if (raidd.decisions && Array.isArray(raidd.decisions) && raidd.decisions.length > 0) {
-                decisionsStr = raidd.decisions.join('\n');
-            } else if (raidd.decisions && typeof raidd.decisions === 'string') {
-                decisionsStr = raidd.decisions;
+            // Extract decisions from raiddAnalysis if root decisionsStr is still null
+            if (!decisionsStr) {
+                if (raidd.decisions && Array.isArray(raidd.decisions) && raidd.decisions.length > 0) {
+                    decisionsStr = raidd.decisions.join('\n');
+                } else if (raidd.decisions && typeof raidd.decisions === 'string') {
+                    decisionsStr = raidd.decisions;
+                }
             }
 
             // Find first field that has value for raiddAnalysis (excluding decisions since it's separate)
@@ -54,25 +76,31 @@ const getAiEmailSummary = async (body) => {
             for (const key of keys) {
                 if (raidd[key]) {
                     if (Array.isArray(raidd[key]) && raidd[key].length > 0) {
-                        raiddAnalysisStr = raidd[key].join('\n');
+                        raiddAnalysisKey = key;
+                        raiddMessageValue = raidd[key].join('\n');
                         break;
                     } else if (typeof raidd[key] === 'string' && raidd[key].trim() !== '') {
-                        raiddAnalysisStr = raidd[key];
+                        raiddAnalysisKey = key;
+                        raiddMessageValue = raidd[key];
                         break;
                     }
                 }
             }
         }
 
-        return {
+        const result = {
             tasks,
-            raiddAnalysis: raiddAnalysisStr,
-            decisions,
+            raiddAnalysis: raiddAnalysisKey,
+            raiddMessage: raiddMessageValue,
+            decisions: decisionsStr,
             sentiment: data.sentiment || null,
             summary: data.summary || null
         };
+
+        console.log('[AI Utility] Returning result to service:', JSON.stringify(result, null, 2));
+        return result;
     } catch (error) {
-        console.error('AI Summary API Error:', error.response?.data || error.message);
+        console.error('[AI Utility] AI Summary API Error:', error.response?.data || error.message);
         return null;
     }
 };
