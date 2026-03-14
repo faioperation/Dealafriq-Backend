@@ -1,6 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import { catchAsync } from "../../../utils/catchAsync.js";
 import { sendResponse } from "../../../utils/sendResponse.js";
+import { buildFileUrl } from "../../../utils/buildFileUrl.js";
 import { ProjectDocumentService } from "./projectDocument.service.js";
 import prisma from "../../../prisma/client.js";
 
@@ -40,7 +41,7 @@ const uploadDocument = catchAsync(async (req, res) => {
         title,
         setDate,
         fileName: file.originalname,
-        fileUrl: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,
+        fileUrl: buildFileUrl(`uploads/${file.filename}`, req),
         filePath: `uploads/${file.filename}`,
         keyPoints,
         actionPoints,

@@ -5,12 +5,13 @@ import { StatusCodes } from "http-status-codes";
 import DevBuildError from "../../lib/DevBuildError.js";
 import prisma from "../../prisma/client.js";
 import { sendResponse } from "../../utils/sendResponse.js";
+import { buildFileUrl } from "../../utils/buildFileUrl.js";
 
 
 const registerUser = async (req, res, next) => {
   try {
     const picture = req.file ? {
-      url: `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`,
+      url: buildFileUrl(`uploads/${req.file.filename}`, req),
       path: `uploads/${req.file.filename}`
     } : null;
     const payload = {
@@ -122,7 +123,7 @@ const updateProfile = async (req, res, next) => {
     // Handle profile picture update if a new file is uploaded
     if (req.file) {
       const avatarUrlPath = `uploads/${req.file.filename}`;
-      const avatarUrl = `${req.protocol}://${req.get('host')}/${avatarUrlPath}`;
+      const avatarUrl = buildFileUrl(avatarUrlPath, req);
       allowedUpdates.avatarUrl = avatarUrl;
       allowedUpdates.avatarUrlPath = avatarUrlPath;
     }
@@ -225,7 +226,7 @@ const uploadAvatar = async (req, res, next) => {
     }
 
     const avatarUrlPath = `uploads/${req.file.filename}`;
-    const avatarUrl = `${req.protocol}://${req.get('host')}/${avatarUrlPath}`;
+    const avatarUrl = buildFileUrl(avatarUrlPath, req);
     const result = await UserService.updateAvatar(prisma, id, avatarUrl, avatarUrlPath);
 
     sendResponse(res, {
