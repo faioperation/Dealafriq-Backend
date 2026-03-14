@@ -1,4 +1,5 @@
 import { VendorService } from "./vendor.service.js";
+import { buildFileUrl } from "../../../utils/buildFileUrl.js";
 
 const createVendorController = async (req, res, next) => {
     try {
@@ -10,7 +11,7 @@ const createVendorController = async (req, res, next) => {
         if (files?.photo?.[0]) {
             const filePath = `uploads/${files.photo[0].filename}`;
             vendorData.photoPath = filePath;
-            vendorData.photoUrl = `${req.protocol}://${req.get("host")}/${filePath}`;
+            vendorData.photoUrl = buildFileUrl(filePath, req);
         }
 
         // Handle Documents (Array of objects)
@@ -20,7 +21,7 @@ const createVendorController = async (req, res, next) => {
                 const filePath = `uploads/${file.filename}`;
                 documents.push({
                     name: file.originalname,
-                    fileUrl: `${req.protocol}://${req.get("host")}/${filePath}`,
+                    fileUrl: buildFileUrl(filePath, req),
                     filePath: filePath,
                     size: file.size,
                     type: file.mimetype
@@ -36,7 +37,7 @@ const createVendorController = async (req, res, next) => {
                 const filePath = `uploads/${file.filename}`;
                 slas.push({
                     name: file.originalname,
-                    fileUrl: `${req.protocol}://${req.get("host")}/${filePath}`,
+                    fileUrl: buildFileUrl(filePath, req),
                     filePath: filePath,
                     size: file.size,
                     type: file.mimetype
@@ -107,7 +108,7 @@ const updateVendorController = async (req, res, next) => {
         if (files?.photo?.[0]) {
             const filePath = `uploads/${files.photo[0].filename}`;
             vendorData.photoPath = filePath;
-            vendorData.photoUrl = `${req.protocol}://${req.get("host")}/${filePath}`;
+            vendorData.photoUrl = buildFileUrl(filePath, req);
         }
 
         // Logic for merging or replacing documents/slas could be complex.
@@ -117,7 +118,7 @@ const updateVendorController = async (req, res, next) => {
                 const filePath = `uploads/${file.filename}`;
                 return {
                     name: file.originalname,
-                    fileUrl: `${req.protocol}://${req.get("host")}/${filePath}`,
+                    fileUrl: buildFileUrl(filePath, req),
                     filePath: filePath,
                     size: file.size,
                     type: file.mimetype
@@ -130,7 +131,7 @@ const updateVendorController = async (req, res, next) => {
                 const filePath = `uploads/${file.filename}`;
                 return {
                     name: file.originalname,
-                    fileUrl: `${req.protocol}://${req.get("host")}/${filePath}`,
+                    fileUrl: buildFileUrl(filePath, req),
                     filePath: filePath,
                     size: file.size,
                     type: file.mimetype

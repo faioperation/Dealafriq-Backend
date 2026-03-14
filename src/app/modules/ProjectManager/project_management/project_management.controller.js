@@ -5,6 +5,7 @@ import prisma from "../../../prisma/client.js";
 import { catchAsync } from "../../../utils/catchAsync.js";
 
 import { sendResponse } from "../../../utils/sendResponse.js";
+import { buildFileUrl } from "../../../utils/buildFileUrl.js";
 import { PMProjectManagementService } from "./project_management.service.js";
 
 const createProject = catchAsync(async (req, res) => {
@@ -14,7 +15,7 @@ const createProject = catchAsync(async (req, res) => {
     if (req.files && req.files.documents) {
         payload.documents = req.files.documents.map(file => ({
             fileName: file.originalname,
-            fileUrl: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,
+            fileUrl: buildFileUrl(`uploads/${file.filename}`, req),
             filePath: `uploads/${file.filename}`,
         }));
     }
@@ -23,7 +24,7 @@ const createProject = catchAsync(async (req, res) => {
     if (req.files && req.files.agreements) {
         payload.agreements = req.files.agreements.map(file => ({
             fileName: file.originalname,
-            fileUrl: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,
+            fileUrl: buildFileUrl(`uploads/${file.filename}`, req),
             filePath: `uploads/${file.filename}`,
             fileType: "SLA",
         }));
