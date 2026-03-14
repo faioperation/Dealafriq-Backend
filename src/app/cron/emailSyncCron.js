@@ -12,15 +12,15 @@ export const initEmailSyncCron = () => {
     // cron.schedule("*/30 * * * *", async () => {
     cron.schedule("* * * * *", async () => {
         console.log("-----------------------------------------");
-        console.log(`[${new Date().toISOString()}] Starting Email Sync Cron Job...`);
+        // console.log(`[${new Date().toISOString()}] Starting Email Sync Cron Job...`);
         try {
             await EmailService.syncAllConnectedAccounts();
             await OutlookService.syncAllConnectedAccounts();
-            console.log(`[${new Date().toISOString()}] Email & Outlook Sync Cron Job completed successfully.`);
+            // console.log(`[${new Date().toISOString()}] Email & Outlook Sync Cron Job completed successfully.`);
         } catch (error) {
             console.error(`[${new Date().toISOString()}] Email Sync Cron Job failed:`, error.message);
         }
-        console.log("-----------------------------------------");
+        // console.log("-----------------------------------------");
     });
 
     console.log("✅ Email Sync Cron Job scheduled successfully (every 30 minutes)");

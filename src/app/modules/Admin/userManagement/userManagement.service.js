@@ -29,7 +29,6 @@ const getAllSystemEmails = async (filters = {}) => {
             mode: 'insensitive'
         };
     }
-
     const gmailEmails = await prisma.email.findMany({
         where,
         orderBy: { receivedAt: 'desc' },
@@ -44,7 +43,7 @@ const getAllSystemEmails = async (filters = {}) => {
                 }
             }
         },
-        take: 50
+        take: 1
     });
 
     const outlookEmails = await prisma.outlook.findMany({
@@ -61,7 +60,7 @@ const getAllSystemEmails = async (filters = {}) => {
                 }
             }
         },
-        take: 50
+        take: 1
     });
 
     // Combine and sort
@@ -70,7 +69,7 @@ const getAllSystemEmails = async (filters = {}) => {
         ...outlookEmails.map(e => ({ ...e, source: 'OUTLOOK' }))
     ].sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt));
 
-    return allEmails.slice(0, 100); // Admin gets top 100 recent
+    return allEmails.slice(0, 1); // Only 1 latest mail only
 };
 
 /**

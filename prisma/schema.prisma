@@ -397,6 +397,7 @@ model Email {
   receivedAt     DateTime?
   source         String?
   raiddAnalysis  String?
+  raiddMessage   String?
   tasks          Json?
   sentiment      String?
   decisions      Json?
@@ -430,6 +431,7 @@ model Outlook {
   deletedAt        DateTime? @map("Deleted_at")
   source           String?
   raiddAnalysis    String?
+  raiddMessage     String?
   tasks            Json?
   sentiment        String?
   decisions        Json?
@@ -446,8 +448,10 @@ model Outlook {
 model AiDetection {
   id         String    @id @default(uuid())
   title      String
-  summary    String?
-  sourceType String
+  summary         String?
+  raiddAnalysis   String?
+  raiddMessage    String?
+  sourceType      String
   managerId  String?
   createdBy  String
   updatedBy  String?
