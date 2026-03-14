@@ -1,4 +1,5 @@
 import { TranscriptService } from "./transcript.service.js";
+import { buildFileUrl } from "../../../utils/buildFileUrl.js";
 
 
 const uploadTranscriptController = async (req, res, next) => {
@@ -16,7 +17,7 @@ const uploadTranscriptController = async (req, res, next) => {
     );
 
     const filePath = transcript.filePath;
-    const fileUrl = `${req.protocol}://${req.get("host")}/${filePath}`;
+    const fileUrl = buildFileUrl(filePath, req);
 
     res.status(201).json({
       success: true,

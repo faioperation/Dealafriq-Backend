@@ -1,6 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import { catchAsync } from "../../../utils/catchAsync.js";
 import { sendResponse } from "../../../utils/sendResponse.js";
+import { buildFileUrl } from "../../../utils/buildFileUrl.js";
 import { ProjectAgreementService } from "./projectAgreement.service.js";
 import prisma from "../../../prisma/client.js";
 
@@ -13,7 +14,7 @@ const uploadAgreement = catchAsync(async (req, res) => {
         projectId: req.body.projectId,
         fileType: req.body.fileType,
         fileName: file.originalname,
-        fileUrl: `${req.protocol}://${req.get("host")}/uploads/${file.filename}`,
+        fileUrl: buildFileUrl(`uploads/${file.filename}`, req),
         filePath: `uploads/${file.filename}`,
     }));
 

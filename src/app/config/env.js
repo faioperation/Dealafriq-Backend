@@ -12,11 +12,6 @@ const loadEnvVars = () => {
     "JWT_REFRESH_EXPIRES_IN",
 
     "DATABASE_URL",
-
-    "REDIS_HOST",
-    "REDIS_PORT",
-    "REDIS_USERNAME",
-    "REDIS_PASSWORD",
     "REDIS_URL",
 
     "SMTP_HOST",
@@ -33,6 +28,7 @@ const loadEnvVars = () => {
     "GOOGLE_CLIENT_SECRET_EMAIL",
     "GOOGLE_CALLBACK_URL_EMAIL",
 
+    "BACKEND_URL",
     "FRONT_END_URL",
 
     "ZOOM_CLIENT_ID",
@@ -67,10 +63,7 @@ const loadEnvVars = () => {
     DATABASE_URL: process.env.DATABASE_URL,
 
     // Redis
-    REDIS_HOST: process.env.REDIS_HOST,
-    REDIS_PORT: Number(process.env.REDIS_PORT),
-    REDIS_USERNAME: process.env.REDIS_USERNAME,
-    REDIS_PASSWORD: process.env.REDIS_PASSWORD,
+   
     REDIS_URL: process.env.REDIS_URL,
     // node mailer (SMTP)
     EMAIL_SENDER: {
@@ -89,6 +82,9 @@ const loadEnvVars = () => {
     GOOGLE_CLIENT_ID_EMAIL: process.env.GOOGLE_CLIENT_ID_EMAIL,
     GOOGLE_CLIENT_SECRET_EMAIL: process.env.GOOGLE_CLIENT_SECRET_EMAIL,
     GOOGLE_CALLBACK_URL_EMAIL: process.env.GOOGLE_CALLBACK_URL_EMAIL,
+    // Backend
+    BACKEND_URL: process.env.BACKEND_URL,
+
     // Frontend
     FRONT_END_URL: process.env.FRONT_END_URL,
 
