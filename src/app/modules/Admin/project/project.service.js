@@ -99,4 +99,58 @@ export const AdminProjectService = {
 
         return project;
     },
+
+    getLatestPublicProject: async (prisma, query = {}) => {
+        const relationConfig = {
+            manager: ["firstName", "lastName", "email"],
+            assignTeam: ["name"],
+        };
+
+        const queryBuilder = new QueryBuilder(query)
+            .search(projectSearchableFields)
+            .filter(relationConfig, { status: ["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"] })
+            .sort("-createdAt", relationConfig);
+
+        const buildQuery = queryBuilder.build();
+
+        const project = await prisma.project.findFirst({
+            where: {
+                ...buildQuery.where,
+                deletedAt: null
+            },
+            orderBy: buildQuery.orderBy || {
+                createdAt: "desc"
+            },
+            include: {
+                manager: {
+                    select: {
+                        firstName: true,
+                        id: true,
+                        lastName: true,
+                        role: true,
+                    },
+                },
+                assignTeam: true,
+                tasks: true,
+                milestones: true,
+                health: true,
+                documents: true,
+                transcripts: true,
+                meetings: {
+                    include: {
+                        keyPoints: true,
+                        actionPoints: true,
+                    },
+                },
+            },
+        });
+
+        if (!project) {
+            const { AppError } = await import("../../../errorHelper/appError.js");
+            const { StatusCodes } = await import("http-status-codes");
+            throw new AppError(StatusCodes.NOT_FOUND, "Project not found");
+        }
+
+        return project;
+    },
 };

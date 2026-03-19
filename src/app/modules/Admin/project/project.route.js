@@ -13,7 +13,7 @@ router.get(
 
 router.get(
     "/public",
-    AdminProjectController.getAllProjects
+    AdminProjectController.getLatestPublicProject
 );
 
 router.get(
@@ -21,7 +21,6 @@ router.get(
     checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER),
     AdminProjectController.getSingleProject
 );
-
 router.get(
     "/public/:id",
     AdminProjectController.getSingleProject

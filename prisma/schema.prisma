@@ -160,6 +160,7 @@ model Project {
   weeklyMeetingSummary String?
   vendorId             String?
   assignTeamId         String?
+  projectSummary String?
   projectOwnerId       String?
   activityLogs         ActivityLog[]           @relation("ProjectActivityLogs")
   transcripts          MeetingTranscript[]     @relation("ProjectTranscripts")
@@ -204,6 +205,7 @@ model ProjectMeeting {
   meetingDate        DateTime?
   createdAt          DateTime      @default(now())
   projectSummary     String?
+  notes String?
   aiMeetingSummary   String?
   lastMeetingSummary String?
   actionPoints       ActionPoint[]
