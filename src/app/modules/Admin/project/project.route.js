@@ -13,8 +13,10 @@ router.get(
 
 router.get(
     "/public",
-    AdminProjectController.getLatestPublicProject
+    AdminProjectController.getLatestThreeProjects
 );
+
+
 
 router.get(
     "/:id",

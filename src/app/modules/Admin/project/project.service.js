@@ -100,7 +100,7 @@ export const AdminProjectService = {
         return project;
     },
 
-    getLatestPublicProject: async (prisma, query = {}) => {
+    getLatestThreeProjects: async (prisma, query = {}) => {
         const relationConfig = {
             manager: ["firstName", "lastName", "email"],
             assignTeam: ["name"],
@@ -108,49 +108,120 @@ export const AdminProjectService = {
 
         const queryBuilder = new QueryBuilder(query)
             .search(projectSearchableFields)
-            .filter(relationConfig, { status: ["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"] })
+            .filter(relationConfig, {
+                status: [
+                    "DRAFT",
+                    "IN_PROGRESS",
+                    "ONGOING",
+                    "ON_HOLD",
+                    "COMPLETED",
+                    "CANCELLED",
+                ],
+            })
             .sort("-createdAt", relationConfig);
 
         const buildQuery = queryBuilder.build();
+        const orderBy = buildQuery.orderBy || { createdAt: "desc" };
 
-        const project = await prisma.project.findFirst({
+        const projects = await prisma.project.findMany({
             where: {
                 ...buildQuery.where,
-                deletedAt: null
+                deletedAt: null,
             },
-            orderBy: buildQuery.orderBy || {
-                createdAt: "desc"
-            },
+            orderBy,
+            take: 1,
             include: {
                 manager: {
                     select: {
-                        firstName: true,
                         id: true,
+                        firstName: true,
                         lastName: true,
                         role: true,
                     },
                 },
-                assignTeam: true,
-                tasks: true,
-                milestones: true,
-                health: true,
-                documents: true,
-                transcripts: true,
-                meetings: {
-                    include: {
-                        keyPoints: true,
-                        actionPoints: true,
+                assignTeam: {
+                    select: {
+                        id: true,
+                        name: true,
                     },
                 },
+                milestones: true,
+                health: true,
+            },
+        });
+
+        return projects;
+    },
+
+    getLatestPublicProject: async (prisma, query = {}) => {
+
+
+
+
+
+
+
+        const relationConfig = {
+            manager: ["firstName", "lastName", "email"],
+            assignTeam: ["name"],
+        };
+
+        // Build query safely
+        const queryBuilder = new QueryBuilder(query)
+            .search(projectSearchableFields)
+            .filter(relationConfig, {
+                status: [
+                    "DRAFT",
+                    "IN_PROGRESS",
+                    "ONGOING",
+                    "ON_HOLD",
+                    "COMPLETED",
+                    "CANCELLED",
+                ],
+            })
+            .sort("-createdAt", relationConfig);
+
+        const buildQuery = queryBuilder.build();
+
+        // Ensure safe orderBy fallback
+        const orderBy =
+            buildQuery.orderBy && Array.isArray(buildQuery.orderBy) && buildQuery.orderBy.length > 0
+                ? buildQuery.orderBy
+                : { createdAt: "desc" };
+
+        const project = await prisma.project.findFirst({
+            where: {
+                ...buildQuery.where,
+                deletedAt: null,
+                isPublic: true, // 🔥 important fix
+            },
+            orderBy,
+            include: {
+                manager: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        role: true,
+                    },
+                },
+                assignTeam: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                // ⚡ Keep minimal for performance (add more if needed)
+                milestones: true,
+                health: true,
             },
         });
 
         if (!project) {
-            const { AppError } = await import("../../../errorHelper/appError.js");
-            const { StatusCodes } = await import("http-status-codes");
             throw new AppError(StatusCodes.NOT_FOUND, "Project not found");
         }
 
         return project;
-    },
+    }
+
 };

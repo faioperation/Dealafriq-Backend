@@ -28,13 +28,13 @@ export const AdminProjectController = {
         });
     }),
 
-    getLatestPublicProject: catchAsync(async (req, res) => {
-        const result = await AdminProjectService.getLatestPublicProject(prisma, req.query);
+    getLatestThreeProjects: catchAsync(async (req, res) => {
+        const result = await AdminProjectService.getLatestThreeProjects(prisma, req.query);
 
         sendResponse(res, {
             statusCode: StatusCodes.OK,
             success: true,
-            message: "Project retrieved successfully",
+            message: "Top 3 latest projects retrieved successfully",
             data: result,
         });
     }),
