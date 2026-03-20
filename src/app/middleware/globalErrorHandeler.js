@@ -73,6 +73,12 @@ export const globalErrorHandler = (
     message = err.message;
   }
 
+  // ✅ JSON Parse Errors (body-parser)
+  else if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    statusCode = 400;
+    message = "Invalid JSON payload format.";
+  }
+
   // ✅ Native Error
   else if (err instanceof Error) {
     message = err.message;
