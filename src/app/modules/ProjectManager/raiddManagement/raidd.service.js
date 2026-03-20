@@ -1,6 +1,8 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
+import axios from "axios";
+import { envVars } from "../../../config/env.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
@@ -32,6 +34,11 @@ export const RaiddService = {
             action: "create",
             userId,
             projectId: raidd.projectId,
+        });
+
+        // Trigger AI sync for THIS specific raidd record without awaiting it
+        RaiddService.syncSingleRaiddFromAi(prisma, raidd.id, userId).catch(error => {
+            console.error("Background AI Sync for RAIDD failed:", error.message);
         });
 
         return raidd;
@@ -203,5 +210,67 @@ export const RaiddService = {
             },
             orderBy: { created_at: "desc" },
         });
+    },
+
+    syncSingleRaiddFromAi: async (prisma, raiddId, userId) => {
+        try {
+            const raidd = await prisma.raidd.findUnique({
+                where: { id: raiddId },
+                include: { project: true }
+            });
+
+            if (!raidd || raidd.project.deletedAt !== null) return;
+
+            const response = await axios.post(`${envVars.API_AI}/summary/project`, {}, {
+                headers: {
+                    'x-backend-service': 'PROJECT_AI_BACKEND'
+                }
+            });
+            
+            const projectsData = response.data;
+            if (!Array.isArray(projectsData)) return;
+
+            // Find the AI project data by matching projectId
+            const aiProjectData = projectsData.find(p => p.projectId === raidd.projectId);
+            if (!aiProjectData || !aiProjectData.raiddFlags) return;
+
+            const { raiddFlags } = aiProjectData;
+            
+            // Match the database RAIDD type to the AI categories
+            let aiItems = [];
+            switch (raidd.type) {
+                case "RISK": aiItems = raiddFlags.risks; break;
+                case "ASSUMPTION": aiItems = raiddFlags.assumptions; break;
+                case "ISSUE": aiItems = raiddFlags.issues; break;
+                case "DEPENDENCY": aiItems = raiddFlags.dependencies; break;
+                case "DECISION": aiItems = raiddFlags.decisions; break;
+            }
+
+            if (Array.isArray(aiItems) && aiItems.length > 0) {
+                const validItems = aiItems.filter(i => typeof i === 'string' && i.trim() !== '');
+                if (validItems.length > 0) {
+                    const combinedDescription = validItems.map(item => `- ${item}`).join('\n');
+                    
+                    // Update this specific RAIDD record with the combined AI data
+                    await prisma.raidd.update({
+                        where: { id: raiddId },
+                        data: {
+                            description: combinedDescription,
+                            updated_by: userId
+                        }
+                    });
+
+                    await ActivityLogService.createLog(prisma, {
+                        type: "raidd",
+                        crudId: raiddId,
+                        action: "update_ai",
+                        userId: userId,
+                        projectId: raidd.projectId,
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Failed to sync AI RAIDD summary for single record:", error.message);
+        }
     },
 };

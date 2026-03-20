@@ -27,4 +27,15 @@ export const AdminProjectController = {
             data: result,
         });
     }),
+
+    getLatestPublicProject: catchAsync(async (req, res) => {
+        const result = await AdminProjectService.getLatestPublicProject(prisma, req.query);
+
+        sendResponse(res, {
+            statusCode: StatusCodes.OK,
+            success: true,
+            message: "Project retrieved successfully",
+            data: result,
+        });
+    }),
 };
