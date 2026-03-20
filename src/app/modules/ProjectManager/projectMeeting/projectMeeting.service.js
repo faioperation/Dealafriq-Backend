@@ -65,23 +65,14 @@ export const ProjectMeetingService = {
             userId,
             projectId: meeting.projectId,
         });
-        // Quietly attempt to sync AI updates after creating the meeting
-        try {
-            await ProjectMeetingService.syncAiMeetingSummary(prisma, userId);
-        } catch (error) {
-            console.error("AI Sync failed in createMeeting:", error.message);
-        }
-
-        // Return the freshly updated meeting (or the original if sync failed)
-        const updatedMeeting = await prisma.projectMeeting.findUnique({
-            where: { id: meeting.id },
-            include: {
-                keyPoints: true,
-                actionPoints: true,
-            },
+        // Trigger AI sync in the background without awaiting it, 
+        // so the user gets an instant response.
+        ProjectMeetingService.syncAiMeetingSummary(prisma, userId).catch(error => {
+            console.error("Background AI Sync failed:", error.message);
         });
 
-        return updatedMeeting || meeting;
+        // Return the original meeting immediately
+        return meeting;
     },
 
     getAllMeetings: async (prisma, projectId, userId) => {
@@ -235,6 +226,8 @@ export const ProjectMeetingService = {
                 }
             });
             const projectsData = response.data;
+            console.log("=== AI API Response Data 😝😝😝😝😝😝 ===", JSON.stringify(projectsData, null, 2));
+
             let updatedCount = 0;
 
             if (!Array.isArray(projectsData)) {
