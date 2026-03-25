@@ -38,14 +38,19 @@ export const LessonLearnService = {
         return lessonLearn;
     },
 
-    getAllLessonLearns: async (prisma, projectId, userId) => {
-        await verifyProjectOwnership(prisma, projectId, userId);
-
+    getAllLessonLearns: async (prisma, userId) => {
         return prisma.lessonLearn.findMany({
-            where: { projectId, deleted_at: null },
+            where: {
+                deleted_at: null,
+                project: {
+                    managerId: userId,
+                    deletedAt: null,
+                },
+            },
             include: {
                 project: {
                     select: {
+                        id: true,
                         name: true,
                         managerId: true,
                     },

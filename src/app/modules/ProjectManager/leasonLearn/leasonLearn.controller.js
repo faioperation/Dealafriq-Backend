@@ -15,7 +15,7 @@ const createLessonLearn = catchAsync(async (req, res) => {
 });
 
 const getAllLessonLearns = catchAsync(async (req, res) => {
-    const result = await LessonLearnService.getAllLessonLearns(prisma, req.params.projectId, req.user.id);
+    const result = await LessonLearnService.getAllLessonLearns(prisma, req.user.id);
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
