@@ -15,7 +15,7 @@ router.post(
 );
 
 router.get(
-    "/project/:projectId",
+    "/all",
     checkAuthMiddleware(Role.PROJECT_MANAGER),
     LessonLearnController.getAllLessonLearns
 );
