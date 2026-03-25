@@ -3,6 +3,7 @@ import { AppError } from "../../../errorHelper/appError.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 import axios from "axios";
 import { envVars } from "../../../config/env.js"
+import { GoogleCalendarService } from "../googleCalender/googleCalender.service.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
@@ -65,10 +66,14 @@ export const ProjectMeetingService = {
             userId,
             projectId: meeting.projectId,
         });
-        // Trigger AI sync in the background without awaiting it, 
-        // so the user gets an instant response.
+        // Trigger AI sync in the background
         ProjectMeetingService.syncAiMeetingSummary(prisma, userId).catch(error => {
             console.error("Background AI Sync failed:", error.message);
+        });
+
+        // Trigger Google Calendar sync in the background
+        GoogleCalendarService.createEvent(userId, meeting).catch(error => {
+            console.error("Background Google Calendar event creation failed:", error.message);
         });
 
         // Return the original meeting immediately

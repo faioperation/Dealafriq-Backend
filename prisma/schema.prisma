@@ -8,62 +8,64 @@ datasource db {
 }
 
 model User {
-  id                      String              @id @default(uuid())
+  id                      String                @id @default(uuid())
   firstName               String
   lastName                String?
-  username                String?             @unique
-  email                   String              @unique
+  username                String?               @unique
+  email                   String                @unique
   passwordHash            String?
   avatarUrl               String?
   avatarUrlPath           String?
-  isActive                Boolean             @default(true)
-  isDeleted               Boolean             @default(false)
-  role                    UserRole            @default(PROJECT_MANAGER)
-  isVerified              Boolean             @default(false)
-  oauthProvider           OAuthProvider       @default(email)
+  isActive                Boolean               @default(true)
+  isDeleted               Boolean               @default(false)
+  role                    UserRole              @default(PROJECT_MANAGER)
+  isVerified              Boolean               @default(false)
+  oauthProvider           OAuthProvider         @default(email)
   oauthProviderId         String?
-  createdAt               DateTime            @default(now())
-  updatedAt               DateTime            @updatedAt
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
   deletedAt               DateTime?
-  forgotPasswordStatus    Boolean             @default(false)
+  forgotPasswordStatus    Boolean               @default(false)
   country                 String?
   gender                  String?
   language                String?
   timezone                String?
   tokenVersion            Int                 @default(0)
   activityLogs            ActivityLog[]       @relation("UserActivityLogs")
+  messages                Message[]
   emailAccounts           EmailAccount[]
-  emailsApproved          Email[]             @relation("EmailApprovedBy")
-  emailsCreated           Email[]             @relation("EmailCreatedBy")
-  emailsDeleted           Email[]             @relation("EmailDeletedBy")
-  emailsUpdated           Email[]             @relation("EmailUpdatedBy")
-  employeesApproved       Employee[]          @relation("EmployeeApprovedBy")
-  employeesCreated        Employee[]          @relation("EmployeeCreatedBy")
-  employeesDeleted        Employee[]          @relation("EmployeeDeletedBy")
-  employeesUpdated        Employee[]          @relation("EmployeeUpdatedBy")
-  outlooksApproved        Outlook[]           @relation("OutlookApprovedBy")
-  outlooksCreated         Outlook[]           @relation("OutlookCreatedBy")
-  outlooksDeleted         Outlook[]           @relation("OutlookDeletedBy")
-  outlooksUpdated         Outlook[]           @relation("OutlookUpdatedBy")
+  emailsApproved          Email[]               @relation("EmailApprovedBy")
+  emailsCreated           Email[]               @relation("EmailCreatedBy")
+  emailsDeleted           Email[]               @relation("EmailDeletedBy")
+  emailsUpdated           Email[]               @relation("EmailUpdatedBy")
+  employeesApproved       Employee[]            @relation("EmployeeApprovedBy")
+  employeesCreated        Employee[]            @relation("EmployeeCreatedBy")
+  employeesDeleted        Employee[]            @relation("EmployeeDeletedBy")
+  employeesUpdated        Employee[]            @relation("EmployeeUpdatedBy")
+  outlooksApproved        Outlook[]             @relation("OutlookApprovedBy")
+  outlooksCreated         Outlook[]             @relation("OutlookCreatedBy")
+  outlooksDeleted         Outlook[]             @relation("OutlookDeletedBy")
+  outlooksUpdated         Outlook[]             @relation("OutlookUpdatedBy")
   projectAssignments      ProjectAssignment[]
-  projectManagersApproved ProjectManager[]    @relation("ProjectManagerApprovedBy")
-  projectManagersCreated  ProjectManager[]    @relation("ProjectManagerCreatedBy")
-  projectManagersDeleted  ProjectManager[]    @relation("ProjectManagerDeletedBy")
-  projectManagersUpdated  ProjectManager[]    @relation("ProjectManagerUpdatedBy")
+  projectManagersApproved ProjectManager[]      @relation("ProjectManagerApprovedBy")
+  projectManagersCreated  ProjectManager[]      @relation("ProjectManagerCreatedBy")
+  projectManagersDeleted  ProjectManager[]      @relation("ProjectManagerDeletedBy")
+  projectManagersUpdated  ProjectManager[]      @relation("ProjectManagerUpdatedBy")
   projectManagers         ProjectManager?
-  projectsCreated         Project[]           @relation("ProjectCreatedBy")
-  projectsManaged         Project[]           @relation("ProjectManager")
-  projectsOwned           Project[]           @relation("ProjectOwner")
-  assignedProjects        Project[]           @relation("AssignedProject")
-  approvedTeams           Team[]              @relation("TeamApprovedBy")
-  createdTeams            Team[]              @relation("TeamCreatedBy")
-  deletedTeams            Team[]              @relation("TeamDeletedBy")
-  updatedTeams            Team[]              @relation("TeamUpdatedBy")
-  vendorsApproved         Vendor[]            @relation("VendorApprovedBy")
-  vendorsCreated          Vendor[]            @relation("VendorCreatedBy")
-  vendorsDeleted          Vendor[]            @relation("VendorDeletedBy")
-  vendorsUpdated          Vendor[]            @relation("VendorUpdatedBy")
+  projectsCreated         Project[]             @relation("ProjectCreatedBy")
+  projectsManaged         Project[]             @relation("ProjectManager")
+  projectsOwned           Project[]             @relation("ProjectOwner")
+  assignedProjects        Project[]             @relation("AssignedProject")
+  approvedTeams           Team[]                @relation("TeamApprovedBy")
+  createdTeams            Team[]                @relation("TeamCreatedBy")
+  deletedTeams            Team[]                @relation("TeamDeletedBy")
+  updatedTeams            Team[]                @relation("TeamUpdatedBy")
+  vendorsApproved         Vendor[]              @relation("VendorApprovedBy")
+  vendorsCreated          Vendor[]              @relation("VendorCreatedBy")
+  vendorsDeleted          Vendor[]              @relation("VendorDeletedBy")
+  vendorsUpdated          Vendor[]              @relation("VendorUpdatedBy")
   zoomAccounts            ZoomAccount[]
+  calendarEvents          GoogleCalendarEvent[] @relation("UserCalendarEvents")
 
   @@index([role])
   @@map("users")
@@ -160,7 +162,7 @@ model Project {
   weeklyMeetingSummary String?
   vendorId             String?
   assignTeamId         String?
-  projectSummary String?
+  projectSummary       String?
   projectOwnerId       String?
   activityLogs         ActivityLog[]           @relation("ProjectActivityLogs")
   transcripts          MeetingTranscript[]     @relation("ProjectTranscripts")
@@ -178,6 +180,8 @@ model Project {
   assignedTo           User?                   @relation("AssignedProject", fields: [userId], references: [id])
   vendor               Vendor?                 @relation(fields: [vendorId], references: [id])
   raidd                Raidd[]
+  lessonLearns         LessonLearn[]
+  calendarEvents       GoogleCalendarEvent[]   @relation("ProjectCalendarEvents")
 
   @@map("projects")
 }
@@ -205,7 +209,7 @@ model ProjectMeeting {
   meetingDate        DateTime?
   createdAt          DateTime      @default(now())
   projectSummary     String?
-  notes String?
+  notes              String?
   aiMeetingSummary   String?
   lastMeetingSummary String?
   actionPoints       ActionPoint[]
@@ -448,20 +452,20 @@ model Outlook {
 }
 
 model AiDetection {
-  id         String    @id @default(uuid())
-  title      String
-  summary         String?
-  raiddAnalysis   String?
-  raiddMessage    String?
-  sourceType      String
-  managerId  String?
-  createdBy  String
-  updatedBy  String?
-  approvedBy String?
-  deletedBy  String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
+  id            String    @id @default(uuid())
+  title         String
+  summary       String?
+  raiddAnalysis String?
+  raiddMessage  String?
+  sourceType    String
+  managerId     String?
+  createdBy     String
+  updatedBy     String?
+  approvedBy    String?
+  deletedBy     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
   @@map("AI_detection")
 }
@@ -606,3 +610,86 @@ enum HealthStatus {
   EXCELLENT
   LOW
 }
+
+model LessonLearn {
+  id String @id @default(uuid())
+
+  projectId   String
+  projectName String
+  clientName  String?
+
+  title       String
+  description String
+  source      String // e.g. Email, Meeting notes, Recording
+
+  loggedDate DateTime
+
+  // Audit fields
+  created_by  String
+  updated_by  String?
+  approved_by String?
+  deleted_by  String?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@map("lesson_learns")
+}
+
+model GoogleCalendarEvent {
+  id            String    @id @default(uuid())
+  googleEventId String    @unique @map("google_event_id")
+  summary       String?
+  description   String?
+  location      String?
+  start         DateTime
+  end           DateTime
+  htmlLink      String?   @map("html_link")
+  userId        String    @map("user_id")
+  projectId     String?   @map("project_id")
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime?
+  user          User      @relation("UserCalendarEvents", fields: [userId], references: [id])
+  project       Project?  @relation("ProjectCalendarEvents", fields: [projectId], references: [id])
+
+  @@index([userId])
+  @@index([projectId])
+  @@map("google_calendar_events")
+}
+
+enum SenderType {
+  USER
+  AGENT
+}
+
+model Message {
+  id        String     @id @default(uuid())
+
+  // Core relation
+  userId    String
+
+  // Message content
+  content   String
+  sender    SenderType
+
+  // Optional agent info (for human/AI distinction)
+  agentName     String?    // e.g. "GPT-4", "Support Agent"
+
+  // Optional document attachment
+  documentUrl   String?
+  documentPath  String?
+
+  createdAt DateTime   @default(now())
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("messages")
+}
+

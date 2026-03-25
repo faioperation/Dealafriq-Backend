@@ -23,7 +23,10 @@ import { TeamRoutes } from "../modules/ProjectManager/team/team.route.js";
 import { TranscriptRoutes } from "../modules/ProjectManager/transcriptManagement/transcript.route.js";
 import { VendorRoutes } from "../modules/ProjectManager/vendorManagement/vendor.route.js";
 import { ZoomRoutes } from "../modules/ProjectManager/zoomManagement/zoom.route.js";
+import { ProjectChatbotRoutes } from "../modules/ProjectManager/projectChatbot/projectChatbot.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
+import { LessonLearnRoutes } from "../modules/ProjectManager/leasonLearn/leasonLearn.route.js";
+import { GoogleCalendarRoutes } from "../modules/ProjectManager/googleCalender/googleCalender.route.js";
 
 
 
@@ -142,6 +145,18 @@ const moduleRoutes = [
   {
     path: "/project-manager/outlook",
     route: OutlookRoutes,
+  },
+  {
+    path: "/project-manager/lesson-learn",
+    route: LessonLearnRoutes,
+  },
+  {
+    path: "/project-manager/google-calendar",
+    route: GoogleCalendarRoutes,
+  },
+  {
+    path: "/project-manager/project-chatbot",
+    route: ProjectChatbotRoutes,
   },
   // Project Manager Routes ends here
 ];
