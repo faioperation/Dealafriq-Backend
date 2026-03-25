@@ -47,7 +47,7 @@ export const RaiddService = {
     getAllRaidds: async (prisma, projectId, userId) => {
         await verifyProjectOwnership(prisma, projectId, userId);
 
-        return prisma.raidd.findMany({
+        const raidds = await prisma.raidd.findMany({
             where: { projectId, deleted_at: null },
             include: {
                 project: {
@@ -62,11 +62,24 @@ export const RaiddService = {
                                 email: true,
                             },
                         },
+                        manager: {
+                            select: {
+                                avatarUrl: true,
+                                firstName: true,
+                                lastName: true,
+                                email: true,
+                            },
+                        },
                     },
                 },
             },
             orderBy: { created_at: "desc" },
         });
+
+        return raidds.map(raidd => ({
+            ...raidd,
+            raisedBy: raidd.project?.manager ?? null,
+        }));
     },
 
     getSingleRaidd: async (prisma, id, userId) => {
@@ -88,6 +101,14 @@ export const RaiddService = {
                                 email: true,
                             },
                         },
+                        manager: {
+                            select: {
+                                avatarUrl: true,
+                                firstName: true,
+                                lastName: true,
+                                email: true,
+                            },
+                        },
                     },
                 },
             },
@@ -105,7 +126,10 @@ export const RaiddService = {
             );
         }
 
-        return raidd;
+        return {
+            ...raidd,
+            raisedBy: raidd.project?.manager ?? null,
+        };
     },
 
     updateRaidd: async (prisma, id, payload, userId) => {
