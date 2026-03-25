@@ -30,8 +30,9 @@ model User {
   gender                  String?
   language                String?
   timezone                String?
-  tokenVersion            Int                   @default(0)
-  activityLogs            ActivityLog[]         @relation("UserActivityLogs")
+  tokenVersion            Int                 @default(0)
+  activityLogs            ActivityLog[]       @relation("UserActivityLogs")
+  messages                Message[]
   emailAccounts           EmailAccount[]
   emailsApproved          Email[]               @relation("EmailApprovedBy")
   emailsCreated           Email[]               @relation("EmailCreatedBy")
@@ -660,3 +661,35 @@ model GoogleCalendarEvent {
   @@index([projectId])
   @@map("google_calendar_events")
 }
+
+enum SenderType {
+  USER
+  AGENT
+}
+
+model Message {
+  id        String     @id @default(uuid())
+
+  // Core relation
+  userId    String
+
+  // Message content
+  content   String
+  sender    SenderType
+
+  // Optional agent info (for human/AI distinction)
+  agentName     String?    // e.g. "GPT-4", "Support Agent"
+
+  // Optional document attachment
+  documentUrl   String?
+  documentPath  String?
+
+  createdAt DateTime   @default(now())
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("messages")
+}
+
