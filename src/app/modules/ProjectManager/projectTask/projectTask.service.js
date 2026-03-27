@@ -15,6 +15,23 @@ const verifyProjectOwnership = async (prisma, projectId, userId) => {
   return project;
 };
 
+const updateProjectProgress = async (prisma, projectId) => {
+  const tasks = await prisma.projectTask.findMany({
+    where: { projectId },
+  });
+
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((task) => task.status === "COMPLETED").length;
+  const progressPercentage =
+    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const projectProgress = `${progressPercentage}%`;
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { projectProgress },
+  });
+};
+
 export const ProjectTaskService = {
   createTask: async (prisma, payload, userId) => {
     await verifyProjectOwnership(prisma, payload.projectId, userId);
@@ -34,6 +51,8 @@ export const ProjectTaskService = {
       userId,
       projectId: task.projectId,
     });
+
+    await updateProjectProgress(prisma, task.projectId);
 
     return task;
   },
@@ -113,6 +132,8 @@ export const ProjectTaskService = {
       projectId: task.projectId,
     });
 
+    await updateProjectProgress(prisma, task.projectId);
+
     return updatedTask;
   },
 
@@ -144,6 +165,8 @@ export const ProjectTaskService = {
       userId,
       projectId: task.projectId,
     });
+
+    await updateProjectProgress(prisma, task.projectId);
 
     return deletedTask;
   },
