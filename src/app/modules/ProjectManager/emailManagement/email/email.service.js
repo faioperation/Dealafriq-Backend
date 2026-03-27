@@ -293,6 +293,15 @@ const syncAllConnectedAccounts = async () => {
             console.log(`Finished syncing account: ${account.userId}`);
         } catch (error) {
             console.error(`Error syncing account ${account.id}:`, error.message);
+            
+            // Check if it's an invalid grant error (refresh token expired/revoked)
+            if (error.message.includes('invalid_grant') || error.message.includes('invalid_grant')) {
+                console.log(`Marking Google account as disconnected for user ${account.userId} due to invalid refresh token`);
+                await prisma.emailAccount.update({
+                    where: { id: account.id },
+                    data: { isConnected: false }
+                });
+            }
         }
     }
 };

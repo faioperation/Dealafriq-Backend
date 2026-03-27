@@ -3,6 +3,7 @@ import { projectSearchableFields } from "../../../constant.js";
 import { AppError } from "../../../errorHelper/appError.js";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
+import axios from "axios";
 
 export const PMProjectManagementService = {
     createProject: async (prisma, payload, userId) => {
@@ -80,6 +81,11 @@ export const PMProjectManagementService = {
                     }
                 }
             }
+        });
+
+        // Fire and forget (Background Task)
+        PMProjectManagementService.syncProjectAiStatusBackground(prisma, project.id, userId).catch(err => {
+            console.error("Critical error in background AI sync:", err);
         });
 
         await ActivityLogService.createLog(prisma, {
@@ -250,4 +256,63 @@ export const PMProjectManagementService = {
 
         return deletedProject;
     },
+
+    syncProjectAiStatusBackground: async (prisma, id, userId) => {
+        try {
+            // Find the project and ensure ownership
+            const project = await prisma.project.findFirst({
+                where: { id, managerId: userId, deletedAt: null },
+                include: { tasks: true }
+            });
+
+            if (!project) return;
+
+            // 1. Calculate project progress
+            const totalTasks = project.tasks.length;
+            const completedTasks = project.tasks.filter(task => task.status === "COMPLETED").length;
+            const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            const projectProgress = `${progressPercentage}%`;
+
+            // 2. Fetch AI Summary from External AI API
+            let aiSummary = "";
+            try {
+                // Fetch from process.env.API_AI
+                const apiUrl = `${process.env.API_AI}/project-summary`; // Adjusting endpoint as based on base URL
+                const response = await axios.get(apiUrl);
+                
+                // Assuming it returns the structure: { summary: "..." }
+                aiSummary = response.data.summary || "";
+            } catch (error) {
+                console.error("AI API Call failed:", error.message);
+                // In case of error, we can still update the progress but AI summary will be empty
+            }
+
+            // 3. Update the Project
+            await prisma.project.update({
+                where: { id },
+                data: {
+                    projectProgress,
+                    ...(aiSummary && {
+                        projectAiSummary: {
+                            push: aiSummary
+                        },
+                        weeklyAiSummary: aiSummary
+                    })
+                }
+            });
+
+            await ActivityLogService.createLog(prisma, {
+                type: "project",
+                crudId: id,
+                action: "ai-sync-background",
+                userId,
+                projectId: id,
+            });
+
+        } catch (error) {
+            console.error("Background sync failed:", error);
+        }
+    }
 };
+
+

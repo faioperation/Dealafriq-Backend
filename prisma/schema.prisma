@@ -164,6 +164,9 @@ model Project {
   assignTeamId         String?
   projectSummary       String?
   projectOwnerId       String?
+  projectAiSummary     String[]                @default([])
+  weeklyAiSummary      String?
+  projectProgress      String?                 @default("0%")
   activityLogs         ActivityLog[]           @relation("ProjectActivityLogs")
   transcripts          MeetingTranscript[]     @relation("ProjectTranscripts")
   projectAgreements    ProjectAgreements[]
@@ -210,7 +213,7 @@ model ProjectMeeting {
   createdAt          DateTime      @default(now())
   projectSummary     String?
   notes              String?
-  aiMeetingSummary   String?
+  aiMeetingSummary   String[]      @default([])
   lastMeetingSummary String?
   actionPoints       ActionPoint[]
   keyPoints          KeyPoint[]
