@@ -20,23 +20,32 @@ const getCalendarClient = async (userId) => {
         expiry_date: account.expiryDate.getTime(),
     });
 
-    // Handle token refresh
-    oauth2Client.on('tokens', async (tokens) => {
-        const updateData = {
-            accessToken: tokens.access_token,
-            expiryDate: new Date(tokens.expiry_date),
-        };
-        if (tokens.refresh_token) {
-            updateData.refreshToken = tokens.refresh_token;
-        }
+    try {
+        // Handle token refresh
+        oauth2Client.on('tokens', async (tokens) => {
+            const updateData = {
+                accessToken: tokens.access_token,
+                expiryDate: new Date(tokens.expiry_date),
+            };
+            if (tokens.refresh_token) {
+                updateData.refreshToken = tokens.refresh_token;
+            }
 
+            await prisma.emailAccount.update({
+                where: { id: account.id },
+                data: updateData,
+            });
+        });
+
+        return google.calendar({ version: 'v3', auth: oauth2Client });
+    } catch (error) {
+        // Mark account as disconnected if token is invalid
         await prisma.emailAccount.update({
             where: { id: account.id },
-            data: updateData,
+            data: { isConnected: false }
         });
-    });
-
-    return google.calendar({ version: 'v3', auth: oauth2Client });
+        throw error;
+    }
 };
 
 export const GoogleCalendarService = {
@@ -212,6 +221,15 @@ export const GoogleCalendarService = {
                 await GoogleCalendarService.syncEvents(account.userId);
             } catch (error) {
                 console.error(`Failed to periodic sync calendar for user ${account.userId}:`, error.message);
+                
+                // Check if it's an invalid grant error (refresh token expired/revoked)
+                if (error.message.includes('invalid_grant') || error.message.includes('invalid_grant')) {
+                    console.log(`Marking Google account as disconnected for user ${account.userId} due to invalid refresh token`);
+                    await prisma.emailAccount.update({
+                        where: { id: account.id },
+                        data: { isConnected: false }
+                    });
+                }
             }
         }
     }
