@@ -23,8 +23,8 @@ const uploadTranscriptService = async (file, projectId) => {
   }
 
   // Ensure file.path is relative to the project root for consistent storage in DB
-  // Multer usually gives path like "src/uploads/..."
-  const relativeFilePath = file.path.replace(/\\/g, "/");
+  // Multer gives absolute path because of path.join(process.cwd(), ...) in config
+  const relativeFilePath = file.path.replace(process.cwd(), "").replace(/\\/g, "/").replace(/^\/+/, "");
 
   const transcript = await prisma.meetingTranscript.create({
     data: {

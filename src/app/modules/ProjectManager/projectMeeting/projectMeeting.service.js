@@ -255,7 +255,12 @@ export const ProjectMeetingService = {
                     // Only update if meeting exists and user is manager (optional, but safe)
                     if (meetingExists) {
                         const updateData = {};
-                        if (summary) updateData.aiMeetingSummary = summary;
+                        if (summary) {
+                            updateData.aiMeetingSummary = {
+                                push: summary
+                            };
+                            updateData.lastMeetingSummary = summary;
+                        }
 
                         const nestedOps = {};
 
