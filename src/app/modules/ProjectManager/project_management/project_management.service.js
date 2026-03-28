@@ -277,9 +277,9 @@ export const PMProjectManagementService = {
             let aiSummary = "";
             try {
                 // Fetch from process.env.API_AI
-                const apiUrl = `${process.env.API_AI}/project-summary`; // Adjusting endpoint as based on base URL
+                const apiUrl = `${process.env.API_AI}/summary/project`; // Adjusting endpoint as based on base URL
                 const response = await axios.get(apiUrl);
-                
+
                 // Assuming it returns the structure: { summary: "..." }
                 aiSummary = response.data.summary || "";
             } catch (error) {
