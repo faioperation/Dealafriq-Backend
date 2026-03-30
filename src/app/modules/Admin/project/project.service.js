@@ -155,12 +155,6 @@ export const AdminProjectService = {
 
     getLatestPublicProject: async (prisma, query = {}) => {
 
-
-
-
-
-
-
         const relationConfig = {
             manager: ["firstName", "lastName", "email"],
             assignTeam: ["name"],
