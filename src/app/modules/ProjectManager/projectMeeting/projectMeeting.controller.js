@@ -5,7 +5,10 @@ import { ProjectMeetingService } from "./projectMeeting.service.js";
 import prisma from "../../../prisma/client.js";
 
 const createMeeting = catchAsync(async (req, res) => {
-    const result = await ProjectMeetingService.createMeeting(prisma, req.body, req.user.id);
+    // If using multipart/form-data, frontend might send generic body inputs as well
+    const payload = req.body;
+    
+    const result = await ProjectMeetingService.createMeeting(prisma, payload, req.user.id, req.file);
     sendResponse(res, {
         statusCode: StatusCodes.CREATED,
         success: true,

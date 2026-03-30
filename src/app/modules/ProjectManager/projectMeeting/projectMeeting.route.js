@@ -3,6 +3,7 @@ import { ProjectMeetingController } from "./projectMeeting.controller.js";
 import validateRequest from "../../../middleware/validateRequest.js";
 import { ProjectMeetingValidation } from "./projectMeeting.validation.js";
 import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
+import { fileUpload } from "../../../config/fileUpload.js";
 import { Role } from "../../../utils/role.js";
 
 const router = express.Router();
@@ -10,6 +11,7 @@ const router = express.Router();
 router.post(
     "/create-meeting",
     checkAuthMiddleware(Role.PROJECT_MANAGER),
+    fileUpload.single("transcript"),
     validateRequest(ProjectMeetingValidation.createProjectMeetingSchema),
     ProjectMeetingController.createMeeting,
 );

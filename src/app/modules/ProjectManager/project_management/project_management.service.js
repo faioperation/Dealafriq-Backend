@@ -4,6 +4,7 @@ import { AppError } from "../../../errorHelper/appError.js";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 import axios from "axios";
+import { envVars } from "../../../config/env.js";
 
 export const PMProjectManagementService = {
     createProject: async (prisma, payload, userId) => {
@@ -259,6 +260,9 @@ export const PMProjectManagementService = {
 
     syncProjectAiStatusBackground: async (prisma, id, userId) => {
         try {
+            // Wait 5 seconds to ensure the project creation is propagated to the AI system
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
             // Find the project and ensure ownership
             const project = await prisma.project.findFirst({
                 where: { id, managerId: userId, deletedAt: null },
@@ -276,15 +280,36 @@ export const PMProjectManagementService = {
             // 2. Fetch AI Summary from External AI API
             let aiSummary = "";
             try {
-                // Fetch from process.env.API_AI
-                const apiUrl = `${process.env.API_AI}/summary/project`; // Adjusting endpoint as based on base URL
-                const response = await axios.get(apiUrl);
+                const apiUrl = `${envVars.API_AI}/summary/project`;
+                console.log("Fetching AI summary from:", apiUrl);
 
-                // Assuming it returns the structure: { summary: "..." }
-                aiSummary = response.data.summary || "";
+                // Use POST with header as required by the AI service (matching RAIDD/Meeting logic)
+                const response = await axios.post(apiUrl, {}, {
+                    headers: {
+                        'x-backend-service': 'PROJECT_AI_BACKEND'
+                    }
+                });
+
+                console.log("AI API Response Data:", JSON.stringify(response.data, null, 2));
+
+                const projectsData = response.data;
+                if (Array.isArray(projectsData)) {
+                    // Find the summary for this specific project
+                    const projectAiData = projectsData.find(p => p.projectId === id);
+                    aiSummary = projectAiData?.summary || "";
+                    
+                    if (!aiSummary) {
+                        console.log(`No summary found for project ID: ${id} in AI response array.`);
+                    }
+                } else {
+                    console.log("Unexpected response format: expected an array from AI API.");
+                    aiSummary = response.data?.summary || "";
+                }
             } catch (error) {
                 console.error("AI API Call failed:", error.message);
-                // In case of error, we can still update the progress but AI summary will be empty
+                if (error.response) {
+                    console.error("AI API Error Response:", error.response.data);
+                }
             }
 
             // 3. Update the Project
@@ -301,6 +326,8 @@ export const PMProjectManagementService = {
                 }
             });
 
+            console.log("ai api data updated for the new created project:", id);
+
             await ActivityLogService.createLog(prisma, {
                 type: "project",
                 crudId: id,
@@ -311,6 +338,59 @@ export const PMProjectManagementService = {
 
         } catch (error) {
             console.error("Background sync failed:", error);
+        }
+    },
+
+    syncAllProjectsFromAi: async (prisma) => {
+        try {
+            const apiUrl = `${envVars.API_AI}/summary/project`;
+            const response = await axios.post(apiUrl, {}, {
+                headers: {
+                    'x-backend-service': 'PROJECT_AI_BACKEND'
+                }
+            });
+
+            const projectsData = response.data;
+            if (!Array.isArray(projectsData)) {
+                console.error("Invalid AI API response for bulk project sync");
+                return;
+            }
+
+            for (const aiProject of projectsData) {
+                const { projectId, summary } = aiProject;
+                if (!projectId || !summary) continue;
+
+                // Check if project exists in database
+                const projectExists = await prisma.project.findUnique({
+                    where: { id: projectId }
+                });
+
+                if (projectExists) {
+                    // Calculate progress based on existing tasks
+                    const tasks = await prisma.projectTask.findMany({
+                        where: { projectId: projectId }
+                    });
+                    const totalTasks = tasks.length;
+                    const completedTasks = tasks.filter(t => t.status === "COMPLETED").length;
+                    const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+                    const projectProgress = `${progressPercentage}%`;
+
+                    await prisma.project.update({
+                        where: { id: projectId },
+                        data: {
+                            projectProgress,
+                            projectAiSummary: {
+                                push: summary
+                            },
+                            weeklyAiSummary: summary
+                        }
+                    });
+                }
+            }
+            console.log(`Bulk Project AI Sync completed for ${projectsData.length} items`);
+            return projectsData; // Return data for RAIDD sync to reuse
+        } catch (error) {
+            console.error("Bulk Project AI Sync failed:", error.message);
         }
     }
 };
