@@ -297,4 +297,58 @@ export const RaiddService = {
             console.error("Failed to sync AI RAIDD summary for single record:", error.message);
         }
     },
+
+    syncAllRaiddFromAi: async (prisma, projectsDataInput = null) => {
+        try {
+            let projectsData = projectsDataInput;
+            if (!projectsData) {
+                const response = await axios.post(`${envVars.API_AI}/summary/project`, {}, {
+                    headers: {
+                        'x-backend-service': 'PROJECT_AI_BACKEND'
+                    }
+                });
+                projectsData = response.data;
+            }
+
+            if (!Array.isArray(projectsData)) return;
+
+            for (const aiProject of projectsData) {
+                const { projectId, raiddFlags } = aiProject;
+                if (!projectId || !raiddFlags) continue;
+
+                // Find all RAIDD items for this project
+                const raiddItems = await prisma.raidd.findMany({
+                    where: { projectId, deleted_at: null }
+                });
+
+                for (const raidd of raiddItems) {
+                    let aiItems = [];
+                    switch (raidd.type) {
+                        case "RISK": aiItems = raiddFlags.risks; break;
+                        case "ASSUMPTION": aiItems = raiddFlags.assumptions; break;
+                        case "ISSUE": aiItems = raiddFlags.issues; break;
+                        case "DEPENDENCY": aiItems = raiddFlags.dependencies; break;
+                        case "DECISION": aiItems = raiddFlags.decisions; break;
+                    }
+
+                    if (Array.isArray(aiItems) && aiItems.length > 0) {
+                        const validItems = aiItems.filter(i => typeof i === 'string' && i.trim() !== '');
+                        if (validItems.length > 0) {
+                            const combinedDescription = validItems.map(item => `- ${item}`).join('\n');
+                            
+                            await prisma.raidd.update({
+                                where: { id: raidd.id },
+                                data: {
+                                    description: combinedDescription
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+            console.log(`Bulk RAIDD AI Sync completed for projects in response`);
+        } catch (error) {
+            console.error("Bulk RAIDD AI Sync failed:", error.message);
+        }
+    }
 };

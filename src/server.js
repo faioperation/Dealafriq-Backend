@@ -2,6 +2,8 @@ import app from "./app.js";
 import { envVars } from "./app/config/env.js";
 import { connectRedis } from "./app/config/redis.config.js";
 import { initEmailSyncCron } from "./app/cron/emailSyncCron.js";
+import { initAiSyncCron } from "./app/cron/aiSyncCron.js";
+import { seedUsers } from "./app/seed/seed.js";
 import prisma from "./app/prisma/client.js";
 
 let server;
@@ -17,6 +19,9 @@ const startServer = async () => {
      connectRedis();
     console.log("Redis Connected Successfully 🚚✅");
 
+    // Run seeds
+    await seedUsers();
+
     // Start server
     server = app.listen(PORT, () => {
       console.log(`Server running on port 🛺✅ ${PORT}`);
@@ -24,6 +29,7 @@ const startServer = async () => {
 
     // Initialize Cron Jobs
     initEmailSyncCron();
+    initAiSyncCron();
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);

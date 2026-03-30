@@ -215,6 +215,10 @@ model ProjectMeeting {
   notes              String?
   aiMeetingSummary   String[]      @default([])
   lastMeetingSummary String?
+  agenda             Json?
+  transcriptUrl      String?
+  transcriptPath     String?
+  transcriptData     Json?
   actionPoints       ActionPoint[]
   keyPoints          KeyPoint[]
   project            Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
