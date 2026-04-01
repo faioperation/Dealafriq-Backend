@@ -54,9 +54,21 @@ const deleteAiDetection = catchAsync(async (req, res) => {
     });
 });
 
+const getAllAiDetectionsPublic = catchAsync(async (req, res) => {
+    // For public access, no userId is required. The service doesn't strictly depend on it for reading all.
+    const result = await AiDetectionService.getAllAiDetections(prisma, null);
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: "Public AI Detection records fetched successfully",
+        data: result,
+    });
+});
+
 export const AiDetectionController = {
     createAiDetection,
     getAllAiDetections,
+    getAllAiDetectionsPublic,
     getAiDetectionById,
     updateAiDetection,
     deleteAiDetection,
