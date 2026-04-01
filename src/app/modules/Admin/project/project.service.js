@@ -207,6 +207,12 @@ export const AdminProjectService = {
                 },
                 milestones: true,
                 health: true,
+                meetings: {
+                    include: {
+                        keyPoints: true,
+                        actionPoints: true,
+                    },
+                },
             },
         });
 
