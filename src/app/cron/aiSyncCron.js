@@ -11,7 +11,7 @@ import { RaiddService } from "../modules/ProjectManager/raiddManagement/raidd.se
 export const initAiSyncCron = () => {
     // Schedule task to run every 15 minutes
     // Cron expression: minute, hour, day of month, month, day of week
-    cron.schedule("* * * * *", async () => {
+    cron.schedule("*/15 * * * *", async () => {
         console.log("-----------------start ai sync------------------------");
         console.log(`[${new Date().toISOString()}] Starting Bulk AI Sync Cron Job...`);
         try {
