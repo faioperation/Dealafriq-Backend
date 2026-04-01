@@ -46,9 +46,10 @@ const getUserById = catchAsync(async (req, res) => {
     });
 });
 
+
 export const UserManagementController = {
     getAllEmails,
     getEmailsByUserId,
     getAllUsers,
-    getUserById
+    getUserById,
 };

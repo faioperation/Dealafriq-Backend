@@ -280,6 +280,7 @@ const syncAllConnectedAccounts = async () => {
 
                 await VendorEmailService.syncEmail({
                     gmailMessageId: msg.id,
+                    emailRawId: msg.id,
                     subject,
                     body,
                     senderEmail,

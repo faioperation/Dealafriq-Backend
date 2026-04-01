@@ -215,6 +215,7 @@ const syncAllConnectedAccounts = async () => {
 
                 await OutlookSyncService.syncOutlookEmail({
                     outlookMessageId: msg.id,
+                    outlookRawId: msg.id,
                     subject: msg.subject,
                     body: rawBody,
                     senderEmail,
