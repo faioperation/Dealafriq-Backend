@@ -19,9 +19,10 @@ router.get(
     checkAuthMiddleware(Role.PROJECT_MANAGER),
     AiDetectionController.getAllAiDetections,
 );
+
 router.get(
-    "/all/for-ai",
-    AiDetectionController.getAllAiDetections,
+    "/public/all",
+    AiDetectionController.getAllAiDetectionsPublic,
 );
 
 router.get(
