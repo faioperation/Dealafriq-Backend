@@ -4,6 +4,8 @@ import { ActivityLogRoutes } from "../modules/activityLog/activityLog.route.js";
 import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_manager.route.js";
 import { AdminProjectRoutes } from "../modules/Admin/project/project.route.js";
 import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
+import { TeamRoutes } from "../modules/Admin/team/team.route.js";
+import { DashboardRoutes } from "../modules/Admin/dashboard/dashboard.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
@@ -24,6 +26,8 @@ import { TranscriptRoutes } from "../modules/ProjectManager/transcriptManagement
 import { VendorRoutes } from "../modules/ProjectManager/vendorManagement/vendor.route.js";
 import { ZoomRoutes } from "../modules/ProjectManager/zoomManagement/zoom.route.js";
 import { ProjectChatbotRoutes } from "../modules/ProjectManager/projectChatbot/projectChatbot.route.js";
+import { VendorEmailRoutes } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.route.js";
+import { PMDashboardRoutes } from "../modules/ProjectManager/dashboard/pm_dashboard.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
 import { LessonLearnRoutes } from "../modules/ProjectManager/leasonLearn/leasonLearn.route.js";
 import { GoogleCalendarRoutes } from "../modules/ProjectManager/googleCalender/googleCalender.route.js";
@@ -47,6 +51,10 @@ const moduleRoutes = [
   },
   // Admin Routes starts here
   {
+    path: "/admin/dashboard",
+    route: DashboardRoutes,
+  },
+  {
     path: "/admin/team",
     route: TeamRoutes,
   },
@@ -65,6 +73,10 @@ const moduleRoutes = [
   },
   // Admin Routes ends here
   // Project Manager Routes starts here
+  {
+    path: "/project-manager/dashboard",
+    route: PMDashboardRoutes,
+  },
   {
     path: "/project-manager/project-management",
     route: PMProjectManagementRoutes,
