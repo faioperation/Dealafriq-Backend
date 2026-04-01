@@ -93,6 +93,12 @@ export const AdminProjectService = {
                     },
                     assignTeam: true,
                     raidd: true,
+                      meetings: {
+                        include: {
+                            keyPoints: true,
+                            actionPoints: true,
+                        },
+                    },
                 },
             }),
             prisma.project.count({ where: buildQuery.where }),
