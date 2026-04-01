@@ -182,6 +182,12 @@ export const PMProjectManagementService = {
                 health: true,
                 documents: true,
                 transcripts: true,
+                meetings: {
+                    include: {
+                        keyPoints: true,
+                        actionPoints: true,
+                    },
+                },
             },
         });
 
