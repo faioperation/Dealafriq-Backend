@@ -61,6 +61,66 @@ export const AdminProjectService = {
         };
     },
 
+    getAllProjectsWithRaidd: async (prisma, query) => {
+        const relationConfig = {
+            manager: ["firstName", "lastName", "email"],
+            assignTeam: ["name"],
+        };
+
+        const queryBuilder = new QueryBuilder(query)
+            .search(projectSearchableFields)
+            .filter(relationConfig, { status: ["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"] })
+            .sort("-createdAt", relationConfig)
+            .paginate();
+
+        const buildQuery = queryBuilder.build();
+        buildQuery.where = {
+            ...buildQuery.where,
+            deletedAt: null
+        };
+
+        const [result, total] = await Promise.all([
+            prisma.project.findMany({
+                ...buildQuery,
+                include: {
+                    manager: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            id: true,
+                            role: true,
+                        },
+                    },
+                    assignTeam: true,
+                    raidd: true,
+                },
+            }),
+            prisma.project.count({ where: buildQuery.where }),
+        ]);
+
+        // Transform data: "in a single object 1 project with 1 raidd"
+        // Flattening the relation so that each object contains exactly one project and one RAIDD entry
+        const flattenedData = result.flatMap((project) => {
+            const { raidd, ...projectData } = project;
+            
+            if (!raidd || raidd.length === 0) {
+                return [{ project: projectData, raidd: null }];
+            }
+
+            return raidd.map((r) => ({
+                project: projectData,
+                raidd: r,
+            }));
+        });
+
+        // The meta count will reflect the original projects count, 
+        // but data might be longer due to flattening.
+        return {
+            meta: queryBuilder.getMeta(total),
+            data: flattenedData,
+        };
+    },
+
     getSingleProject: async (prisma, id) => {
         const project = await prisma.project.findFirst({
             where: {
