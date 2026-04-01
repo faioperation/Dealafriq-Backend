@@ -17,6 +17,18 @@ export const AdminProjectController = {
         });
     }),
 
+    getAllProjectsWithRaidd: catchAsync(async (req, res) => {
+        const result = await AdminProjectService.getAllProjectsWithRaidd(prisma, req.query);
+
+        sendResponse(res, {
+            statusCode: StatusCodes.OK,
+            success: true,
+            message: "Projects with RAIDDs retrieved successfully",
+            meta: result.meta,
+            data: result.data,
+        });
+    }),
+
     getSingleProject: catchAsync(async (req, res) => {
         const result = await AdminProjectService.getSingleProject(prisma, req.params.id);
 
