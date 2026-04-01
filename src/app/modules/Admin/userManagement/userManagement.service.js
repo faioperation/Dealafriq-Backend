@@ -148,9 +148,14 @@ const getUserById = async (userId) => {
     });
 };
 
+/**
+ * Get all emails with mapped AI detection (Admin only)
+ */
+
+
 export const UserManagementService = {
     getAllSystemEmails,
     getEmailsByUserId,
     getAllUsers,
-    getUserById
+    getUserById,
 };

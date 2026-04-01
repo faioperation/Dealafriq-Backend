@@ -11,12 +11,13 @@ router.get(
     UserManagementController.getAllEmails
 );
 
+
 router.get(
     '/user/:userId',
     UserManagementController.getEmailsByUserId
 );
 
-// Public User routes
+// Public User 
 router.get(
     '/users',
     UserManagementController.getAllUsers
