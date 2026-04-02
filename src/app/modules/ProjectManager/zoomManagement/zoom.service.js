@@ -329,8 +329,8 @@
 // New Updated code > 🛑🛑🛑🛑🛑🛑🛑🛑
 
 import axios from "axios";
-import prisma from "../../../shared/prisma.js";
-import envVars from "../../../config/env.js";
+import prisma from "../../../prisma/client.js";
+import {envVars} from "../../../config/env.js";
 
 export const ZoomService = {
 
