@@ -3,25 +3,38 @@ import mammoth from "mammoth";
 
 // VTT Parser
 function parseVtt(filePath) {
-  const content = fs.readFileSync(filePath, "utf8");
-  const blocks = content.split("\n\n");
+  const content = fs.readFileSync(filePath, "utf8").replace(/\r/g, ""); // Normalize line endings
+  const blocks = content.split(/\n\s*\n/); // Split by one or more empty lines
 
   const speeches = [];
 
   blocks.forEach((block) => {
-    const lines = block.split("\n");
+    const lines = block.split("\n").map(l => l.trim()).filter(l => l !== "");
+    if (lines.length === 0 || lines[0] === "WEBVTT") return;
 
-    if (lines[0] && lines[0].includes("-->")) {
-      const [startTime, endTime] = lines[0].split(" --> ");
-      const textLine = lines[1] || "";
+    // Find the line that actually contains the timestamp "-->"
+    const timingIndex = lines.findIndex(line => line.includes(" --> "));
+    if (timingIndex === -1) return;
 
+    const [startTime, endTime] = lines[timingIndex].split(" --> ");
+    
+    // All lines after the timing line are considered the message text
+    const textLines = lines.slice(timingIndex + 1);
+    const fullText = textLines.join(" ");
+
+    if (fullText) {
       let speaker = "Unknown";
-      let message = textLine;
+      let message = fullText;
 
-      if (textLine.includes(":")) {
-        const colonIndex = textLine.indexOf(":");
-        speaker = textLine.substring(0, colonIndex).trim();
-        message = textLine.substring(colonIndex + 1).trim();
+      // Extract speaker if format is "Name: Message"
+      if (fullText.includes(":")) {
+        const colonIndex = fullText.indexOf(":");
+        // Basic check to ensure colon isn't just part of a URL or time
+        const potentialSpeaker = fullText.substring(0, colonIndex).trim();
+        if (potentialSpeaker.length < 50) { // Speaker names are usually short
+          speaker = potentialSpeaker;
+          message = fullText.substring(colonIndex + 1).trim();
+        }
       }
 
       speeches.push({

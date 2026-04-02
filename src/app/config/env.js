@@ -34,6 +34,7 @@ const loadEnvVars = () => {
     "ZOOM_CLIENT_ID",
     "ZOOM_CLIENT_SECRET",
     "ZOOM_REDIRECT_URI",
+    "ZOOM_WEBHOOK_SECRET",
     "OUTLOOK_CLIENT_ID",
     "OUTLOOK_CLIENT_SECRET",
     "OUTLOOK_TENANT_ID",
@@ -91,6 +92,7 @@ const loadEnvVars = () => {
     ZOOM_CLIENT_ID: process.env.ZOOM_CLIENT_ID,
     ZOOM_CLIENT_SECRET: process.env.ZOOM_CLIENT_SECRET,
     ZOOM_REDIRECT_URI: process.env.ZOOM_REDIRECT_URI,
+    ZOOM_WEBHOOK_SECRET: process.env.ZOOM_WEBHOOK_SECRET,
 
     // Outlook connect env 
     OUTLOOK_CLIENT_ID: process.env.OUTLOOK_CLIENT_ID,

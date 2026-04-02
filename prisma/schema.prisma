@@ -537,6 +537,13 @@ model ZoomAccount {
   @@map("zoom_accounts")
 }
 
+model ZoomAuthState {
+  id     String @id @default(uuid())
+  state  String @unique
+  userId String
+  createdAt DateTime @default(now())
+}
+
 model LessonLearn {
   id          String    @id @default(uuid())
   projectId   String
