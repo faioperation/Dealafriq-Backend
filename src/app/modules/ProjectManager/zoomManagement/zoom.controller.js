@@ -107,7 +107,7 @@ const handleWebhook = catchAsync(async (req, res) => {
 
     // 2. Signature Verification
     // Note: If this fails, ensure you are using raw body parsing for Zoom webhooks
-    const message = `v0:${timestamp}:${JSON.stringify(req.body)}`;
+    const message = `v0:${timestamp}:${req.rawBody || JSON.stringify(req.body)}`;
     const hash = crypto.createHmac("sha256", secret).update(message).digest("hex");
     const expectedSignature = `v0=${hash}`;
 
@@ -123,7 +123,9 @@ const handleWebhook = catchAsync(async (req, res) => {
         if (event === "recording.completed") {
             console.log(`[Zoom Webhook] Processing recording.completed for meeting: ${payload.object.id}`);
             await ZoomService.handleRecordingCompletedWebhook(payload);
-            console.log(`[Zoom Webhook] Finished processing recording.completed for meeting: ${payload.object.id}`);
+        } else if (event === "recording.transcript_completed") {
+            console.log(`[Zoom Webhook] Processing recording.transcript_completed for meeting: ${payload.object.id}`);
+            await ZoomService.handleRecordingCompletedWebhook(payload); // Re-use the same logic since it now handles transcripts!
         } else if (event === "meeting.ended") {
             console.log(`[Zoom Webhook] Meeting ${payload.object.id} ended.`);
         } else {
