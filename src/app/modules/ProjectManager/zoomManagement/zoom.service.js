@@ -190,7 +190,7 @@ const getValidAccessToken = async (userId) => {
  */
 const getAccountAccessToken = async () => {
     const { ZOOM_S2S_CLIENT_ID, ZOOM_S2S_CLIENT_SECRET, ZOOM_ACCOUNT_ID } = envVars;
-    
+
     if (!ZOOM_ACCOUNT_ID) {
         console.warn("ZOOM_ACCOUNT_ID is not defined. Falling back to user-level OAuth.");
         return null;
@@ -245,12 +245,28 @@ const getUserMeetings = async (userId) => {
  */
 const createMeeting = async (data) => {
     const userId = data.userId;
-    const projectId = data.projectId; // Extract projectId if provided
-    const token = await getValidAccessToken(userId);
+    const projectId = data.projectId;
+
+    // 1. Get the user's linked Zoom account to find their Zoom Email/ID
+    const zoomAccount = await prisma.zoomAccount.findFirst({
+        where: { connectedUserId: userId }
+    });
+
+    if (!zoomAccount) {
+        throw new Error("User has not connected their Zoom account.");
+    }
+
+    // 2. Prioritize Server-to-Server token for high-level permissions (managed on behalf of user)
+    // Fallback to user-level token if S2S is not available
+    const s2sToken = await getAccountAccessToken();
+    const token = s2sToken || (await getValidAccessToken(userId));
+
+    // 3. If using S2S, we can create a meeting for ANY user in the account using their email/id
+    const targetUserId = s2sToken ? zoomAccount.zoomEmail : "me";
 
     try {
         const response = await axios.post(
-            `${ZOOM_API_BASE_URL}/users/me/meetings`,
+            `${ZOOM_API_BASE_URL}/users/${targetUserId}/meetings`,
             {
                 topic: data.topic,
                 type: 2, // Scheduled meeting
@@ -372,7 +388,7 @@ const handleRecordingCompletedWebhook = async (payload) => {
     }
 
     const token = (await getAccountAccessToken()) || (await getValidAccessToken(zoomAccount.connectedUserId));
-    
+
     if (!token) {
         console.error(`[Zoom Webhook] Could not obtain a valid token to download transcript for meeting ${meetingId}`);
         return;
@@ -402,7 +418,7 @@ const handleRecordingCompletedWebhook = async (payload) => {
         // Handle query params in download_url correctly
         const separator = transcriptFile.download_url.includes('?') ? '&' : '?';
         const downloadUrl = `${transcriptFile.download_url}${separator}access_token=${token}`;
-        
+
         console.log(`[Zoom Webhook] Download URL prepared for meeting ${meetingId}`);
         const fileName = `zoom_transcript_${meetingId}_${Date.now()}.vtt`;
         const uploadsDir = path.join(process.cwd(), "uploads", "transcripts");
@@ -423,8 +439,8 @@ const handleRecordingCompletedWebhook = async (payload) => {
         });
 
         if (downloadResponse.status !== 200) {
-           console.error(`[Zoom Webhook] Failed to download transcript. Status: ${downloadResponse.status}`);
-           return;
+            console.error(`[Zoom Webhook] Failed to download transcript. Status: ${downloadResponse.status}`);
+            return;
         }
 
         const writer = fs.createWriteStream(filePath);
