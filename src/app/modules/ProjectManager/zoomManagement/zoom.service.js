@@ -413,7 +413,21 @@ const handleRecordingCompletedWebhook = async (payload) => {
         
         console.log(`[Zoom Webhook] Available files for meeting ${meetingId}:`, recordingFiles.map(f => `${f.file_type} (${f.status})`));
 
-        // Find transcript file in the payload
+        // A. Find Video File (MP4) to update the playback link immediately
+        const videoFile = recordingFiles.find((file) => file.file_type === "MP4");
+        if (videoFile && videoFile.status === "completed") {
+            await prisma.projectMeeting.update({
+                where: { id: projectMeeting.id },
+                data: {
+                    videoPlayUrl: videoFile.play_url,
+                    // If no transcript yet, set a friendly status
+                    ...(projectMeeting.transcriptStatus !== "completed" && { transcriptStatus: "recording_ready" })
+                }
+            });
+            console.log(`[Zoom Webhook] ProjectMeeting ${projectMeeting.id} updated with video playback link.`);
+        }
+
+        // B. Find Transcript file (VTT)
         let transcriptFile = recordingFiles.find((file) =>
             file.file_type === "TRANSCRIPT" ||
             String(file.recording_type).toLowerCase() === "audio_transcript" ||
@@ -440,7 +454,7 @@ const handleRecordingCompletedWebhook = async (payload) => {
         }
 
         if (!transcriptFile) {
-            console.log(`[Zoom Webhook] No transcript found even after API fallback for meeting ${meetingId}. Waiting for next webhook.`);
+            console.log(`[Zoom Webhook] No transcript found yet for meeting ${meetingId}. Meeting record updated with video link only.`);
             return;
         }
 
@@ -452,7 +466,11 @@ const handleRecordingCompletedWebhook = async (payload) => {
 
         // Check if the file is still processing
         if (transcriptFile.status === "processing") {
-            console.log(`[Zoom Webhook] Transcript for meeting ${meetingId} is still processing. We will wait for the transcript_completed event.`);
+            console.log(`[Zoom Webhook] Transcript for meeting ${meetingId} is still processing. Setting status and waiting...`);
+            await prisma.projectMeeting.update({
+                where: { id: projectMeeting.id },
+                data: { transcriptStatus: "processing" }
+            });
             return;
         }
 
@@ -496,7 +514,7 @@ const handleRecordingCompletedWebhook = async (payload) => {
                     const transcript = await TranscriptService.uploadTranscriptService(mockFile, projectId);
                     console.log(`[Zoom Webhook] Transcript parsed and saved for meeting ${meetingId}. ID: ${transcript.id}`);
 
-                    // ✅ Update the ProjectMeeting record with all transcript info + new metadata
+                    // ✅ Final Update: Patch the ProjectMeeting record with transcript info
                     if (projectMeeting) {
                         await prisma.projectMeeting.update({
                             where: { id: projectMeeting.id },
@@ -509,7 +527,7 @@ const handleRecordingCompletedWebhook = async (payload) => {
                                 transcriptFileType: transcriptFile.file_type
                             }
                         });
-                        console.log(`[Zoom Webhook] ProjectMeeting ${projectMeeting.id} updated with transcript and metadata.`);
+                        console.log(`[Zoom Webhook] ProjectMeeting ${projectMeeting.id} updated with transcript data.`);
                     }
 
                     resolve(transcript);
@@ -525,7 +543,7 @@ const handleRecordingCompletedWebhook = async (payload) => {
         });
 
     } catch (error) {
-        console.error(`Error handling recording.completed for meeting ${meetingId}:`, error.response?.data || error.message);
+        console.error(`Error handling Zoom update for meeting ${meetingId}:`, error.response?.data || error.message);
         throw error;
     }
 };
