@@ -20,7 +20,7 @@ function parseVtt(filePath) {
     
     // All lines after the timing line are considered the message text
     const textLines = lines.slice(timingIndex + 1);
-    const fullText = textLines.join(" ");
+    const fullText = textLines.join(" ").trim();
 
     if (fullText) {
       let speaker = "Unknown";

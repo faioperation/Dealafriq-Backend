@@ -121,13 +121,17 @@ const handleWebhook = catchAsync(async (req, res) => {
 
     try {
         if (event === "recording.completed") {
-            console.log("webhook called for transcript");
+            console.log(`[Zoom Webhook] Processing recording.completed for meeting: ${payload.object.id}`);
             await ZoomService.handleRecordingCompletedWebhook(payload);
+            console.log(`[Zoom Webhook] Finished processing recording.completed for meeting: ${payload.object.id}`);
         } else if (event === "meeting.ended") {
-            console.log(`Meeting ${payload.object.id} ended.`);
+            console.log(`[Zoom Webhook] Meeting ${payload.object.id} ended.`);
+        } else {
+            console.log(`[Zoom Webhook] Received unhandled event: ${event}`);
         }
     } catch (error) {
-        console.error("Error processing Zoom webhook:", error.message);
+        console.error(`[Zoom Webhook Error] ${event}:`, error.message);
+        if (error.stack) console.error(error.stack);
         // We still return 200 to Zoom to stop retries, but we logged the error
     }
 

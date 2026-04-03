@@ -186,6 +186,43 @@ const getValidAccessToken = async (userId) => {
 };
 
 /**
+ * Get a valid Server-to-Server access token for the account
+ * This doesn't require a specific user, it uses the Account ID from env
+ */
+const getAccountAccessToken = async () => {
+    const { ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, ZOOM_ACCOUNT_ID } = envVars;
+    
+    if (!ZOOM_ACCOUNT_ID) {
+        console.warn("ZOOM_ACCOUNT_ID is not defined. Falling back to user-level OAuth.");
+        return null;
+    }
+
+    const authString = Buffer.from(`${ZOOM_CLIENT_ID}:${ZOOM_CLIENT_SECRET}`).toString("base64");
+
+    try {
+        const response = await axios.post(
+            ZOOM_OAUTH_URL,
+            null,
+            {
+                params: {
+                    grant_type: "account_credentials",
+                    account_id: ZOOM_ACCOUNT_ID,
+                },
+                headers: {
+                    Authorization: `Basic ${authString}`,
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+            }
+        );
+
+        return response.data.access_token;
+    } catch (err) {
+        console.error("Zoom Server-to-Server Token Error:", err.response?.data || err.message);
+        return null;
+    }
+};
+
+/**
  * Fetch meetings for the authenticated user
  */
 const getUserMeetings = async (userId) => {
@@ -300,7 +337,11 @@ const handleRecordingCompletedWebhook = async (payload) => {
 
     // Find the project associated with this Zoom meeting
     let projectId = null;
-    const projectMeeting = await prisma.projectMeeting.findFirst({
+    let projectMeeting = null;
+
+    // Search for the meeting ID in the meetingUrl
+    // 1. First, search with the exact numeric ID
+    projectMeeting = await prisma.projectMeeting.findFirst({
         where: {
             meetingUrl: {
                 contains: String(meetingId)
@@ -308,14 +349,35 @@ const handleRecordingCompletedWebhook = async (payload) => {
         }
     });
 
-    if (projectMeeting) {
-        projectId = projectMeeting.projectId;
-        console.log(`Successfully matched meeting ID ${meetingId} to Project: ${projectId}`);
-    } else {
-        console.warn(`Could not find a ProjectMeeting record with a URL containing ID: ${meetingId}`);
+    // 2. If not found, try stripping spaces/dashes if they were stored that way
+    if (!projectMeeting) {
+        // Zoom IDs can be formatted with spaces or dashes by users
+        const formattedId1 = String(meetingId).replace(/(.{3})(.{4})(.{4})/, '$1 $2 $3'); // e.g. 123 4567 8901
+        const formattedId2 = String(meetingId).replace(/(.{3})(.{3})(.{4})/, '$1-$2-$3'); // e.g. 123-456-7890
+
+        projectMeeting = await prisma.projectMeeting.findFirst({
+            where: {
+                OR: [
+                    { meetingUrl: { contains: formattedId1 } },
+                    { meetingUrl: { contains: formattedId2 } }
+                ]
+            }
+        });
     }
 
-    const token = await getValidAccessToken(zoomAccount.connectedUserId);
+    if (projectMeeting) {
+        projectId = projectMeeting.projectId;
+        console.log(`[Zoom Webhook] Successfully matched meeting ID ${meetingId} to Project Meeting: ${projectMeeting.id} (Project: ${projectId})`);
+    } else {
+        console.warn(`[Zoom Webhook] Could not find a ProjectMeeting record with a URL containing ID: ${meetingId}. Searching recording files anyway...`);
+    }
+
+    const token = (await getAccountAccessToken()) || (await getValidAccessToken(zoomAccount.connectedUserId));
+    
+    if (!token) {
+        console.error(`[Zoom Webhook] Could not obtain a valid token to download transcript for meeting ${meetingId}`);
+        return;
+    }
 
     try {
         const recordingFiles = object.recording_files || [];
@@ -331,14 +393,18 @@ const handleRecordingCompletedWebhook = async (payload) => {
             return;
         }
 
-        // Check if the file is still processing (sometimes happens even with recording.completed)
+        // Check if the file is still processing
         if (transcriptFile.status === "processing") {
-            console.log("Transcript is still processing. Skipping for now.");
+            console.log(`[Zoom Webhook] Transcript for meeting ${meetingId} is still processing. Zoom will retry later or we may need a re-sync.`);
             return;
         }
 
         // Step 2: Download transcript 
-        const downloadUrl = `${transcriptFile.download_url}?access_token=${token}`;
+        // Handle query params in download_url correctly
+        const separator = transcriptFile.download_url.includes('?') ? '&' : '?';
+        const downloadUrl = `${transcriptFile.download_url}${separator}access_token=${token}`;
+        
+        console.log(`[Zoom Webhook] Download URL prepared for meeting ${meetingId}`);
         const fileName = `zoom_transcript_${meetingId}_${Date.now()}.vtt`;
         const uploadsDir = path.join(process.cwd(), "uploads", "transcripts");
 
@@ -348,14 +414,19 @@ const handleRecordingCompletedWebhook = async (payload) => {
 
         const filePath = path.join(uploadsDir, fileName);
 
-        console.log(`Downloading transcript from ${transcriptFile.download_url}`);
+        console.log(`[Zoom Webhook] Attempting to download transcript for meeting ${meetingId}...`);
 
         const downloadResponse = await axios({
             method: 'get',
             url: downloadUrl,
             responseType: 'stream',
-            timeout: 30000 // 30 second timeout
+            timeout: 60000 // Increase to 60s for larger transcripts
         });
+
+        if (downloadResponse.status !== 200) {
+           console.error(`[Zoom Webhook] Failed to download transcript. Status: ${downloadResponse.status}`);
+           return;
+        }
 
         const writer = fs.createWriteStream(filePath);
         downloadResponse.data.pipe(writer);
@@ -430,4 +501,5 @@ export const ZoomService = {
     getUserRecordings,
     handleRecordingCompletedWebhook,
     disconnectZoomAccount,
+    getAccountAccessToken,
 };
