@@ -218,6 +218,9 @@ model ProjectMeeting {
   transcriptData     Json?
   transcriptPath     String?
   transcriptUrl      String?
+  transcriptStatus   String?
+  transcriptPlayUrl  String?
+  transcriptFileType String?
   aiMeetingSummary   String[]      @default([])
   actionPoints       ActionPoint[]
   keyPoints          KeyPoint[]
