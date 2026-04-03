@@ -392,6 +392,8 @@ const handleRecordingCompletedWebhook = async (payload) => {
     try {
         const projectId = projectMeeting.projectId;
         const recordingFiles = object.recording_files || [];
+        
+        console.log(`[Zoom Webhook] Available files for meeting ${meetingId}:`, recordingFiles.map(f => `${f.file_type} (${f.status})`));
 
         // Find transcript file in the payload
         const transcriptFile = recordingFiles.find((file) =>
@@ -401,22 +403,27 @@ const handleRecordingCompletedWebhook = async (payload) => {
         );
 
         if (!transcriptFile) {
-            console.log(`No transcript file found in the recording payload for meeting ${meetingId}. Available files:`, recordingFiles.map(f => f.file_type));
+            console.log(`[Zoom Webhook] No transcript found yet in the payload for meeting ${meetingId}. This usually means Zoom hasn't generated it yet. We will wait for the next webhook.`);
+            return;
+        }
+
+        // Avoid duplicate processing if we already have this transcript
+        if (projectMeeting.transcriptStatus === "completed" && projectMeeting.transcriptUrl === transcriptFile.download_url) {
+            console.log(`[Zoom Webhook] Transcript for meeting ${meetingId} has already been processed. Skipping duplicates.`);
             return;
         }
 
         // Check if the file is still processing
         if (transcriptFile.status === "processing") {
-            console.log(`[Zoom Webhook] Transcript for meeting ${meetingId} is still processing. Zoom will retry later.`);
+            console.log(`[Zoom Webhook] Transcript for meeting ${meetingId} is still processing. We will wait for the transcript_completed event.`);
             return;
         }
 
         // Step 2: Download transcript 
-        // Handle query params in download_url correctly
         const separator = transcriptFile.download_url.includes('?') ? '&' : '?';
-        const downloadUrl = `${transcriptFile.download_url}${separator}access_token=${token}`;
+        const downloadUrl = `${transcriptFile.download_url}${separator}access_token=${finalToken}`;
 
-        console.log(`[Zoom Webhook] Download URL prepared for meeting ${meetingId}`);
+        console.log(`[Zoom Webhook] Downloading transcript for meeting ${meetingId}...`);
         const fileName = `zoom_transcript_${meetingId}_${Date.now()}.vtt`;
         const uploadsDir = path.join(process.cwd(), "uploads", "transcripts");
 
@@ -426,13 +433,11 @@ const handleRecordingCompletedWebhook = async (payload) => {
 
         const filePath = path.join(uploadsDir, fileName);
 
-        console.log(`[Zoom Webhook] Attempting to download transcript for meeting ${meetingId}...`);
-
         const downloadResponse = await axios({
             method: 'get',
             url: downloadUrl,
             responseType: 'stream',
-            timeout: 60000 // Increase to 60s for larger transcripts
+            timeout: 60000 
         });
 
         if (downloadResponse.status !== 200) {
@@ -446,14 +451,13 @@ const handleRecordingCompletedWebhook = async (payload) => {
         return new Promise((resolve, reject) => {
             writer.on('finish', async () => {
                 try {
-                    // Send to transcript service for parsing and database entry
                     const mockFile = {
                         path: filePath,
                         originalname: fileName
                     };
 
                     const transcript = await TranscriptService.uploadTranscriptService(mockFile, projectId);
-                    console.log(`Transcript processed and saved: ${transcript.id}`);
+                    console.log(`[Zoom Webhook] Transcript parsed and saved for meeting ${meetingId}. ID: ${transcript.id}`);
 
                     // ✅ Update the ProjectMeeting record with all transcript info + new metadata
                     if (projectMeeting) {
@@ -462,23 +466,23 @@ const handleRecordingCompletedWebhook = async (payload) => {
                             data: {
                                 transcriptData: transcript.parsedData,
                                 transcriptPath: transcript.filePath,
-                                transcriptUrl: downloadUrl, // Store the direct download URL for reference
+                                transcriptUrl: transcriptFile.download_url,
                                 transcriptStatus: transcriptFile.status,
                                 transcriptPlayUrl: transcriptFile.play_url,
                                 transcriptFileType: transcriptFile.file_type
                             }
                         });
-                        console.log(`ProjectMeeting ${projectMeeting.id} updated with transcript and metadata.`);
+                        console.log(`[Zoom Webhook] ProjectMeeting ${projectMeeting.id} updated with transcript and metadata.`);
                     }
 
                     resolve(transcript);
                 } catch (err) {
-                    console.error("Error finalizing transcript processing:", err);
+                    console.error("[Zoom Webhook] Error finalizing transcript processing:", err);
                     reject(err);
                 }
             });
             writer.on('error', (err) => {
-                console.error("File writer error:", err);
+                console.error("[Zoom Webhook] File writer error:", err);
                 reject(err);
             });
         });
