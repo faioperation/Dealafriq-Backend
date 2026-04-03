@@ -331,6 +331,24 @@ const getUserRecordings = async (userId) => {
 };
 
 /**
+ * Fetch specific recording files for a meeting by ID
+ */
+const getRecordingFilesByMeetingId = async (meetingId) => {
+    const token = await getAccountAccessToken();
+    if (!token) return null;
+
+    try {
+        const response = await axios.get(`${ZOOM_API_BASE_URL}/meetings/${meetingId}/recordings`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        return response.data;
+    } catch (error) {
+        console.error(`[Zoom API Check] Failed to fetch recordings for meeting ${meetingId}:`, error.message);
+        return null;
+    }
+};
+
+/**
  * Handle Webhook recording.completed event to process transcripts
  */
 const handleRecordingCompletedWebhook = async (payload) => {
@@ -388,22 +406,41 @@ const handleRecordingCompletedWebhook = async (payload) => {
         return;
     }
 
-    // 3. Process the files
+        // 3. Process the files
     try {
         const projectId = projectMeeting.projectId;
-        const recordingFiles = object.recording_files || [];
+        let recordingFiles = object.recording_files || [];
         
         console.log(`[Zoom Webhook] Available files for meeting ${meetingId}:`, recordingFiles.map(f => `${f.file_type} (${f.status})`));
 
         // Find transcript file in the payload
-        const transcriptFile = recordingFiles.find((file) =>
+        let transcriptFile = recordingFiles.find((file) =>
             file.file_type === "TRANSCRIPT" ||
             String(file.recording_type).toLowerCase() === "audio_transcript" ||
             String(file.file_extension).toLowerCase() === "vtt"
         );
 
+        // 🚀 SMART FALLBACK: If transcript is missing, call Zoom API directly to check again!
         if (!transcriptFile) {
-            console.log(`[Zoom Webhook] No transcript found yet in the payload for meeting ${meetingId}. This usually means Zoom hasn't generated it yet. We will wait for the next webhook.`);
+            console.log(`[Zoom Webhook] No transcript in webhook. Checking Zoom API fallback for meeting ${meetingId}...`);
+            const latestData = await getRecordingFilesByMeetingId(meetingId);
+            
+            if (latestData && latestData.recording_files) {
+                recordingFiles = latestData.recording_files;
+                transcriptFile = recordingFiles.find((file) =>
+                    file.file_type === "TRANSCRIPT" ||
+                    String(file.recording_type).toLowerCase() === "audio_transcript" ||
+                    String(file.file_extension).toLowerCase() === "vtt"
+                );
+                
+                if (transcriptFile) {
+                    console.log(`[Zoom Webhook] ✅ Transcript found via API fallback for meeting ${meetingId}!`);
+                }
+            }
+        }
+
+        if (!transcriptFile) {
+            console.log(`[Zoom Webhook] No transcript found even after API fallback for meeting ${meetingId}. Waiting for next webhook.`);
             return;
         }
 
