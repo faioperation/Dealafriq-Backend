@@ -330,20 +330,33 @@ const getUserRecordings = async (userId) => {
     }
 };
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
- * Fetch specific recording files for a meeting by ID
+ * Fetch specific recording files for a meeting by ID or UUID.
+ * Note: For recording APIs, Zoom requires the UUID to be double-encoded if it starts 
+ * with a '/' or contains '//'.
  */
-const getRecordingFilesByMeetingId = async (meetingId) => {
+const getRecordingFilesByMeetingId = async (meetingIdOrUuid) => {
     const token = await getAccountAccessToken();
     if (!token) return null;
 
     try {
-        const response = await axios.get(`${ZOOM_API_BASE_URL}/meetings/${meetingId}/recordings`, {
+        // Double-encode the UUID as per Zoom's strict requirements for recording endpoints
+        // Example: abc/123 -> abc%252F123
+        let encodedId = String(meetingIdOrUuid);
+        if (encodedId.startsWith('/') || encodedId.includes('//')) {
+            encodedId = encodeURIComponent(encodeURIComponent(encodedId));
+        } else {
+            encodedId = encodeURIComponent(encodedId);
+        }
+
+        const response = await axios.get(`${ZOOM_API_BASE_URL}/meetings/${encodedId}/recordings`, {
             headers: { Authorization: `Bearer ${token}` },
         });
         return response.data;
     } catch (error) {
-        console.error(`[Zoom API Check] Failed to fetch recordings for meeting ${meetingId}:`, error.message);
+        console.error(`[Zoom API Check] Failed to fetch recordings for ${meetingIdOrUuid}:`, error.message);
         return null;
     }
 };
@@ -355,148 +368,136 @@ const handleRecordingCompletedWebhook = async (payload) => {
     const { object } = payload;
     const meetingId = object.id;
     const hostId = object.host_id;
-    console.log(`[Zoom Webhook] Received recording.completed for Zoom Meeting ID: ${meetingId} (Host: ${hostId})`);
 
-    // 1. Find the project meeting record by its numeric ID in the URL
-    // We do this first because if the meeting exists in our DB, we want to process it!
+    console.log(`\n[Step 1] RECV: Zoom Webhook for Meeting ID: ${meetingId} (Topic: "${object.topic}")`);
+    
+    // 1. Initial Delay to ensure DB Consistency
+    console.log(`[Step 2] WAIT: 12 seconds buffering delay for database...`);
+    await delay(12000); 
+
+    // 2. Identify and Find the ProjectMeeting record
+    // Extraction: Clean the meetingId to ensure it's a string
+    const targetIdStr = String(meetingId);
+    console.log(`[Step 3] SEARCH: Looking for meeting containing ID: ${targetIdStr}`);
+
+    // Try finding by URL "contains" first
     let projectMeeting = await prisma.projectMeeting.findFirst({
-        where: {
-            meetingUrl: { contains: String(meetingId) }
-        }
+        where: { meetingUrl: { contains: targetIdStr } }
     });
 
-    // Fallback: search for formatted IDs (e.g. "123 4567 8901" or "123-456-7890")
+    // Fallback 1: Manual Regex-based search in case Prisma's contains is being tricky
     if (!projectMeeting) {
-        const formattedId1 = String(meetingId).replace(/(.{3})(.{4})(.{4})/, '$1 $2 $3');
-        const formattedId2 = String(meetingId).replace(/(.{3})(.{3})(.{4})/, '$1-$2-$3');
-
+        console.log(`[Step 3.1] FALLBACK: ID Search failed. Checking for title matches: "${object.topic}"`);
         projectMeeting = await prisma.projectMeeting.findFirst({
             where: {
-                OR: [
-                    { meetingUrl: { contains: formattedId1 } },
-                    { meetingUrl: { contains: formattedId2 } }
-                ]
+                title: { contains: object.topic },
+                meetingDate: {
+                    gte: new Date(new Date().getTime() - 24 * 60 * 60 * 1000) // Within 24h
+                }
             }
         });
     }
 
-    if (projectMeeting) {
-        console.log(`[Zoom Webhook] Successfully matched meeting ID ${meetingId} to Project Meeting: ${projectMeeting.id}`);
-    } else {
-        console.warn(`[Zoom Webhook] Could not find any ProjectMeeting in our database containing ID: ${meetingId}. Ignoring webhook.`);
+    if (!projectMeeting) {
+        console.warn(`[Step 3.2] ABORT: Could not match Meeting ${meetingId} to any ProjectMeeting in our DB.`);
         return;
     }
 
-    // 2. Identify the token to use (Server-to-Server is best for background tasks)
+    console.log(`[Step 4] MATCH: Linked to ProjectMeeting ID: ${projectMeeting.id}`);
+
+    // 2. Obtain Token
     const token = await getAccountAccessToken();
-    
-    // Fallback: If S2S is not available, try to find the host's personal token
     let finalToken = token;
     if (!finalToken) {
-        const zoomAccount = await prisma.zoomAccount.findFirst({
-            where: { zoomUserId: String(hostId) }
-        });
-        if (zoomAccount) {
-            finalToken = await getValidAccessToken(zoomAccount.connectedUserId);
-        }
+        // Fallback to User token if S2S is not available
+        const zoomAccount = await prisma.zoomAccount.findFirst({ where: { zoomUserId: String(hostId) } });
+        if (zoomAccount) finalToken = await getValidAccessToken(zoomAccount.connectedUserId);
     }
 
     if (!finalToken) {
-        console.error(`[Zoom Webhook] Could not obtain a valid token (S2S or User) to download transcript for meeting ${meetingId}`);
+        console.error(`[Step 5] FAIL: Could not obtain an Access Token to process Zoom data.`);
         return;
     }
+    console.log(`[Step 5] TOKEN: Access token secured.`);
 
-        // 3. Process the files
+    // 3. Process the files
     try {
         const projectId = projectMeeting.projectId;
         let recordingFiles = object.recording_files || [];
-        
-        console.log(`[Zoom Webhook] Available files for meeting ${meetingId}:`, recordingFiles.map(f => `${f.file_type} (${f.status})`));
+        console.log(`[Step 6] FILES: Found ${recordingFiles.length} files from Zoom.`);
 
-        // A. Find Video File (MP4) to update the playback link immediately
-        const videoFile = recordingFiles.find((file) => file.file_type === "MP4");
+        // A. Video Update (MP4) - DO THIS FIRST, DO NOT FAIL ON ERROR
+        const videoFile = recordingFiles.find(f => f.file_type === "MP4");
         if (videoFile && videoFile.status === "completed") {
-            await prisma.projectMeeting.update({
-                where: { id: projectMeeting.id },
-                data: {
-                    videoPlayUrl: videoFile.play_url,
-                    // If no transcript yet, set a friendly status
-                    ...(projectMeeting.transcriptStatus !== "completed" && { transcriptStatus: "recording_ready" })
-                }
-            });
-            console.log(`[Zoom Webhook] ProjectMeeting ${projectMeeting.id} updated with video playback link.`);
+            try {
+                await prisma.projectMeeting.update({
+                    where: { id: projectMeeting.id },
+                    data: {
+                        videoPlayUrl: videoFile.play_url,
+                        transcriptStatus: projectMeeting.transcriptStatus === "completed" ? "completed" : "recording_ready"
+                    }
+                });
+                console.log(`[Step 7] VIDEO: Playback URL saved (${videoFile.play_url})`);
+            } catch (vErr) {
+                console.error(`[Step 7 - ERR] Failed to update video link:`, vErr.message);
+            }
         }
 
-        // B. Find Transcript file (VTT)
-        let transcriptFile = recordingFiles.find((file) =>
-            file.file_type === "TRANSCRIPT" ||
-            String(file.recording_type).toLowerCase() === "audio_transcript" ||
-            String(file.file_extension).toLowerCase() === "vtt"
+        // B. Transcript Processing
+        let transcriptFile = recordingFiles.find(f => 
+            f.file_type === "TRANSCRIPT" || (f.file_extension && f.file_extension.toLowerCase() === "vtt")
         );
 
-        // 🚀 SMART FALLBACK: If transcript is missing, call Zoom API directly to check again!
+        // API Fallback check: 🚀 Use UUID instead of ID for better reliability!
         if (!transcriptFile) {
-            console.log(`[Zoom Webhook] No transcript in webhook. Checking Zoom API fallback for meeting ${meetingId}...`);
-            const latestData = await getRecordingFilesByMeetingId(meetingId);
-            
-            if (latestData && latestData.recording_files) {
+            const uuid = object.uuid;
+            console.log(`[Step 8] FALLBACK: Transcript missing in webhook. Calling Zoom API for Meeting UUID ${uuid}...`);
+            const latestData = await getRecordingFilesByMeetingId(uuid);
+            if (latestData?.recording_files) {
                 recordingFiles = latestData.recording_files;
-                transcriptFile = recordingFiles.find((file) =>
-                    file.file_type === "TRANSCRIPT" ||
-                    String(file.recording_type).toLowerCase() === "audio_transcript" ||
-                    String(file.file_extension).toLowerCase() === "vtt"
+                transcriptFile = recordingFiles.find(f => 
+                    f.file_type === "TRANSCRIPT" || (f.file_extension && f.file_extension.toLowerCase() === "vtt")
                 );
-                
-                if (transcriptFile) {
-                    console.log(`[Zoom Webhook] ✅ Transcript found via API fallback for meeting ${meetingId}!`);
-                }
             }
         }
 
         if (!transcriptFile) {
-            console.log(`[Zoom Webhook] No transcript found yet for meeting ${meetingId}. Meeting record updated with video link only.`);
+            console.log(`[Step 8.1] WAIT: No transcript found yet. We will wait for the next webhook.`);
             return;
         }
 
-        // Avoid duplicate processing if we already have this transcript
-        if (projectMeeting.transcriptStatus === "completed" && projectMeeting.transcriptUrl === transcriptFile.download_url) {
-            console.log(`[Zoom Webhook] Transcript for meeting ${meetingId} has already been processed. Skipping duplicates.`);
-            return;
-        }
+        console.log(`[Step 9] TRANSCRIPT: Found file with Status: ${transcriptFile.status}`);
 
-        // Check if the file is still processing
+        // Status check
         if (transcriptFile.status === "processing") {
-            console.log(`[Zoom Webhook] Transcript for meeting ${meetingId} is still processing. Setting status and waiting...`);
             await prisma.projectMeeting.update({
                 where: { id: projectMeeting.id },
                 data: { transcriptStatus: "processing" }
             });
+            console.log(`[Step 9.1] STATUS: Transcript still processing in Zoom. Exiting.`);
             return;
         }
 
-        // Step 2: Download transcript 
+        // Avoid Duplicates
+        if (projectMeeting.transcriptStatus === "completed" && projectMeeting.transcriptUrl === transcriptFile.download_url) {
+            console.log(`[Step 9.2] NO-OP: Transcript already exists and is identical. Skipping.`);
+            return;
+        }
+
+        // Step 10: Download & Parse
         const separator = transcriptFile.download_url.includes('?') ? '&' : '?';
         const downloadUrl = `${transcriptFile.download_url}${separator}access_token=${finalToken}`;
 
-        console.log(`[Zoom Webhook] Downloading transcript for meeting ${meetingId}...`);
         const fileName = `zoom_transcript_${meetingId}_${Date.now()}.vtt`;
         const uploadsDir = path.join(process.cwd(), "uploads", "transcripts");
-
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
         const filePath = path.join(uploadsDir, fileName);
 
-        const downloadResponse = await axios({
-            method: 'get',
-            url: downloadUrl,
-            responseType: 'stream',
-            timeout: 60000 
-        });
+        console.log(`[Step 10] DL: Starting transcript download...`);
+        const downloadResponse = await axios({ method: 'get', url: downloadUrl, responseType: 'stream', timeout: 60000 });
 
         if (downloadResponse.status !== 200) {
-            console.error(`[Zoom Webhook] Failed to download transcript. Status: ${downloadResponse.status}`);
+            console.error(`[Step 10] FAIL: HTTP Status ${downloadResponse.status} during download.`);
             return;
         }
 
@@ -506,44 +507,39 @@ const handleRecordingCompletedWebhook = async (payload) => {
         return new Promise((resolve, reject) => {
             writer.on('finish', async () => {
                 try {
-                    const mockFile = {
-                        path: filePath,
-                        originalname: fileName
-                    };
+                    console.log(`[Step 11] SAVE: Parsing and creating transcript record...`);
+                    const mockFile = { path: filePath, originalname: fileName };
 
-                    const transcript = await TranscriptService.uploadTranscriptService(mockFile, projectId);
-                    console.log(`[Zoom Webhook] Transcript parsed and saved for meeting ${meetingId}. ID: ${transcript.id}`);
+                    const transcriptInDB = await TranscriptService.uploadTranscriptService(mockFile, projectId);
+                    console.log(`[Step 12] PARSE: Success! Transcript DB ID: ${transcriptInDB.id}`);
 
-                    // ✅ Final Update: Patch the ProjectMeeting record with transcript info
-                    if (projectMeeting) {
-                        await prisma.projectMeeting.update({
-                            where: { id: projectMeeting.id },
-                            data: {
-                                transcriptData: transcript.parsedData,
-                                transcriptPath: transcript.filePath,
-                                transcriptUrl: transcriptFile.download_url,
-                                transcriptStatus: transcriptFile.status,
-                                transcriptPlayUrl: transcriptFile.play_url,
-                                transcriptFileType: transcriptFile.file_type
-                            }
-                        });
-                        console.log(`[Zoom Webhook] ProjectMeeting ${projectMeeting.id} updated with transcript data.`);
-                    }
-
-                    resolve(transcript);
+                    // Final Update
+                    await prisma.projectMeeting.update({
+                        where: { id: projectMeeting.id },
+                        data: {
+                            transcriptData: transcriptInDB.parsedData,
+                            transcriptPath: transcriptInDB.filePath,
+                            transcriptUrl: transcriptFile.download_url,
+                            transcriptStatus: "completed",
+                            transcriptPlayUrl: transcriptFile.play_url,
+                            transcriptFileType: transcriptFile.file_type
+                        }
+                    });
+                    console.log(`[Step 13] UPDATE: ProjectMeeting ${projectMeeting.id} updated successfully with transcript.`);
+                    resolve(transcriptInDB);
                 } catch (err) {
-                    console.error("[Zoom Webhook] Error finalizing transcript processing:", err);
+                    console.error("[Step 13] ERROR finalizing update:", err.message);
                     reject(err);
                 }
             });
             writer.on('error', (err) => {
-                console.error("[Zoom Webhook] File writer error:", err);
+                console.error("[Step 10] DOWNLOAD-ERR:", err.message);
                 reject(err);
             });
         });
 
     } catch (error) {
-        console.error(`Error handling Zoom update for meeting ${meetingId}:`, error.response?.data || error.message);
+        console.error(`[CRITICAL] Error in Zoom processing:`, error.message);
         throw error;
     }
 };

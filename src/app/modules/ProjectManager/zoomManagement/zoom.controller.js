@@ -122,10 +122,12 @@ const handleWebhook = catchAsync(async (req, res) => {
     try {
         if (event === "recording.completed") {
             console.log(`[Zoom Webhook] Processing recording.completed for meeting: ${payload.object.id}`);
-            await ZoomService.handleRecordingCompletedWebhook(payload);
+            // No await here! Runs in background while we send 200 OK to Zoom immediately
+            ZoomService.handleRecordingCompletedWebhook(payload).catch(err => console.error(`[Zoom Error] Error in background recording.completed logic: ${err.message}`));
         } else if (event === "recording.transcript_completed") {
             console.log(`[Zoom Webhook] Processing recording.transcript_completed for meeting: ${payload.object.id}`);
-            await ZoomService.handleRecordingCompletedWebhook(payload); // Re-use the same logic since it now handles transcripts!
+            // No await here!
+            ZoomService.handleRecordingCompletedWebhook(payload).catch(err => console.error(`[Zoom Error] Error in background transcript_completed logic: ${err.message}`));
         } else if (event === "meeting.ended") {
             console.log(`[Zoom Webhook] Meeting ${payload.object.id} ended.`);
         } else {
