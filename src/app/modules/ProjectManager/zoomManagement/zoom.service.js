@@ -400,17 +400,18 @@ const handleRecordingCompletedWebhook = async (payload) => {
         // Find transcript file in the payload
         const transcriptFile = recordingFiles.find((file) =>
             file.file_type === "TRANSCRIPT" ||
-            (file.file_extension === "VTT" && file.recording_type === "audio_transcript")
+            String(file.recording_type).toLowerCase() === "audio_transcript" ||
+            String(file.file_extension).toLowerCase() === "vtt"
         );
 
         if (!transcriptFile) {
-            console.log(`No transcript file found in the recording payload for meeting ${meetingId}`);
+            console.log(`No transcript file found in the recording payload for meeting ${meetingId}. Available files:`, recordingFiles.map(f => f.file_type));
             return;
         }
 
         // Check if the file is still processing
         if (transcriptFile.status === "processing") {
-            console.log(`[Zoom Webhook] Transcript for meeting ${meetingId} is still processing. Zoom will retry later or we may need a re-sync.`);
+            console.log(`[Zoom Webhook] Transcript for meeting ${meetingId} is still processing. Zoom will retry later.`);
             return;
         }
 
@@ -458,17 +459,20 @@ const handleRecordingCompletedWebhook = async (payload) => {
                     const transcript = await TranscriptService.uploadTranscriptService(mockFile, projectId);
                     console.log(`Transcript processed and saved: ${transcript.id}`);
 
-                    // ✅ Update the ProjectMeeting record with all transcript info
+                    // ✅ Update the ProjectMeeting record with all transcript info + new metadata
                     if (projectMeeting) {
                         await prisma.projectMeeting.update({
                             where: { id: projectMeeting.id },
                             data: {
                                 transcriptData: transcript.parsedData,
                                 transcriptPath: transcript.filePath,
-                                transcriptUrl: downloadUrl // Store the direct download URL for reference
+                                transcriptUrl: downloadUrl, // Store the direct download URL for reference
+                                transcriptStatus: transcriptFile.status,
+                                transcriptPlayUrl: transcriptFile.play_url,
+                                transcriptFileType: transcriptFile.file_type
                             }
                         });
-                        console.log(`ProjectMeeting ${projectMeeting.id} successfully updated with transcript.`);
+                        console.log(`ProjectMeeting ${projectMeeting.id} updated with transcript and metadata.`);
                     }
 
                     resolve(transcript);
