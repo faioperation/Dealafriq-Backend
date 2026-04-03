@@ -39,12 +39,11 @@ const generateZoomAuthUrl = async (userId) => {
             "cloud_recording:read:content",
             "cloud_recording:read:meeting_transcript",
             "user:read:user",
-            "meeting:read",
-            "meeting:write",
             "meeting:read:meeting",
             "meeting:write:meeting",
             "meeting:read:list_meetings",
-            "meeting:write:create_meeting"
+            "meeting:write:create_meeting",
+            "meeting:write:meeting:admin"
         ].join(" ");
 
         const url = `https://zoom.us/oauth/authorize?response_type=code&client_id=${ZOOM_CLIENT_ID}&redirect_uri=${encodeURIComponent(ZOOM_REDIRECT_URI)}&state=${state}&scope=${encodeURIComponent(scopes)}`;
