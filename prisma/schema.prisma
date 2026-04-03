@@ -221,6 +221,7 @@ model ProjectMeeting {
   transcriptStatus   String?
   transcriptPlayUrl  String?
   transcriptFileType String?
+  videoPlayUrl       String?
   aiMeetingSummary   String[]      @default([])
   actionPoints       ActionPoint[]
   keyPoints          KeyPoint[]
