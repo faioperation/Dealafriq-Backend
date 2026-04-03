@@ -3,6 +3,7 @@ import { sendResponse } from "../../../utils/sendResponse.js";
 import { ZoomService } from "./zoom.service.js";
 import httpStatus from "http-status-codes";
 import { envVars } from "../../../config/env.js";
+import crypto from "crypto";
 
 const authorizeZoom = catchAsync(async (req, res) => {
     const userId = req.user.id;
@@ -10,7 +11,7 @@ const authorizeZoom = catchAsync(async (req, res) => {
         return res.status(httpStatus.UNAUTHORIZED).json({ success: false, message: "User not authenticated." });
     }
     const authUrl = await ZoomService.generateZoomAuthUrl(userId);
-    
+
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
@@ -20,13 +21,13 @@ const authorizeZoom = catchAsync(async (req, res) => {
 });
 
 const zoomCallback = catchAsync(async (req, res) => {
-    const { code, state: userId } = req.query;
-    
-    if (!code || !userId) {
-        return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: "Missing authorization code or state (userId)." });
+    const { code, state } = req.query;
+
+    if (!code || !state) {
+        return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: "Missing authorization code or state." });
     }
 
-    const result = await ZoomService.handleZoomCallback(code, userId);
+    const result = await ZoomService.handleZoomCallback(code, state);
 
     const frontendRedirectUrl = `${envVars.FRONT_END_URL}/data-source`;
     res.redirect(frontendRedirectUrl);
@@ -78,26 +79,60 @@ const getUserRecordings = catchAsync(async (req, res) => {
     });
 });
 
-/**
- * Handle Zoom Webhooks
- */
 const handleWebhook = catchAsync(async (req, res) => {
+    console.log("Incoming Webhook Request received at /api/zoom/webhook");
     const { event, payload } = req.body;
+    const signature = req.headers["x-zm-signature"];
+    const timestamp = req.headers["x-zm-request-timestamp"];
+    const secret = envVars.ZOOM_WEBHOOK_SECRET;
 
+    if (!secret) {
+        console.error("ZOOM_WEBHOOK_SECRET is not defined in .env");
+        return res.status(500).json({ error: "ZOOM_WEBHOOK_SECRET not configured" });
+    }
+
+    // 1. URL Validation (CRC Check) - Always handle this first
     if (event === "endpoint.url_validation") {
+        const hashForValidate = crypto
+            .createHmac("sha256", secret)
+            .update(payload.plainToken)
+            .digest("hex");
+
+        console.log("Zoom Webhook URL validated successfully.");
         return res.status(200).json({
             plainToken: payload.plainToken,
-            encryptedToken: "ENCRYPTED_TOKEN_LOGIC_HERE"
+            encryptedToken: hashForValidate
         });
     }
 
-    if (event === "meeting.ended") {
-        await ZoomService.handleMeetingEndedWebhook(payload);
+    // 2. Signature Verification
+    // Note: If this fails, ensure you are using raw body parsing for Zoom webhooks
+    const message = `v0:${timestamp}:${JSON.stringify(req.body)}`;
+    const hash = crypto.createHmac("sha256", secret).update(message).digest("hex");
+    const expectedSignature = `v0=${hash}`;
+
+    if (signature !== expectedSignature) {
+        console.warn("Invalid Zoom webhook signature. If this persists, verify your ZOOM_WEBHOOK_SECRET.");
+        // return res.status(401).json({ success: false, message: "Invalid signature" });
+    }
+
+    // 3. Delegate logic to Service
+    console.log(`Received Zoom Webhook: ${event}`);
+
+    try {
+        if (event === "recording.completed") {
+            console.log("webhook called for transcript");
+            await ZoomService.handleRecordingCompletedWebhook(payload);
+        } else if (event === "meeting.ended") {
+            console.log(`Meeting ${payload.object.id} ended.`);
+        }
+    } catch (error) {
+        console.error("Error processing Zoom webhook:", error.message);
+        // We still return 200 to Zoom to stop retries, but we logged the error
     }
 
     res.status(200).send("OK");
 });
-
 /**
  * Disconnect Zoom Account
  */

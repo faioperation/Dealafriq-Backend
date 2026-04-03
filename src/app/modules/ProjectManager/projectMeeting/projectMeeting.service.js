@@ -138,7 +138,7 @@ export const ProjectMeetingService = {
                 keyPoints: true,
                 actionPoints: true,
             },
-            orderBy: { meetingDate: "desc" },
+            orderBy: { createdAt: "desc" },
         });
     },
 
