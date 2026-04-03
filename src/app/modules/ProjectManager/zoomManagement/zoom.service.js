@@ -190,14 +190,14 @@ const getValidAccessToken = async (userId) => {
  * This doesn't require a specific user, it uses the Account ID from env
  */
 const getAccountAccessToken = async () => {
-    const { ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, ZOOM_ACCOUNT_ID } = envVars;
+    const { ZOOM_S2S_CLIENT_ID, ZOOM_S2S_CLIENT_SECRET, ZOOM_ACCOUNT_ID } = envVars;
     
     if (!ZOOM_ACCOUNT_ID) {
         console.warn("ZOOM_ACCOUNT_ID is not defined. Falling back to user-level OAuth.");
         return null;
     }
 
-    const authString = Buffer.from(`${ZOOM_CLIENT_ID}:${ZOOM_CLIENT_SECRET}`).toString("base64");
+    const authString = Buffer.from(`${ZOOM_S2S_CLIENT_ID}:${ZOOM_S2S_CLIENT_SECRET}`).toString("base64");
 
     try {
         const response = await axios.post(
