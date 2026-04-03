@@ -4,13 +4,11 @@ import { ActivityLogRoutes } from "../modules/activityLog/activityLog.route.js";
 import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_manager.route.js";
 import { AdminProjectRoutes } from "../modules/Admin/project/project.route.js";
 import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
-import { TeamRoutes } from "../modules/Admin/team/team.route.js";
 import { DashboardRoutes } from "../modules/Admin/dashboard/dashboard.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
 import { EmailAccountRoutes } from "../modules/ProjectManager/emailManagement/email/email.route.js";
-import { VendorEmailRoutes } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.route.js";
 import { EmployeeRoutes } from "../modules/ProjectManager/employee/employee.route.js";
 import { OutlookRoutes } from "../modules/ProjectManager/outlookManagement/outlook.route.js";
 import { PMProjectManagementRoutes } from "../modules/ProjectManager/project_management/project_management.route.js";
@@ -53,10 +51,6 @@ const moduleRoutes = [
   {
     path: "/admin/dashboard",
     route: DashboardRoutes,
-  },
-  {
-    path: "/admin/team",
-    route: TeamRoutes,
   },
   {
     path: "/admin/project-manager",
