@@ -337,38 +337,20 @@ const handleRecordingCompletedWebhook = async (payload) => {
     const { object } = payload;
     const meetingId = object.id;
     const hostId = object.host_id;
+    console.log(`[Zoom Webhook] Received recording.completed for Zoom Meeting ID: ${meetingId} (Host: ${hostId})`);
 
-    console.log(`Processing recording.completed for Zoom Meeting ID: ${meetingId}`);
-
-    // Map Zoom host to our internal user
-    const zoomAccount = await prisma.zoomAccount.findFirst({
-        where: { zoomUserId: String(hostId) }
-    });
-
-    if (!zoomAccount) {
-        console.warn(`No linked Zoom account found for Zoom Host ID: ${hostId}. Make sure the user has connected their Zoom account.`);
-        return;
-    }
-
-    // Find the project associated with this Zoom meeting
-    let projectId = null;
-    let projectMeeting = null;
-
-    // Search for the meeting ID in the meetingUrl
-    // 1. First, search with the exact numeric ID
-    projectMeeting = await prisma.projectMeeting.findFirst({
+    // 1. Find the project meeting record by its numeric ID in the URL
+    // We do this first because if the meeting exists in our DB, we want to process it!
+    let projectMeeting = await prisma.projectMeeting.findFirst({
         where: {
-            meetingUrl: {
-                contains: String(meetingId)
-            }
+            meetingUrl: { contains: String(meetingId) }
         }
     });
 
-    // 2. If not found, try stripping spaces/dashes if they were stored that way
+    // Fallback: search for formatted IDs (e.g. "123 4567 8901" or "123-456-7890")
     if (!projectMeeting) {
-        // Zoom IDs can be formatted with spaces or dashes by users
-        const formattedId1 = String(meetingId).replace(/(.{3})(.{4})(.{4})/, '$1 $2 $3'); // e.g. 123 4567 8901
-        const formattedId2 = String(meetingId).replace(/(.{3})(.{3})(.{4})/, '$1-$2-$3'); // e.g. 123-456-7890
+        const formattedId1 = String(meetingId).replace(/(.{3})(.{4})(.{4})/, '$1 $2 $3');
+        const formattedId2 = String(meetingId).replace(/(.{3})(.{3})(.{4})/, '$1-$2-$3');
 
         projectMeeting = await prisma.projectMeeting.findFirst({
             where: {
@@ -381,20 +363,34 @@ const handleRecordingCompletedWebhook = async (payload) => {
     }
 
     if (projectMeeting) {
-        projectId = projectMeeting.projectId;
-        console.log(`[Zoom Webhook] Successfully matched meeting ID ${meetingId} to Project Meeting: ${projectMeeting.id} (Project: ${projectId})`);
+        console.log(`[Zoom Webhook] Successfully matched meeting ID ${meetingId} to Project Meeting: ${projectMeeting.id}`);
     } else {
-        console.warn(`[Zoom Webhook] Could not find a ProjectMeeting record with a URL containing ID: ${meetingId}. Searching recording files anyway...`);
-    }
-
-    const token = (await getAccountAccessToken()) || (await getValidAccessToken(zoomAccount.connectedUserId));
-
-    if (!token) {
-        console.error(`[Zoom Webhook] Could not obtain a valid token to download transcript for meeting ${meetingId}`);
+        console.warn(`[Zoom Webhook] Could not find any ProjectMeeting in our database containing ID: ${meetingId}. Ignoring webhook.`);
         return;
     }
 
+    // 2. Identify the token to use (Server-to-Server is best for background tasks)
+    const token = await getAccountAccessToken();
+    
+    // Fallback: If S2S is not available, try to find the host's personal token
+    let finalToken = token;
+    if (!finalToken) {
+        const zoomAccount = await prisma.zoomAccount.findFirst({
+            where: { zoomUserId: String(hostId) }
+        });
+        if (zoomAccount) {
+            finalToken = await getValidAccessToken(zoomAccount.connectedUserId);
+        }
+    }
+
+    if (!finalToken) {
+        console.error(`[Zoom Webhook] Could not obtain a valid token (S2S or User) to download transcript for meeting ${meetingId}`);
+        return;
+    }
+
+    // 3. Process the files
     try {
+        const projectId = projectMeeting.projectId;
         const recordingFiles = object.recording_files || [];
 
         // Find transcript file in the payload
