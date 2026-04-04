@@ -154,9 +154,14 @@ export const PMProjectManagementService = {
             prisma.project.count({ where: buildQuery.where }),
         ]);
 
+        const dataWithoutSummaries = result.map(project => {
+            const { projectSummary, weeklyMeetingSummary, ...rest } = project;
+            return rest;
+        });
+
         return {
             meta: queryBuilder.getMeta(total),
-            data: result,
+            data: dataWithoutSummaries,
         };
     },
 
@@ -195,7 +200,8 @@ export const PMProjectManagementService = {
             throw new AppError(StatusCodes.NOT_FOUND, "Project not found or you don't have access");
         }
 
-        return project;
+        const { projectSummary, weeklyMeetingSummary, ...rest } = project;
+        return rest;
     },
 
     updateProject: async (prisma, id, payload, userId) => {
