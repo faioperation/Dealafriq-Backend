@@ -10,6 +10,174 @@ import { TranscriptService } from "../transcriptManagement/transcript.service.js
 const ZOOM_API_BASE_URL = "https://api.zoom.us/v2";
 const ZOOM_OAUTH_URL = "https://zoom.us/oauth/token";
 
+/* -------------------- NEW HELPERS -------------------- */
+const MAX_RETRY_ATTEMPTS = 6;
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const findTranscriptFile = (files = []) => {
+    return files.find(f =>
+        f.file_type === "TRANSCRIPT" ||
+        (f.file_extension && f.file_extension.toLowerCase() === "vtt")
+    );
+};
+
+/**
+ * Recursive delay/polling mechanism for when a transcript is not yet ready.
+ */
+const scheduleTranscriptRetry = async ({
+    uuid,
+    projectMeetingId,
+    attempt = 1
+}) => {
+    if (attempt > MAX_RETRY_ATTEMPTS) {
+        console.warn(`[Step 8.X] RETRY: Max attempts (${MAX_RETRY_ATTEMPTS}) reached for meeting ${projectMeetingId}. Giving up.`);
+        return;
+    }
+
+    const delayTime = attempt * 30000; // 30s, 60s, 90s, etc.
+    console.log(`[Step 8.Retry ${attempt}] BUSY: Scheduling next check in ${delayTime / 1000}s...`);
+
+    setTimeout(async () => {
+        try {
+            console.log(`[Step 8.Retry ${attempt}] START: Checking Zoom API for transcript via UUID ${uuid}...`);
+            const latestData = await getRecordingFilesByMeetingId(uuid);
+            const transcriptFile = findTranscriptFile(latestData?.recording_files);
+
+            if (!transcriptFile || transcriptFile.status === "processing") {
+                console.log(`[Step 8.Retry ${attempt}] MISS: Transcript still not ready. Retrying...`);
+                return scheduleTranscriptRetry({
+                    uuid,
+                    projectMeetingId,
+                    attempt: attempt + 1
+                });
+            }
+
+            console.log(`[Step 8.Retry ${attempt}] ✅ FOUND: Transcript is ready! Processing download...`);
+            
+            // Re-fetch token just before processing to ensure it's fresh
+            const freshToken = await getAccountAccessToken();
+            
+            await processTranscriptFile({
+                transcriptFile,
+                projectMeetingId,
+                token: freshToken
+            });
+
+        } catch (err) {
+            console.error(`[Step 8.Retry ${attempt}] ERROR:`, err.message);
+        }
+    }, delayTime);
+};
+
+/**
+ * Standardized logic to download, parse, and save a specific transcript file.
+ */
+const processTranscriptFile = async ({
+    transcriptFile,
+    projectMeetingId,
+    token
+}) => {
+    const projectMeeting = await prisma.projectMeeting.findUnique({
+        where: { id: projectMeetingId }
+    });
+
+    if (!projectMeeting) return;
+
+    // Avoid duplicate processing
+    if (
+        projectMeeting.transcriptStatus === "completed" &&
+        projectMeeting.transcriptUrl === transcriptFile.download_url
+    ) {
+        console.log(`[Process] Duplicate transcript skipped.`);
+        return;
+    }
+
+    const downloadFunc = async (currentToken) => {
+        const separator = transcriptFile.download_url.includes('?') ? '&' : '?';
+        const downloadUrl = `${transcriptFile.download_url}${separator}access_token=${currentToken}`; 
+
+        const fileName = `zoom_transcript_${Date.now()}.vtt`;
+        const uploadsDir = path.join(process.cwd(), "uploads", "transcripts");
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+        const filePath = path.join(uploadsDir, fileName);
+
+        console.log(`[Step 10] DL: Starting transcript download for project meeting ${projectMeetingId}...`);
+        
+        try {
+            const response = await axios({
+                method: 'get',
+                url: downloadUrl,
+                responseType: 'stream',
+                timeout: 60000
+            });
+            return { response, filePath, fileName };
+        } catch (error) {
+            if (error.response?.status === 401) {
+                console.warn(`[Step 10.Retry] 401: Token rejected. Attempting User OAuth fallback...`);
+                // Find the host's connected Zoom account to get a user-level token
+                const zoomAccount = await prisma.zoomAccount.findFirst({
+                    where: { zoomEmail: projectMeeting.hostEmail || undefined } // Fallback logic
+                });
+
+                if (zoomAccount) {
+                    const userToken = await getValidAccessToken(zoomAccount.connectedUserId);
+                    if (userToken) {
+                        console.log(`[Step 10.Retry] SUCCESS: Got User token! Retrying download...`);
+                        const retryUrl = `${transcriptFile.download_url}${separator}access_token=${userToken}`;
+                        const retryResponse = await axios({
+                            method: 'get',
+                            url: retryUrl,
+                            responseType: 'stream',
+                            timeout: 60000
+                        });
+                        return { response: retryResponse, filePath, fileName };
+                    }
+                }
+            }
+            throw error;
+        }
+    };
+
+    try {
+        const { response, filePath, fileName } = await downloadFunc(token);
+        const writer = fs.createWriteStream(filePath);
+        response.data.pipe(writer);
+
+        return new Promise((resolve, reject) => {
+            writer.on('finish', async () => {
+                try {
+                    const mockFile = { path: filePath, originalname: fileName };
+                    const transcriptInDB = await TranscriptService.uploadTranscriptService(mockFile, projectMeeting.projectId);
+
+                    await prisma.projectMeeting.update({
+                        where: { id: projectMeetingId },
+                        data: {
+                            transcriptData: transcriptInDB.parsedData,
+                            transcriptPath: transcriptInDB.filePath,
+                            transcriptUrl: transcriptFile.download_url,
+                            transcriptStatus: "completed",
+                            transcriptPlayUrl: transcriptFile.play_url,
+                            transcriptFileType: transcriptFile.file_type
+                        }
+                    });
+
+                    console.log(`[Step 13] UPDATE: ✅ Transcript saved and updated in ProjectMeeting ${projectMeetingId}.`);
+                    resolve();
+                } catch (err) {
+                    console.error(`[Process] Error finalizing update:`, err.message);
+                    reject(err);
+                }
+            });
+            writer.on('error', (err) => {
+                console.error(`[Process] Download stream error:`, err.message);
+                reject(err);
+            });
+        });
+    } catch (err) {
+        console.error(`[Step 10.FATAL] Download failed even with potential fallback:`, err.message);
+    }
+};
+
 /**
  * Generate Zoom Authorization URL
  * @param {string} userId - The ID of the user requesting authorization
@@ -38,6 +206,8 @@ const generateZoomAuthUrl = async (userId) => {
             "cloud_recording:read:list_user_recordings",
             "cloud_recording:read:content",
             "cloud_recording:read:meeting_transcript",
+            "cloud_recording:read:list_recording_files",
+            "cloud_recording:read:list_recording_files:admin",
             "user:read:user",
             "meeting:read:meeting",
             "meeting:write:meeting",
@@ -330,7 +500,6 @@ const getUserRecordings = async (userId) => {
     }
 };
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Fetch specific recording files for a meeting by ID or UUID.
@@ -342,9 +511,8 @@ const getRecordingFilesByMeetingId = async (meetingIdOrUuid) => {
     if (!token) return null;
 
     try {
-        // Double-encode the UUID as per Zoom's strict requirements for recording endpoints
-        // Example: abc/123 -> abc%252F123
         let encodedId = String(meetingIdOrUuid);
+        // Double-encode ONLY IF it starts with '/' or contains '//'
         if (encodedId.startsWith('/') || encodedId.includes('//')) {
             encodedId = encodeURIComponent(encodeURIComponent(encodedId));
         } else {
@@ -356,7 +524,7 @@ const getRecordingFilesByMeetingId = async (meetingIdOrUuid) => {
         });
         return response.data;
     } catch (error) {
-        console.error(`[Zoom API Check] Failed to fetch recordings for ${meetingIdOrUuid}:`, error.message);
+        console.error(`[Zoom API Check] Failed to fetch recordings for ${meetingIdOrUuid}:`, error.response?.data?.message || error.message);
         return null;
     }
 };
@@ -376,16 +544,14 @@ const handleRecordingCompletedWebhook = async (payload) => {
     await delay(12000); 
 
     // 2. Identify and Find the ProjectMeeting record
-    // Extraction: Clean the meetingId to ensure it's a string
     const targetIdStr = String(meetingId);
     console.log(`[Step 3] SEARCH: Looking for meeting containing ID: ${targetIdStr}`);
 
-    // Try finding by URL "contains" first
     let projectMeeting = await prisma.projectMeeting.findFirst({
         where: { meetingUrl: { contains: targetIdStr } }
     });
 
-    // Fallback 1: Manual Regex-based search in case Prisma's contains is being tricky
+    // Fallback 1: Manual Title-based search
     if (!projectMeeting) {
         console.log(`[Step 3.1] FALLBACK: ID Search failed. Checking for title matches: "${object.topic}"`);
         projectMeeting = await prisma.projectMeeting.findFirst({
@@ -405,11 +571,10 @@ const handleRecordingCompletedWebhook = async (payload) => {
 
     console.log(`[Step 4] MATCH: Linked to ProjectMeeting ID: ${projectMeeting.id}`);
 
-    // 2. Obtain Token
+    // 3. Obtain Token
     const token = await getAccountAccessToken();
     let finalToken = token;
     if (!finalToken) {
-        // Fallback to User token if S2S is not available
         const zoomAccount = await prisma.zoomAccount.findFirst({ where: { zoomUserId: String(hostId) } });
         if (zoomAccount) finalToken = await getValidAccessToken(zoomAccount.connectedUserId);
     }
@@ -420,13 +585,12 @@ const handleRecordingCompletedWebhook = async (payload) => {
     }
     console.log(`[Step 5] TOKEN: Access token secured.`);
 
-    // 3. Process the files
+    // 4. Process the files
     try {
-        const projectId = projectMeeting.projectId;
         let recordingFiles = object.recording_files || [];
         console.log(`[Step 6] FILES: Found ${recordingFiles.length} files from Zoom.`);
 
-        // A. Video Update (MP4) - DO THIS FIRST, DO NOT FAIL ON ERROR
+        // A. Video Update (MP4) - DO THIS FIRST
         const videoFile = recordingFiles.find(f => f.file_type === "MP4");
         if (videoFile && videoFile.status === "completed") {
             try {
@@ -443,99 +607,50 @@ const handleRecordingCompletedWebhook = async (payload) => {
             }
         }
 
-        // B. Transcript Processing
-        let transcriptFile = recordingFiles.find(f => 
-            f.file_type === "TRANSCRIPT" || (f.file_extension && f.file_extension.toLowerCase() === "vtt")
-        );
+        // B. Transcript Check & Polling Logic
+        let transcriptFile = findTranscriptFile(recordingFiles);
 
-        // API Fallback check: 🚀 Use UUID instead of ID for better reliability!
+        // API Fallback check if not in webhook
         if (!transcriptFile) {
-            const uuid = object.uuid;
-            console.log(`[Step 8] FALLBACK: Transcript missing in webhook. Calling Zoom API for Meeting UUID ${uuid}...`);
-            const latestData = await getRecordingFilesByMeetingId(uuid);
+            console.log(`[Step 8] FALLBACK: Transcript missing in webhook. Checking Zoom API via Numeric ID ${meetingId}...`);
+            let latestData = await getRecordingFilesByMeetingId(meetingId);
+            
+            // If numeric ID fails, try UUID as secondary fallback
+            if (!latestData) {
+                console.log(`[Step 8.1] FALLBACK: Numeric ID failed. Trying UUID ${object.uuid}...`);
+                latestData = await getRecordingFilesByMeetingId(object.uuid);
+            }
+
             if (latestData?.recording_files) {
                 recordingFiles = latestData.recording_files;
-                transcriptFile = recordingFiles.find(f => 
-                    f.file_type === "TRANSCRIPT" || (f.file_extension && f.file_extension.toLowerCase() === "vtt")
-                );
+                transcriptFile = findTranscriptFile(recordingFiles);
             }
         }
 
-        if (!transcriptFile) {
-            console.log(`[Step 8.1] WAIT: No transcript found yet. We will wait for the next webhook.`);
-            return;
-        }
-
-        console.log(`[Step 9] TRANSCRIPT: Found file with Status: ${transcriptFile.status}`);
-
-        // Status check
-        if (transcriptFile.status === "processing") {
+        // If still missing OR still "processing", trigger the retry loop
+        if (!transcriptFile || transcriptFile.status === "processing") {
+            console.log(`[Step 8] BUSY: Transcript not ready yet. Scheduling recursive retry...`);
+            
             await prisma.projectMeeting.update({
                 where: { id: projectMeeting.id },
-                data: { transcriptStatus: "processing" }
+                data: { transcriptStatus: "pending" }
             });
-            console.log(`[Step 9.1] STATUS: Transcript still processing in Zoom. Exiting.`);
+
+            await scheduleTranscriptRetry({
+                uuid: object.uuid,
+                projectMeetingId: projectMeeting.id,
+                attempt: 1
+            });
+
             return;
         }
 
-        // Avoid Duplicates
-        if (projectMeeting.transcriptStatus === "completed" && projectMeeting.transcriptUrl === transcriptFile.download_url) {
-            console.log(`[Step 9.2] NO-OP: Transcript already exists and is identical. Skipping.`);
-            return;
-        }
-
-        // Step 10: Download & Parse
-        const separator = transcriptFile.download_url.includes('?') ? '&' : '?';
-        const downloadUrl = `${transcriptFile.download_url}${separator}access_token=${finalToken}`;
-
-        const fileName = `zoom_transcript_${meetingId}_${Date.now()}.vtt`;
-        const uploadsDir = path.join(process.cwd(), "uploads", "transcripts");
-        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-        const filePath = path.join(uploadsDir, fileName);
-
-        console.log(`[Step 10] DL: Starting transcript download...`);
-        const downloadResponse = await axios({ method: 'get', url: downloadUrl, responseType: 'stream', timeout: 60000 });
-
-        if (downloadResponse.status !== 200) {
-            console.error(`[Step 10] FAIL: HTTP Status ${downloadResponse.status} during download.`);
-            return;
-        }
-
-        const writer = fs.createWriteStream(filePath);
-        downloadResponse.data.pipe(writer);
-
-        return new Promise((resolve, reject) => {
-            writer.on('finish', async () => {
-                try {
-                    console.log(`[Step 11] SAVE: Parsing and creating transcript record...`);
-                    const mockFile = { path: filePath, originalname: fileName };
-
-                    const transcriptInDB = await TranscriptService.uploadTranscriptService(mockFile, projectId);
-                    console.log(`[Step 12] PARSE: Success! Transcript DB ID: ${transcriptInDB.id}`);
-
-                    // Final Update
-                    await prisma.projectMeeting.update({
-                        where: { id: projectMeeting.id },
-                        data: {
-                            transcriptData: transcriptInDB.parsedData,
-                            transcriptPath: transcriptInDB.filePath,
-                            transcriptUrl: transcriptFile.download_url,
-                            transcriptStatus: "completed",
-                            transcriptPlayUrl: transcriptFile.play_url,
-                            transcriptFileType: transcriptFile.file_type
-                        }
-                    });
-                    console.log(`[Step 13] UPDATE: ProjectMeeting ${projectMeeting.id} updated successfully with transcript.`);
-                    resolve(transcriptInDB);
-                } catch (err) {
-                    console.error("[Step 13] ERROR finalizing update:", err.message);
-                    reject(err);
-                }
-            });
-            writer.on('error', (err) => {
-                console.error("[Step 10] DOWNLOAD-ERR:", err.message);
-                reject(err);
-            });
+        // C. Process Found Transcript Immediately
+        console.log(`[Step 9] TRANSCRIPT: Ready! Processing immediately...`);
+        await processTranscriptFile({
+            transcriptFile,
+            projectMeetingId: projectMeeting.id,
+            token: finalToken
         });
 
     } catch (error) {
