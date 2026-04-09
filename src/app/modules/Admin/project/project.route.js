@@ -17,6 +17,11 @@ router.get(
 );
 
 router.get(
+    "/with-raidd/for-ai/:id",
+    AdminProjectController.getProjectWithRaiddById
+);
+
+router.get(
     "/public",
     AdminProjectController.getLatestThreeProjects
 );
