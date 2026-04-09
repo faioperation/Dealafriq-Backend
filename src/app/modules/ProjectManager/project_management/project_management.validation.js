@@ -50,7 +50,6 @@ const createProjectSchema = z.object({
         assignTeamId: z.string().uuid("Invalid assign team ID").optional(),
         assignTeam: z.string().uuid("Invalid assign team ID").optional(),
         status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
-        weeklyMeetingSummary: z.string().optional(),
         health: z.preprocess(parseJSON, z.array(z.object({
             field: z.enum(["OVERALL_STATUS", "BUDGET_STATUS", "TEAM_SENTIMENT"]),
             healthStatus: z.enum(["ON_TRACK", "PENDING", "AT_RISK", "OFF_TRACK", "GOOD", "EXCELLENT", "LOW"]),
@@ -86,7 +85,6 @@ const updateProjectSchema = z.object({
         endDate: z.string().optional(),
         assignTeamId: z.string().uuid("Invalid assign team ID").optional(),
         status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
-        weeklyMeetingSummary: z.string().optional(),
     }),
 });
 

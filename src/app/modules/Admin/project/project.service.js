@@ -127,6 +127,50 @@ export const AdminProjectService = {
         };
     },
 
+    getProjectWithRaiddById: async (prisma, id) => {
+        const project = await prisma.project.findFirst({
+            where: {
+                id,
+                deletedAt: null,
+            },
+            include: {
+                manager: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        id: true,
+                        role: true,
+                    },
+                },
+                assignTeam: true,
+                raidd: true,
+                meetings: {
+                    include: {
+                        keyPoints: true,
+                        actionPoints: true,
+                    },
+                },
+            },
+        });
+
+        if (!project) {
+            const { AppError } = await import("../../../errorHelper/appError.js");
+            const { StatusCodes } = await import("http-status-codes");
+            throw new AppError(StatusCodes.NOT_FOUND, "Project not found");
+        }
+
+        const { raidd, ...projectData } = project;
+
+        if (!raidd || raidd.length === 0) {
+            return [{ project: projectData, raidd: null }];
+        }
+
+        return raidd.map((r) => ({
+            project: projectData,
+            raidd: r,
+        }));
+    },
+
     getSingleProject: async (prisma, id) => {
         const project = await prisma.project.findFirst({
             where: {
