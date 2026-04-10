@@ -11,7 +11,7 @@ export const initEmailSyncCron = () => {
     // Schedule task to run every 30 minutes
     // Cron expression: minute, hour, day of month, month, day of week
     // cron.schedule("*/30 * * * *", async () => {
-    cron.schedule("* * * * *", async () => {
+    cron.schedule("0 0 * * *", async () => {
         console.log("-----------------------------------------");
         // console.log(`[${new Date().toISOString()}] Starting Email Sync Cron Job...`);
         try {
@@ -25,5 +25,6 @@ export const initEmailSyncCron = () => {
         // console.log("-----------------------------------------");
     });
 
-    console.log("✅ Email Sync Cron Job scheduled successfully (every 30 minutes)");
+
+    console.log("✅  Email Sync Cron Job scheduled successfully (runs daily at 12:00 AM)");
 };
