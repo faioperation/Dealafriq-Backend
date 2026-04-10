@@ -8,6 +8,7 @@ const createProjectMeetingSchema = z.object({
         aiMeetingSummary: z.string().optional(),
         projectSummary: z.string().optional(),
         meetingUrl: z.string().url("Invalid meeting URL").optional().or(z.literal("")),
+        videoPlayUrl: z.string().url("Invalid video play URL").optional().or(z.literal("")),
         meetingDate: z.string().optional(),
 
         keyPoints: z.array(
@@ -33,6 +34,7 @@ const updateProjectMeetingSchema = z.object({
         aiMeetingSummary: z.string().optional(),
         projectSummary: z.string().optional(),
         meetingUrl: z.string().url("Invalid meeting URL").optional().or(z.literal("")),
+        videoPlayUrl: z.string().url("Invalid video play URL").optional().or(z.literal("")),
         meetingDate: z.string().optional(),
 
         keyPoints: z.array(
