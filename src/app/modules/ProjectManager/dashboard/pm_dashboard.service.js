@@ -1,14 +1,40 @@
-const getPMDashboardData = async (prisma, pmId) => {
+import { QueryBuilder } from "../../../utils/QueryBuilder.js";
+import { projectSearchableFields } from "../../../constant.js";
+
+const getPMDashboardData = async (prisma, pmId, query = {}) => {
     const now = new Date();
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(now.getDate() + 7);
 
-    // 1. Overall Project Health (Average progress of PM's active projects)
-    // Requirement: see project progress and add a percentage based on it
+    // Filter params for KPI Chart and Stats
+    const year = Number(query.year);
+    const filterMonth = query.month; // e.g., 'jan'
+    const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+    let dateFilter = {};
+    if (year) {
+        if (filterMonth) {
+            const monthIndex = monthNames.findIndex(m => m.toLowerCase() === filterMonth.toLowerCase());
+            if (monthIndex !== -1) {
+                dateFilter = {
+                    gte: new Date(year, monthIndex, 1),
+                    lte: new Date(year, monthIndex + 1, 0, 23, 59, 59, 999)
+                };
+            }
+        } else {
+            dateFilter = {
+                gte: new Date(year, 0, 1),
+                lte: new Date(year, 11, 31, 23, 59, 59, 999)
+            };
+        }
+    }
+
+    // 1. Overall Project Health (Filtered by date if provided)
     const projectsForHealth = await prisma.project.findMany({
         where: {
             managerId: pmId,
             deletedAt: null,
+            ...(year && { createdAt: dateFilter })
         },
         select: {
             projectProgress: true
@@ -24,80 +50,98 @@ const getPMDashboardData = async (prisma, pmId) => {
         overallHealth = Math.round(totalProgress / projectsForHealth.length);
     }
 
-    // 2. Upcoming Deadlines (Projects ending in next 7 days)
-    // Requirement: show only those project count here, these project have 7 days to deliver
-    const upcomingDeadlinesCount = await prisma.project.count({
-        where: {
-            managerId: pmId,
-            deletedAt: null,
-            endDate: {
-                gte: now,
-                lte: sevenDaysFromNow,
-            }
-        }
-    });
+    // 2. Upcoming Deadlines
+    // If filtering by date: projects that HAD deadlines in that period
+    // If not: projects having deadlines in next 7 days
+    const deadlinesWhere = {
+        managerId: pmId,
+        deletedAt: null,
+        endDate: year ? dateFilter : { gte: now, lte: sevenDaysFromNow }
+    };
+    const upcomingDeadlinesCount = await prisma.project.count({ where: deadlinesWhere });
 
-    // 3. Active Projects (Only ONGOING)
-    // Requirement: just show only ongoing project count here
-    const activeProjectsCount = await prisma.project.count({
-        where: {
-            managerId: pmId,
-            deletedAt: null,
-            status: "ONGOING"
-        }
-    });
+    // 3. Active Projects
+    // If filtering by date: projects created in that period
+    // If not: currently ONGOING projects
+    const activeProjectsWhere = {
+        managerId: pmId,
+        deletedAt: null,
+        ...(year ? { createdAt: dateFilter } : { status: "ONGOING" })
+    };
+    const activeProjectsCount = await prisma.project.count({ where: activeProjectsWhere });
 
-    // 4. KPI Chart Data (Monthly distribution by status for current year)
-    const currentYear = new Date().getFullYear();
+    // 4. KPI Chart Data (Uses year filter or defaults to now)
+    const kpiYear = year || now.getFullYear();
     const kpiDataRaw = await prisma.$queryRaw`
         SELECT 
-            TO_CHAR(DATE_TRUNC('month', "createdAt"), 'Mon') AS month,
+            TO_CHAR(DATE_TRUNC('month', "createdAt"), 'mon') AS month,
             status,
             COUNT(*)::int AS count
         FROM projects
         WHERE "managerId" = ${pmId} 
-          AND EXTRACT(YEAR FROM "createdAt") = ${currentYear} 
+          AND EXTRACT(YEAR FROM "createdAt") = ${kpiYear} 
           AND "deletedAt" IS NULL
         GROUP BY DATE_TRUNC('month', "createdAt"), status
         ORDER BY DATE_TRUNC('month', "createdAt")
     `;
 
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const formattedKPI = monthNames.map(m => {
+    // If a specific month is requested, only return that month in kpiChart
+    const monthsToMap = filterMonth ? monthNames.filter(m => m.toLowerCase() === filterMonth.toLowerCase()) : monthNames;
+
+    const formattedKPI = monthsToMap.map(m => {
         const monthData = kpiDataRaw.filter(d => d.month === m);
         return {
             month: m,
-            year: currentYear,
+            year: kpiYear,
             completed: monthData.find(d => d.status === "COMPLETED")?.count || 0,
             ongoing: monthData.find(d => d.status === "ONGOING")?.count || 0,
             cancelled: monthData.find(d => d.status === "CANCELLED")?.count || 0,
         };
     });
 
-    // 5. All Projects List
-    const projects = await prisma.project.findMany({
-        where: {
-            managerId: pmId,
-            deletedAt: null,
-        },
-        include: {
-            manager: {
-                select: { firstName: true, lastName: true }
-            }
-        },
-        orderBy: { createdAt: 'desc' }
-    });
+    // 5. All Projects List with QueryBuilder
+    const relationConfig = {
+        manager: ["firstName", "lastName", "email"],
+    };
 
-    const projectList = projects.map(p => {
-        return {
-            projectId: p.id.split('-')[0], // derived from UUID prefix as short ID
-            projectName: p.name,
-            owner: `${p.manager.firstName} ${p.manager.lastName || ""}`.trim(),
-            status: p.status,
-            progress: parseInt(p.projectProgress?.replace('%', '') || "0", 10),
-            deadline: p.endDate ? p.endDate.toISOString().split('T')[0] : "N/A",
-        };
-    });
+    const queryCopy = { ...query };
+    delete queryCopy.year;
+    delete queryCopy.month;
+
+    const queryBuilder = new QueryBuilder(queryCopy)
+        .search(projectSearchableFields)
+        .filter(relationConfig, { status: ["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"] })
+        .sort("-createdAt", relationConfig)
+        .paginate();
+
+    const buildQuery = queryBuilder.build();
+    buildQuery.where = {
+        ...buildQuery.where,
+        managerId: pmId,
+        deletedAt: null,
+        ...(year && { createdAt: dateFilter })
+    };
+
+    const [projects, total] = await Promise.all([
+        prisma.project.findMany({
+            ...buildQuery,
+            include: {
+                manager: {
+                    select: { firstName: true, lastName: true }
+                }
+            },
+        }),
+        prisma.project.count({ where: buildQuery.where })
+    ]);
+
+    const projectList = projects.map(p => ({
+        projectId: p.id.split('-')[0],
+        projectName: p.name,
+        owner: `${p.manager.firstName} ${p.manager.lastName || ""}`.trim(),
+        status: p.status,
+        progress: parseInt(p.projectProgress?.replace('%', '') || "0", 10),
+        deadline: p.endDate ? p.endDate.toISOString().split('T')[0] : "N/A",
+    }));
 
     return {
         stats: {
@@ -106,7 +150,10 @@ const getPMDashboardData = async (prisma, pmId) => {
             activeProjects: activeProjectsCount
         },
         kpiChart: formattedKPI,
-        projects: projectList
+        projects: {
+            meta: queryBuilder.getMeta(total),
+            data: projectList
+        }
     };
 };
 

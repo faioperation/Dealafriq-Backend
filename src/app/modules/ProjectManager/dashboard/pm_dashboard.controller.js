@@ -5,7 +5,7 @@ import { sendResponse } from "../../../utils/sendResponse.js";
 import { PMDashboardService } from "./pm_dashboard.service.js";
 
 const getDashboardData = catchAsync(async (req, res) => {
-    const result = await PMDashboardService.getPMDashboardData(prisma, req.user.id);
+    const result = await PMDashboardService.getPMDashboardData(prisma, req.user.id, req.query);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
