@@ -137,8 +137,9 @@ export const LessonLearnService = {
             }
 
             if (lessonLearn) {
+                const { current_situation_summary, aiResponse, ...lessonLearnWithoutExcluded } = lessonLearn;
                 syncedLessonLearns.push({
-                    ...lessonLearn,
+                    ...lessonLearnWithoutExcluded,
                     project: {
                         id: project.id,
                         name: project.name,
@@ -177,7 +178,8 @@ export const LessonLearnService = {
             );
         }
 
-        return lessonLearn;
+        const { current_situation_summary, aiResponse, ...lessonLearnWithoutExcluded } = lessonLearn;
+        return lessonLearnWithoutExcluded;
     },
 
     updateLessonLearn: async (prisma, id, payload, userId) => {
