@@ -5,10 +5,15 @@ const createLessonLearnSchema = z.object({
         projectId: z.string().uuid("Invalid project ID"),
         projectName: z.string().min(1, "Project name is required"),
         clientName: z.string().optional(),
-        title: z.string().min(1, "Title is required"),
-        description: z.string().min(1, "Description is required"),
-        source: z.string().min(1, "Source is required"),
-        loggedDate: z.string().datetime({ message: "Invalid datetime string! Must be UTC." }),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        source: z.string().optional(),
+        loggedDate: z.string().datetime({ message: "Invalid datetime string! Must be UTC." }).optional(),
+        current_situation_summary: z.string().optional(),
+        historical_insights: z.any().optional(),
+        actionable_warnings: z.any().optional(),
+        status: z.string().optional(),
+        aiResponse: z.any().optional(),
     }),
 });
 
@@ -16,10 +21,15 @@ const updateLessonLearnSchema = z.object({
     body: z.object({
         projectName: z.string().min(1, "Project name cannot be empty").optional(),
         clientName: z.string().optional(),
-        title: z.string().min(1, "Title cannot be empty").optional(),
-        description: z.string().min(1, "Description cannot be empty").optional(),
-        source: z.string().min(1, "Source cannot be empty").optional(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        source: z.string().optional(),
         loggedDate: z.string().datetime({ message: "Invalid datetime string! Must be UTC." }).optional(),
+        current_situation_summary: z.string().optional(),
+        historical_insights: z.any().optional(),
+        actionable_warnings: z.any().optional(),
+        status: z.string().optional(),
+        aiResponse: z.any().optional(),
     }),
 });
 

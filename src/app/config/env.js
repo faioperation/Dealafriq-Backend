@@ -44,6 +44,7 @@ const loadEnvVars = () => {
     "OUTLOOK_CALLBACK_URL",
 
     "API_AI",
+    "AI_CHATBOT_API",
   ];
 
   requiredVars.forEach((key) => {
@@ -108,6 +109,7 @@ const loadEnvVars = () => {
 
     // AI API 
     API_AI: process.env.API_AI,
+    AI_CHATBOT_API: process.env.AI_CHATBOT_API,
   };
 };
 
