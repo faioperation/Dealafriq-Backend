@@ -132,7 +132,7 @@ export const ProjectMeetingService = {
     getAllMeetings: async (prisma, projectId, userId) => {
         await verifyProjectOwnership(prisma, projectId, userId);
 
-        return prisma.projectMeeting.findMany({
+        const meetings = await prisma.projectMeeting.findMany({
             where: { projectId },
             include: {
                 keyPoints: true,
@@ -140,6 +140,8 @@ export const ProjectMeetingService = {
             },
             orderBy: { createdAt: "desc" },
         });
+
+        return meetings.map(({ meetingUrl, ...meeting }) => meeting);
     },
 
     getSingleMeeting: async (prisma, id, userId) => {
@@ -167,7 +169,8 @@ export const ProjectMeetingService = {
             throw new AppError(StatusCodes.FORBIDDEN, "Meeting not found or access denied");
         }
 
-        return meeting;
+        const { meetingUrl, ...meetingWithoutUrl } = meeting;
+        return meetingWithoutUrl;
     },
 
     updateMeeting: async (prisma, id, payload, userId) => {
