@@ -5,7 +5,7 @@ import { sendResponse } from "../../../utils/sendResponse.js";
 import { DashboardService } from "./dashboard.service.js";
 
 const getDashboardData = catchAsync(async (req, res) => {
-    const result = await DashboardService.getDashboardStats(prisma);
+    const result = await DashboardService.getDashboardStats(prisma, req.query);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
