@@ -167,6 +167,7 @@ model Project {
   projectAiSummary     String[]                @default([])
   projectProgress      String?                 @default("0%")
   weeklyAiSummary      String?
+  cancelledReason      String?
   activityLogs         ActivityLog[]           @relation("ProjectActivityLogs")
   calendarEvents       GoogleCalendarEvent[]   @relation("ProjectCalendarEvents")
   lessonLearns         LessonLearn[]

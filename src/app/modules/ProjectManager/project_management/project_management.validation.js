@@ -73,6 +73,7 @@ const createProjectSchema = z.object({
             fileUrl: z.string().url().optional(),
             fileType: z.string().optional(),
         }))).optional(),
+        cancelledReason: z.string().optional(),
     }),
 });
 
@@ -85,6 +86,7 @@ const updateProjectSchema = z.object({
         endDate: z.string().optional(),
         assignTeamId: z.string().uuid("Invalid assign team ID").optional(),
         status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
+        cancelledReason: z.string().optional(),
     }),
 });
 
