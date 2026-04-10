@@ -28,6 +28,7 @@ export const PMProjectManagementService = {
                 startDate: payload.startDate ? new Date(payload.startDate) : null,
                 endDate: payload.endDate ? new Date(payload.endDate) : null,
                 status: payload.status || "ONGOING",
+                cancelledReason: payload.cancelledReason,
                 manager: { connect: { id: userId } },
                 createdBy: { connect: { id: userId } },
                 projectOwner: { connect: { id: userId } },

@@ -1,49 +1,53 @@
 const getPMDashboardData = async (prisma, pmId) => {
     const now = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(now.getDate() + 30);
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(now.getDate() + 7);
 
-    // 1. Overall Project Health (Average score of active projects)
-    // Formula: Average of 'score' field in ProjectHealth table for PM's projects
-    const healthResult = await prisma.projectHealth.aggregate({
+    // 1. Overall Project Health (Average progress of PM's active projects)
+    // Requirement: see project progress and add a percentage based on it
+    const projectsForHealth = await prisma.project.findMany({
         where: {
-            project: {
-                managerId: pmId,
-                deletedAt: null,
-            }
+            managerId: pmId,
+            deletedAt: null,
         },
-        _avg: {
-            score: true
+        select: {
+            projectProgress: true
         }
     });
 
-    // 2. Upcoming Deadlines (Projects ending in next 30 days)
-    // Source: Count of Project table where endDate is between now and +30 days
+    let overallHealth = 0;
+    if (projectsForHealth.length > 0) {
+        const totalProgress = projectsForHealth.reduce((acc, p) => {
+            const progressNum = parseInt(p.projectProgress?.replace('%', '') || "0", 10);
+            return acc + progressNum;
+        }, 0);
+        overallHealth = Math.round(totalProgress / projectsForHealth.length);
+    }
+
+    // 2. Upcoming Deadlines (Projects ending in next 7 days)
+    // Requirement: show only those project count here, these project have 7 days to deliver
     const upcomingDeadlinesCount = await prisma.project.count({
         where: {
             managerId: pmId,
             deletedAt: null,
             endDate: {
                 gte: now,
-                lte: thirtyDaysFromNow,
+                lte: sevenDaysFromNow,
             }
         }
     });
 
-    // 3. Active Projects (ONGOING or IN_PROGRESS)
-    // Source: Count of Project table where status is active
+    // 3. Active Projects (Only ONGOING)
+    // Requirement: just show only ongoing project count here
     const activeProjectsCount = await prisma.project.count({
         where: {
             managerId: pmId,
             deletedAt: null,
-            status: {
-                in: ["ONGOING", "IN_PROGRESS"]
-            }
+            status: "ONGOING"
         }
     });
 
     // 4. KPI Chart Data (Monthly distribution by status for current year)
-    // Source: Raw SQL query on projects table grouped by month and status
     const currentYear = new Date().getFullYear();
     const kpiDataRaw = await prisma.$queryRaw`
         SELECT 
@@ -63,53 +67,41 @@ const getPMDashboardData = async (prisma, pmId) => {
         const monthData = kpiDataRaw.filter(d => d.month === m);
         return {
             month: m,
+            year: currentYear,
             completed: monthData.find(d => d.status === "COMPLETED")?.count || 0,
-            ongoing: monthData.find(d => d.status === "ONGOING" || d.status === "IN_PROGRESS")?.count || 0,
+            ongoing: monthData.find(d => d.status === "ONGOING")?.count || 0,
             cancelled: monthData.find(d => d.status === "CANCELLED")?.count || 0,
         };
     });
 
     // 5. All Projects List
-    // Source: Project table joined with User (for owner) and Tasks (for progress)
     const projects = await prisma.project.findMany({
         where: {
             managerId: pmId,
             deletedAt: null,
         },
         include: {
-            createdBy: {
+            manager: {
                 select: { firstName: true, lastName: true }
-            },
-            _count: {
-                select: { tasks: true }
-            },
-            tasks: {
-                where: { status: "COMPLETED" },
-                select: { id: true }
             }
         },
         orderBy: { createdAt: 'desc' }
     });
 
     const projectList = projects.map(p => {
-        // Progress Calculation: (Total Tasks / Completed Tasks) * 100
-        const totalTasks = p._count.tasks;
-        const completedTasks = p.tasks.length;
-        const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
         return {
             projectId: p.id.split('-')[0], // derived from UUID prefix as short ID
             projectName: p.name,
-            owner: `${p.createdBy.firstName} ${p.createdBy.lastName || ""}`.trim(),
+            owner: `${p.manager.firstName} ${p.manager.lastName || ""}`.trim(),
             status: p.status,
-            progress: progress,
+            progress: parseInt(p.projectProgress?.replace('%', '') || "0", 10),
             deadline: p.endDate ? p.endDate.toISOString().split('T')[0] : "N/A",
         };
     });
 
     return {
         stats: {
-            overallHealth: Math.round(healthResult._avg.score || 0),
+            overallHealth: overallHealth,
             upcomingDeadlines: upcomingDeadlinesCount,
             activeProjects: activeProjectsCount
         },
