@@ -5,6 +5,7 @@ import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 import axios from "axios";
 import { envVars } from "../../../config/env.js";
+import { LessonLearnService } from "../leasonLearn/leasonLearn.service.js";
 
 export const PMProjectManagementService = {
     createProject: async (prisma, payload, userId) => {
@@ -339,6 +340,10 @@ export const PMProjectManagementService = {
             });
 
             console.log("ai api data updated for the new created project:", id);
+
+            // 4. Sync Lesson Learn AI data
+            console.log(`[AI sync] Triggering Lesson Learn AI sync for project ${id}`);
+            await LessonLearnService.syncLessonLearnForProject(prisma, project, userId);
 
             await ActivityLogService.createLog(prisma, {
                 type: "project",

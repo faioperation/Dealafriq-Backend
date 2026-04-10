@@ -549,22 +549,27 @@ model ZoomAuthState {
 }
 
 model LessonLearn {
-  id          String    @id @default(uuid())
-  projectId   String
-  projectName String
-  clientName  String?
-  title       String
-  description String
-  source      String
-  loggedDate  DateTime
-  created_by  String
-  updated_by  String?
-  approved_by String?
-  deleted_by  String?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
-  deleted_at  DateTime?
-  project     Project   @relation(fields: [projectId], references: [id])
+  id                        String    @id @default(uuid())
+  projectId                 String
+  projectName               String
+  clientName                String?
+  title                     String?
+  description               String?
+  source                    String?
+  loggedDate                DateTime?
+  current_situation_summary String?
+  historical_insights       Json?
+  actionable_warnings       Json?
+  status                    String?
+  aiResponse               Json?
+  created_by                String?
+  updated_by                String?
+  approved_by               String?
+  deleted_by                String?
+  created_at                DateTime  @default(now())
+  updated_at                DateTime  @updatedAt
+  deleted_at                DateTime?
+  project                   Project   @relation(fields: [projectId], references: [id])
 
   @@index([projectId])
   @@map("lesson_learns")

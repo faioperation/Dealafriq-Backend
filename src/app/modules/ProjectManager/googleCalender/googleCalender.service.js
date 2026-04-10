@@ -149,7 +149,7 @@ export const GoogleCalendarService = {
 
         return prisma.googleCalendarEvent.findMany({
             where,
-            orderBy: { start: 'asc' },
+            orderBy: { start: 'desc' },
         });
     },
 
