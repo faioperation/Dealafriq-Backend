@@ -10,7 +10,7 @@ const getDashboardData = catchAsync(async (req, res) => {
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,
-        message: "Dashboard data fetched successfully",
+        message: "Admin Dashboard data fetched successfully",
         data: result,
     });
 });
