@@ -8,23 +8,16 @@ import { GoogleCalendarService } from "../modules/ProjectManager/googleCalender/
  * Runs every 30 minutes
  */
 export const initEmailSyncCron = () => {
-    // Schedule task to run every 30 minutes
-    // Cron expression: minute, hour, day of month, month, day of week
-    // cron.schedule("*/30 * * * *", async () => {
-    cron.schedule("0 0 * * *", async () => {
-        console.log("-----------------------------------------");
-        // console.log(`[${new Date().toISOString()}] Starting Email Sync Cron Job...`);
+    // Schedule task to run every minute
+    cron.schedule("* * * * *", async () => {
         try {
             await EmailService.syncAllConnectedAccounts();
             await OutlookService.syncAllConnectedAccounts();
             await GoogleCalendarService.syncAllConnectedCalendars();
-            // console.log(`[${new Date().toISOString()}] Email & Outlook Sync Cron Job completed successfully.`);
         } catch (error) {
-            console.error(`[${new Date().toISOString()}] Email Sync Cron Job failed:`, error.message);
+            console.error(`[${new Date().toISOString()}] Sync Cron Job failed:`, error.message);
         }
-        // console.log("-----------------------------------------");
     });
 
-
-    console.log("✅  Email Sync Cron Job scheduled successfully (runs daily at 12:00 AM)");
+    console.log("✅  Email, Outlook & Calendar Sync Cron Job scheduled (runs every minute)");
 };

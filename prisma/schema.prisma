@@ -66,6 +66,7 @@ model User {
   vendorsDeleted          Vendor[]              @relation("VendorDeletedBy")
   vendorsUpdated          Vendor[]              @relation("VendorUpdatedBy")
   zoomAccounts            ZoomAccount[]
+  notifications           Notification[]
 
   @@index([role])
   @@map("users")
@@ -699,4 +700,32 @@ enum HealthStatus {
 enum SenderType {
   USER
   AGENT
+}
+
+model Notification {
+  id           String             @id @default(uuid())
+  userId       String
+  title        String
+  message      String
+  type         NotificationType
+  status       NotificationStatus @default(UNREAD)
+  link         String?
+  entityId     String? // ID of the event/meeting
+  reminderType String? // e.g., "START_REMINDER"
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  user         User               @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  CALENDAR_EVENT
+  ZOOM_MEETING
+  SYSTEM
+}
+
+enum NotificationStatus {
+  READ
+  UNREAD
 }

@@ -3,6 +3,7 @@ import { envVars } from "./app/config/env.js";
 import { connectRedis } from "./app/config/redis.config.js";
 import { initEmailSyncCron } from "./app/cron/emailSyncCron.js";
 import { initAiSyncCron } from "./app/cron/aiSyncCron.js";
+import { initNotificationCron } from "./app/cron/notificationCron.js";
 import { seedUsers } from "./app/seed/seed.js";
 import prisma from "./app/prisma/client.js";
 
@@ -30,6 +31,7 @@ const startServer = async () => {
     // Initialize Cron Jobs
     initEmailSyncCron();
     initAiSyncCron();
+    initNotificationCron();
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);

@@ -55,7 +55,7 @@ export const GoogleCalendarService = {
         // Fetch all-calendars the user has access to
         const calendarList = await calendar.calendarList.list();
         const calendars = calendarList.data.items || [];
-        
+
         // Filter out Holidays, Birthdays, and other "automatic" calendars
         const calendarsToSync = calendars.filter(c => {
             const summary = (c.summary || '').toLowerCase();
@@ -63,16 +63,16 @@ export const GoogleCalendarService = {
             const isPrimary = c.primary;
             const isSelected = c.selected;
             const isOwner = c.accessRole === 'owner';
-            
+
             // Skip calendars that are clearly not personal (Holidays, Birthdays, etc.)
-            const isHolidayOrBirthday = summary.includes('holiday') || 
-                                       summary.includes('birthday') || 
-                                       id.includes('holiday') || 
-                                       id.includes('birthday');
+            const isHolidayOrBirthday = summary.includes('holiday') ||
+                summary.includes('birthday') ||
+                id.includes('holiday') ||
+                id.includes('birthday');
 
             return (isPrimary || isSelected || isOwner) && !isHolidayOrBirthday;
         });
-        
+
         console.log(`Syncing ${calendarsToSync.length} calendars for user ${userId} (Filtered out holiday/birthday calendars)`);
 
         const timeMin = new Date();
@@ -101,6 +101,7 @@ export const GoogleCalendarService = {
                         const end = event.end.dateTime || event.end.date;
 
                         if (!start || !end) return null;
+                        console.log(`[Sync] Event: ${event.summary}, Raw Start: ${start}, Converted: ${new Date(start).toISOString()}`);
 
                         const updateData = {
                             summary: event.summary || '(No Summary)',
@@ -171,7 +172,7 @@ export const GoogleCalendarService = {
     createEvent: async (userId, meetingData) => {
         try {
             const calendar = await getCalendarClient(userId);
-            
+
             const event = {
                 summary: meetingData.title || 'Project Meeting',
                 description: meetingData.notes || '',
@@ -221,7 +222,7 @@ export const GoogleCalendarService = {
                 await GoogleCalendarService.syncEvents(account.userId);
             } catch (error) {
                 console.error(`Failed to periodic sync calendar for user ${account.userId}:`, error.message);
-                
+
                 // Check if it's an invalid grant error (refresh token expired/revoked)
                 if (error.message.includes('invalid_grant') || error.message.includes('invalid_grant')) {
                     console.log(`Marking Google account as disconnected for user ${account.userId} due to invalid refresh token`);

@@ -106,6 +106,21 @@ const getStatus = async (req, res) => {
             });
         }
 
+        const googleAccount = result.find(acc => acc.provider === 'google');
+        if (googleAccount) {
+            formattedData.push({
+                source: 'GOOGLE_CALENDAR',
+                email: googleAccount.email,
+                isConnected: googleAccount.isConnected
+            });
+        } else {
+            formattedData.push({
+                source: 'GOOGLE_CALENDAR',
+                email: null,
+                isConnected: false
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: "Fetched Successfully",

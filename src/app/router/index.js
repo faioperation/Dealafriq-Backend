@@ -29,6 +29,7 @@ import { PMDashboardRoutes } from "../modules/ProjectManager/dashboard/pm_dashbo
 import { UserRoutes } from "../modules/user/user.route.js";
 import { LessonLearnRoutes } from "../modules/ProjectManager/leasonLearn/leasonLearn.route.js";
 import { GoogleCalendarRoutes } from "../modules/ProjectManager/googleCalender/googleCalender.route.js";
+import { NotificationRoutes } from "../modules/ProjectManager/notification/notification.route.js";
 
 
 
@@ -163,6 +164,10 @@ const moduleRoutes = [
   {
     path: "/project-manager/project-chatbot",
     route: ProjectChatbotRoutes,
+  },
+  {
+    path: "/project-manager/notifications",
+    route: NotificationRoutes,
   },
   // Project Manager Routes ends here
 ];
