@@ -4,9 +4,7 @@ import { sendResponse } from "../../../utils/sendResponse.js";
 import { NotificationService } from "./notification.service.js";
 import prisma from "../../../prisma/client.js";
 
-/**
- * Get all notifications for the current user
- */
+//Get all notifications for the current user
 const getNotifications = catchAsync(async (req, res) => {
   const result = await NotificationService.getNotifications(prisma, req.user.id, req.query);
   sendResponse(res, {
@@ -18,9 +16,7 @@ const getNotifications = catchAsync(async (req, res) => {
   });
 });
 
-/**
- * Mark a notification as read
- */
+//Mark a notification as read
 const markAsRead = catchAsync(async (req, res) => {
   const result = await NotificationService.markAsRead(prisma, req.params.id, req.user.id);
   sendResponse(res, {
@@ -31,9 +27,7 @@ const markAsRead = catchAsync(async (req, res) => {
   });
 });
 
-/**
- * Mark all notifications as read
- */
+//Mark all notifications as read
 const markAllAsRead = catchAsync(async (req, res) => {
   const result = await NotificationService.markAllAsRead(prisma, req.user.id);
   sendResponse(res, {

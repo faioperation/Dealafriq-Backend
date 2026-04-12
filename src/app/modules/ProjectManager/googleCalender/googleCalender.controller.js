@@ -39,8 +39,20 @@ const deleteEvent = catchAsync(async (req, res) => {
     });
 });
 
+const getAllDatabaseEvents = catchAsync(async (req, res) => {
+    const userId = req.user.id;
+    const result = await GoogleCalendarService.getAllDatabaseEvents(userId);
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: "All calendar and Zoom events fetched successfully",
+        data: result,
+    });
+});
+
 export const GoogleCalendarController = {
     syncEvents,
     getEvents,
     deleteEvent,
+    getAllDatabaseEvents,
 };

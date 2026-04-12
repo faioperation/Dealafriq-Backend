@@ -233,5 +233,93 @@ export const GoogleCalendarService = {
                 }
             }
         }
+    },
+
+    getAllDatabaseEvents: async (userId) => {
+        // 1. Fetch Google Calendar Events
+        const calendarEvents = await prisma.googleCalendarEvent.findMany({
+            where: {
+                userId,
+                deleted_at: null
+            },
+            orderBy: {
+                start: 'desc'
+            }
+        });
+
+        // 2. Fetch Zoom Meetings (ProjectMeetings) for the user's projects
+        const zoomMeetings = await prisma.projectMeeting.findMany({
+            where: {
+                project: {
+                    OR: [
+                        { managerId: userId },
+                        { assignments: { some: { userId } } }
+                    ],
+                    deletedAt: null
+                }
+            },
+            include: {
+                project: {
+                    select: {
+                        id: true,
+                        name: true,
+                        status: true
+                    }
+                }
+            },
+            orderBy: {
+                meetingDate: 'desc'
+            }
+        });
+
+        // 3. Map and Merge into a single standardized array
+        const standardizedCalendarEvents = calendarEvents.map(event => ({
+            id: event.id,
+            title: event.summary || '(No Summary)',
+            description: event.description || '',
+            location: event.location || '',
+            start: event.start,
+            end: event.end,
+            createdAt: event.created_at, // Mapping database creation time
+            type: 'GOOGLE_CALENDAR_EVENT',
+            url: event.htmlLink,
+            aiSummary: [],
+            projectId: event.projectId,
+            projectName: null
+        }));
+
+        const standardizedZoomMeetings = zoomMeetings.map(meeting => ({
+            id: meeting.id,
+            title: meeting.title || '(No Title)',
+            description: meeting.notes || '',
+            location: 'Zoom',
+            start: meeting.meetingDate,
+            end: meeting.meetingDate ? new Date(new Date(meeting.meetingDate).getTime() + 60 * 60 * 1000) : null,
+            createdAt: meeting.createdAt, // Mapping database creation time
+            type: 'ZOOM_MEETING',
+            url: meeting.meetingUrl,
+            aiSummary: meeting.aiMeetingSummary || [],
+            projectId: meeting.projectId,
+            projectName: meeting.project?.name || null
+        }));
+
+        // 4. Combine and sort by date descending (Newest first)
+        // We use the 'start' date (when the event happens) as the primary sort key
+        // If sorting by record creation time is preferred, change 'start' to 'createdAt'
+        const allEvents = [...standardizedCalendarEvents, ...standardizedZoomMeetings].sort((a, b) => {
+            const timeA = a.start ? new Date(a.start).getTime() : 0;
+            const timeB = b.start ? new Date(b.start).getTime() : 0;
+            
+            if (timeB !== timeA) {
+                return timeB - timeA; // Newest event date first
+            }
+            
+            // Fallback: newest record created in DB first
+            const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return createdB - createdA;
+        });
+
+        return allEvents;
     }
 };
