@@ -43,6 +43,7 @@ model User {
   employeesUpdated        Employee[]            @relation("EmployeeUpdatedBy")
   calendarEvents          GoogleCalendarEvent[] @relation("UserCalendarEvents")
   messages                Message[]
+  notifications           Notification[]
   outlooksApproved        Outlook[]             @relation("OutlookApprovedBy")
   outlooksCreated         Outlook[]             @relation("OutlookCreatedBy")
   outlooksDeleted         Outlook[]             @relation("OutlookDeletedBy")
@@ -66,7 +67,6 @@ model User {
   vendorsDeleted          Vendor[]              @relation("VendorDeletedBy")
   vendorsUpdated          Vendor[]              @relation("VendorUpdatedBy")
   zoomAccounts            ZoomAccount[]
-  notifications           Notification[]
 
   @@index([role])
   @@map("users")
@@ -220,11 +220,11 @@ model ProjectMeeting {
   transcriptData     Json?
   transcriptPath     String?
   transcriptUrl      String?
-  transcriptStatus   String?
-  transcriptPlayUrl  String?
-  transcriptFileType String?
-  videoPlayUrl       String?
   aiMeetingSummary   String[]      @default([])
+  transcriptFileType String?
+  transcriptPlayUrl  String?
+  transcriptStatus   String?
+  videoPlayUrl       String?
   actionPoints       ActionPoint[]
   keyPoints          KeyPoint[]
   project            Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -544,9 +544,9 @@ model ZoomAccount {
 }
 
 model ZoomAuthState {
-  id     String @id @default(uuid())
-  state  String @unique
-  userId String
+  id        String   @id @default(uuid())
+  state     String   @unique
+  userId    String
   createdAt DateTime @default(now())
 }
 
@@ -559,11 +559,6 @@ model LessonLearn {
   description               String?
   source                    String?
   loggedDate                DateTime?
-  current_situation_summary String?
-  historical_insights       Json?
-  actionable_warnings       Json?
-  status                    String?
-  aiResponse               Json?
   created_by                String?
   updated_by                String?
   approved_by               String?
@@ -571,6 +566,11 @@ model LessonLearn {
   created_at                DateTime  @default(now())
   updated_at                DateTime  @updatedAt
   deleted_at                DateTime?
+  actionable_warnings       Json?
+  aiResponse                Json?
+  current_situation_summary String?
+  historical_insights       Json?
+  status                    String?
   project                   Project   @relation(fields: [projectId], references: [id])
 
   @@index([projectId])
@@ -613,6 +613,8 @@ model Message {
   @@index([userId, createdAt])
   @@map("messages")
 }
+
+
 
 enum UserRole {
   SYSTEM_OWNER    @map("system_owner")
@@ -685,6 +687,7 @@ enum HealthType {
   OVERALL_STATUS
   BUDGET_STATUS
   TEAM_SENTIMENT
+  TASK_STATUS
 }
 
 enum HealthStatus {
@@ -695,28 +698,14 @@ enum HealthStatus {
   GOOD
   EXCELLENT
   LOW
+  BAD
+  NORMAL
+  PERFECT
 }
 
 enum SenderType {
   USER
   AGENT
-}
-
-model Notification {
-  id           String             @id @default(uuid())
-  userId       String
-  title        String
-  message      String
-  type         NotificationType
-  status       NotificationStatus @default(UNREAD)
-  link         String?
-  entityId     String? // ID of the event/meeting
-  reminderType String? // e.g., "START_REMINDER"
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  user         User               @relation(fields: [userId], references: [id])
-
-  @@map("notifications")
 }
 
 enum NotificationType {
@@ -728,4 +717,20 @@ enum NotificationType {
 enum NotificationStatus {
   READ
   UNREAD
+}
+model Notification {
+  id           String             @id @default(uuid())
+  userId       String
+  title        String
+  message      String
+  type         NotificationType
+  status       NotificationStatus @default(UNREAD)
+  link         String?
+  entityId     String?
+  reminderType String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  user         User               @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
 }

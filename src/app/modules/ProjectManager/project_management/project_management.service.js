@@ -6,6 +6,7 @@ import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 import axios from "axios";
 import { envVars } from "../../../config/env.js";
 import { LessonLearnService } from "../leasonLearn/leasonLearn.service.js";
+import { ProjectHealthService } from "../projectHealth/projectHealth.service.js";
 
 export const PMProjectManagementService = {
     createProject: async (prisma, payload, userId) => {
@@ -32,16 +33,9 @@ export const PMProjectManagementService = {
                 manager: { connect: { id: userId } },
                 createdBy: { connect: { id: userId } },
                 projectOwner: { connect: { id: userId } },
+                projectProgress: payload.projectProgress || "0%",
                 assignTeam: actualAssignTeamId ? { connect: { id: actualAssignTeamId } } : undefined,
 
-                health: payload.health ? {
-                    create: payload.health.map(h => ({
-                        type: h.field,
-                        healthStatus: h.healthStatus,
-                        score: h.score,
-                        status: h.status,
-                    }))
-                } : undefined,
 
                 documents: payload.documents ? {
                     create: payload.documents.map(doc => ({
@@ -85,6 +79,9 @@ export const PMProjectManagementService = {
                 }
             }
         });
+        
+        // Initialize standardized health
+        await ProjectHealthService.calculateAndUpsertHealth(prisma, project.id, payload.health);
 
         // Fire and forget (Background Task)
         PMProjectManagementService.syncProjectAiStatusBackground(prisma, project.id, userId).catch(err => {
@@ -232,6 +229,9 @@ export const PMProjectManagementService = {
             data: updateData,
         });
 
+        // Update health status if progress might have changed
+        await ProjectHealthService.calculateAndUpsertHealth(prisma, id);
+
         await ActivityLogService.createLog(prisma, {
             type: "project",
             crudId: id,
@@ -260,14 +260,6 @@ export const PMProjectManagementService = {
 
         const deletedProject = await prisma.project.delete({
             where: { id }
-        });
-
-        await ActivityLogService.createLog(prisma, {
-            type: "project",
-            crudId: id,
-            action: "delete",
-            userId,
-            projectId: id,
         });
 
         return deletedProject;
@@ -342,6 +334,9 @@ export const PMProjectManagementService = {
             });
 
             console.log("ai api data updated for the new created project:", id);
+            
+            // 3.5 Update Dynamic Health Status
+            await ProjectHealthService.calculateAndUpsertHealth(prisma, id);
 
             // 4. Sync Lesson Learn AI data
             console.log(`[AI sync] Triggering Lesson Learn AI sync for project ${id}`);
@@ -404,6 +399,9 @@ export const PMProjectManagementService = {
                             weeklyAiSummary: summary
                         }
                     });
+                    
+                    // Update Dynamic Health Status
+                    await ProjectHealthService.calculateAndUpsertHealth(prisma, projectId);
                 }
             }
             console.log(`Bulk Project AI Sync completed for ${projectsData.length} items`);

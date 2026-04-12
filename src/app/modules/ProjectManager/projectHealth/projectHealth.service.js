@@ -13,28 +13,70 @@ const verifyProjectOwnership = async (prisma, projectId, userId) => {
 };
 
 export const ProjectHealthService = {
-    upsertHealth: async (prisma, payload, userId) => {
-        await verifyProjectOwnership(prisma, payload.projectId, userId);
+    calculateAndUpsertHealth: async (prisma, projectId, userProvidedHealth = []) => {
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            select: { projectProgress: true }
+        });
 
-        const { projectId, health } = payload;
+        if (!project) return null;
 
-        const result = await prisma.$transaction(async (tx) => {
-            // Delete existing health records
+        const progressStr = project.projectProgress || "0%";
+        const progress = parseInt(progressStr.replace("%", ""), 10) || 0;
+
+        // Dynamic Status Calculation Logic
+        const calculateOverallStatus = (p) => {
+            if (p <= 40) return "AT_RISK";
+            if (p <= 50) return "LOW";
+            if (p <= 70) return "ON_TRACK";
+            if (p <= 80) return "GOOD";
+            return "EXCELLENT";
+        };
+
+        const calculateTaskStatus = (p) => {
+            if (p <= 40) return "BAD";
+            if (p <= 70) return "NORMAL";
+            return "PERFECT";
+        };
+
+        const overallHealthStatus = calculateOverallStatus(progress);
+        const taskHealthStatus = calculateTaskStatus(progress);
+
+        // Map fixed types and preserve score/status if provided
+        const fixedHealthParams = [
+            { type: "OVERALL_STATUS", healthStatus: overallHealthStatus },
+            { type: "TASK_STATUS", healthStatus: taskHealthStatus },
+        ];
+
+        const finalHealthData = fixedHealthParams.map(fixed => {
+            const userProvided = userProvidedHealth?.find(h => h.field === fixed.type) || {};
+            return {
+                projectId,
+                type: fixed.type,
+                healthStatus: fixed.healthStatus,
+                score: userProvided.score,
+                status: userProvided.status,
+            };
+        });
+
+        return prisma.$transaction(async (tx) => {
+            // Delete existing health records for this project
             await tx.projectHealth.deleteMany({
                 where: { projectId },
             });
 
-            // Bulk create new records
+            // Create fixed records
             return tx.projectHealth.createMany({
-                data: health.map(h => ({
-                    projectId,
-                    type: h.field,
-                    healthStatus: h.healthStatus,
-                    score: h.score,
-                    status: h.status,
-                })),
+                data: finalHealthData,
             });
         });
+    },
+
+    upsertHealth: async (prisma, payload, userId) => {
+        await verifyProjectOwnership(prisma, payload.projectId, userId);
+
+        const { projectId, health } = payload;
+        const result = await ProjectHealthService.calculateAndUpsertHealth(prisma, projectId, health);
 
         await ActivityLogService.createLog(prisma, {
             type: "projectHealth",

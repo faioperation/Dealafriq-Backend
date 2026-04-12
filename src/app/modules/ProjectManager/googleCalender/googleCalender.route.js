@@ -26,4 +26,10 @@ router.delete(
     GoogleCalendarController.deleteEvent
 );
 
+router.get(
+    "/all-events",
+    checkAuthMiddleware(Role.PROJECT_MANAGER),
+    GoogleCalendarController.getAllDatabaseEvents
+);
+
 export const GoogleCalendarRoutes = router;
