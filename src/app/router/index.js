@@ -5,6 +5,7 @@ import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_m
 import { AdminProjectRoutes } from "../modules/Admin/project/project.route.js";
 import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
 import { DashboardRoutes } from "../modules/Admin/dashboard/dashboard.route.js";
+import { AdminVendorRoutes } from "../modules/Admin/vendorManagement/adminVendor.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
@@ -65,6 +66,10 @@ const moduleRoutes = [
   {
     path: "/admin/project",
     route: AdminProjectRoutes,
+  },
+  {
+    path: "/admin/vendor-management",
+    route: AdminVendorRoutes,
   },
   // Admin Routes ends here
   // Project Manager Routes starts here
