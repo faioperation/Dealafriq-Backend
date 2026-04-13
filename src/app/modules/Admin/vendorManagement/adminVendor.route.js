@@ -9,4 +9,10 @@ router.get(
     AdminVendorController.getVendorsByProjectManagerIdController
 );
 
+// Public route to get all vendors
+router.get(
+    "/all",
+    AdminVendorController.getAllVendorsController
+);
+
 export const AdminVendorRoutes = router;
