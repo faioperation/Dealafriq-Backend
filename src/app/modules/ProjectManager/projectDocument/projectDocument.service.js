@@ -1,6 +1,8 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
+import axios from "axios";
+import { envVars } from "../../../config/env.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
@@ -96,6 +98,11 @@ export const ProjectDocumentService = {
 
             return doc;
         }));
+
+        // Fire and forget (Background Task)
+        ProjectDocumentService.syncDocumentAiSummaryBackground(prisma, results.map(doc => doc.id), userId).catch(err => {
+            console.error("Critical error in document background AI sync:", err);
+        });
 
         return results;
     },
@@ -215,5 +222,54 @@ export const ProjectDocumentService = {
         return deletedDoc;
     },
 
+    syncAllDocumentsFromAi: async (prisma) => {
+        try {
+            const apiUrl = `${envVars.API_AI}/summary/document`;
+            const response = await axios.post(apiUrl, {}, {
+                headers: {
+                    'x-backend-service': 'PROJECT_AI_BACKEND'
+                }
+            });
+
+            const projectsData = response.data;
+            if (!Array.isArray(projectsData)) {
+                console.error("Invalid AI API response for bulk document sync");
+                return;
+            }
+
+            for (const aiProject of projectsData) {
+                const { documents } = aiProject;
+                if (!Array.isArray(documents)) continue;
+
+                for (const doc of documents) {
+                    const { documentId, summary } = doc;
+                    if (!documentId) continue;
+
+                    const docExists = await prisma.projectDocumentUpload.findUnique({
+                        where: { id: documentId }
+                    });
+
+                    if (docExists && summary) {
+                        await prisma.projectDocumentUpload.update({
+                            where: { id: documentId },
+                            data: { aiDocumentSummary: summary }
+                        });
+                    }
+                }
+            }
+            console.log(`Bulk Document AI Sync completed successfully`);
+        } catch (error) {
+            console.error("Bulk Document AI Sync failed:", error.message);
+        }
+    },
+
+    syncDocumentAiSummaryBackground: async (prisma, documentIds, userId) => {
+        try {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            await ProjectDocumentService.syncAllDocumentsFromAi(prisma);
+        } catch (error) {
+            console.error("Background document sync failed:", error);
+        }
+    },
 
 };
