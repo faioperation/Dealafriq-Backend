@@ -3,6 +3,7 @@ import prisma from "../prisma/client.js";
 import { PMProjectManagementService } from "../modules/ProjectManager/project_management/project_management.service.js";
 import { ProjectMeetingService } from "../modules/ProjectManager/projectMeeting/projectMeeting.service.js";
 import { RaiddService } from "../modules/ProjectManager/raiddManagement/raidd.service.js";
+import { ProjectDocumentService } from "../modules/ProjectManager/projectDocument/projectDocument.service.js";
 
 /**
  * Initialize AI sync cron job
@@ -22,6 +23,10 @@ export const initAiSyncCron = () => {
             // 2. Sync Projects (All projects)
             console.log("Syncing Projects AI Summary & Progress...🛑");
             const projectsData = await PMProjectManagementService.syncAllProjectsFromAi(prisma);
+
+            // 2.5 Sync Documents (All documents)
+            console.log("Syncing Documents AI Summary...📄");
+            await ProjectDocumentService.syncAllDocumentsFromAi(prisma);
 
             // 3. Sync RAIDD (All projects) - reusing project data if available
             console.log("Syncing RAIDD AI Data...🚄");
