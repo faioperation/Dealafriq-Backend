@@ -95,7 +95,7 @@ model ActivityLog {
   userId    String
   timestamp DateTime @default(now())
   projectId String?
-  project   Project? @relation("ProjectActivityLogs", fields: [projectId], references: [id])
+  project   Project? @relation("ProjectActivityLogs", fields: [projectId], references: [id], onDelete: Cascade)
   user      User     @relation("UserActivityLogs", fields: [userId], references: [id])
 
   @@map("activity_logs")
@@ -354,7 +354,7 @@ model MeetingTranscript {
   parsedData Json
   createdAt  DateTime @default(now())
   projectId  String?
-  project    Project? @relation("ProjectTranscripts", fields: [projectId], references: [id])
+  project    Project? @relation("ProjectTranscripts", fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@map("meeting_transcripts")
@@ -499,7 +499,7 @@ model Raidd {
   created_at  DateTime     @default(now())
   updated_at  DateTime     @updatedAt
   deleted_at  DateTime?
-  project     Project      @relation(fields: [projectId], references: [id])
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("raidd")
 }
@@ -571,7 +571,7 @@ model LessonLearn {
   current_situation_summary String?
   historical_insights       Json?
   status                    String?
-  project                   Project   @relation(fields: [projectId], references: [id])
+  project                   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@map("lesson_learns")
@@ -591,7 +591,7 @@ model GoogleCalendarEvent {
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
   deleted_at    DateTime?
-  project       Project?  @relation("ProjectCalendarEvents", fields: [projectId], references: [id])
+  project       Project?  @relation("ProjectCalendarEvents", fields: [projectId], references: [id], onDelete: Cascade)
   user          User      @relation("UserCalendarEvents", fields: [userId], references: [id])
 
   @@index([userId])
@@ -613,7 +613,6 @@ model Message {
   @@index([userId, createdAt])
   @@map("messages")
 }
-
 
 
 enum UserRole {
@@ -708,16 +707,7 @@ enum SenderType {
   AGENT
 }
 
-enum NotificationType {
-  CALENDAR_EVENT
-  ZOOM_MEETING
-  SYSTEM
-}
 
-enum NotificationStatus {
-  READ
-  UNREAD
-}
 model Notification {
   id           String             @id @default(uuid())
   userId       String
@@ -733,4 +723,14 @@ model Notification {
   user         User               @relation(fields: [userId], references: [id])
 
   @@map("notifications")
+}
+enum NotificationType {
+  CALENDAR_EVENT
+  ZOOM_MEETING
+  SYSTEM
+}
+
+enum NotificationStatus {
+  READ
+  UNREAD
 }
