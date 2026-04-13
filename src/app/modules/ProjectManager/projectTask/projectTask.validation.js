@@ -8,6 +8,14 @@ const createProjectTaskSchema = z.object({
         endDate: z.string().optional(),
         priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
         status: z.enum(["PENDING", "IN_PROGRESS", "REVIEW", "COMPLETED", "BLOCKED"]).optional(),
+    }).refine((data) => {
+        if (data.startDate && data.endDate) {
+            return new Date(data.endDate) >= new Date(data.startDate);
+        }
+        return true;
+    }, {
+        message: "End date can not be before start date",
+        path: ["endDate"],
     }),
 });
 
@@ -18,6 +26,14 @@ const updateProjectTaskSchema = z.object({
         endDate: z.string().optional(),
         priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
         status: z.enum(["PENDING", "IN_PROGRESS", "REVIEW", "COMPLETED", "BLOCKED"]).optional(),
+    }).refine((data) => {
+        if (data.startDate && data.endDate) {
+            return new Date(data.endDate) >= new Date(data.startDate);
+        }
+        return true;
+    }, {
+        message: "End date can not be before start date",
+        path: ["endDate"],
     }),
 });
 

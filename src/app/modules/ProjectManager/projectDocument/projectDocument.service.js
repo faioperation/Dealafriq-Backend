@@ -32,16 +32,26 @@ export const ProjectDocumentService = {
         if (!payloads || payloads.length === 0) return [];
 
         // Use the first payload to verify ownership (all should have the same projectId)
-        await verifyProjectOwnership(prisma, payloads[0].projectId, userId);
+        const project = await verifyProjectOwnership(prisma, payloads[0].projectId, userId);
 
         // We use a transaction or just map multiple creates to get returning data
         const results = await Promise.all(payloads.map(async (payload) => {
+            if (payload.setDate && project.startDate) {
+                const dSet = new Date(payload.setDate);
+                const dStart = new Date(project.startDate);
+                dSet.setUTCHours(0, 0, 0, 0);
+                dStart.setUTCHours(0, 0, 0, 0);
+                if (dSet < dStart) {
+                    throw new AppError(StatusCodes.BAD_REQUEST, "Document set date can not be before project start date");
+                }
+            }
+
             const { keyPoints, actionPoints, ...docData } = payload;
 
             const nestedData = {
                 ...docData,
                 title: docData.title || docData.fileName || "Untitled Document",
-                setDate: docData.setDate ? new Date(docData.setDate) : undefined
+                setDate: payload.setDate ? new Date(payload.setDate) : undefined
             };
 
             if (keyPoints && Array.isArray(keyPoints)) {
