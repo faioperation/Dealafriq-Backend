@@ -22,6 +22,10 @@ router.get(
     checkAuthMiddleware(Role.ADMIN, Role.SYSTEM_OWNER),
     ProjectManagerController.getAllProjectManagers
 );
+router.get(
+    "/all/for-ai",
+    ProjectManagerController.getAllProjectManagers
+);
 
 router.get(
     "/:id",
