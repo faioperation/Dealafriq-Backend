@@ -59,7 +59,13 @@ const createProjectSchema = z.object({
         meetings: z.preprocess(parseMeetings, z.array(z.object({
             title: z.string().optional(),
             meetingUrl: z.string().url("Invalid meeting URL").optional().or(z.literal("")),
-            meetingDate: z.string().optional(),
+            meetingDate: z.string().optional().refine((val) => {
+                if (!val) return true;
+                const meetingD = new Date(val);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return meetingD >= today;
+            }, { message: "Meeting date cannot be in the past" }),
         }))).optional(),
         documents: z.preprocess(parseJSON, z.array(z.object({
             fileName: z.string().optional(),
@@ -74,6 +80,14 @@ const createProjectSchema = z.object({
             fileType: z.string().optional(),
         }))).optional(),
         cancelledReason: z.string().optional(),
+    }).refine((data) => {
+        if (data.startDate && data.endDate) {
+            return new Date(data.endDate) >= new Date(data.startDate);
+        }
+        return true;
+    }, {
+        message: "End date can not be before start date",
+        path: ["endDate"],
     }),
 });
 
@@ -87,6 +101,14 @@ const updateProjectSchema = z.object({
         assignTeamId: z.string().uuid("Invalid assign team ID").optional(),
         status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
         cancelledReason: z.string().optional(),
+    }).refine((data) => {
+        if (data.startDate && data.endDate) {
+            return new Date(data.endDate) >= new Date(data.startDate);
+        }
+        return true;
+    }, {
+        message: "End date can not be before start date",
+        path: ["endDate"],
     }),
 });
 
