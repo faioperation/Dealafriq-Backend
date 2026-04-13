@@ -57,6 +57,49 @@ const getVendorsByProjectManagerId = async (projectManagerId) => {
     return vendorsWithEmails;
 };
 
+const getAllVendors = async () => {
+    const vendors = await prisma.vendor.findMany({
+        where: {
+            deletedAt: null
+        },
+        include: {
+            projects: true,
+            emails: true
+        }
+    });
+
+    // Extracting comprehensive emails strictly matching the vendor's email address
+    const vendorsWithEmails = await Promise.all(vendors.map(async (vendor) => {
+        let matchingEmails = [];
+        if (vendor.email) {
+            matchingEmails = await prisma.email.findMany({
+                where: {
+                    OR: [
+                        { senderEmail: vendor.email },
+                        { vendorEmail: vendor.email },
+                        { receiverEmail: vendor.email }
+                    ]
+                }
+            });
+        }
+
+        const uniqueEmails = [...vendor.emails, ...matchingEmails].reduce((acc, current) => {
+            if (!acc.some(e => e.id === current.id)) {
+                acc.push(current);
+            }
+            return acc;
+        }, []);
+
+        return {
+            ...vendor,
+            emails: uniqueEmails
+        };
+    }));
+
+    return vendorsWithEmails;
+};
+
 export const AdminVendorService = {
-    getVendorsByProjectManagerId
+    getVendorsByProjectManagerId,
+    getAllVendors
 };
