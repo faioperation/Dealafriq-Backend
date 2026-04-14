@@ -180,6 +180,7 @@ model Project {
   meetings             ProjectMeeting[]
   milestones           ProjectMilestone[]
   tasks                ProjectTask[]
+  messages             Message[]               @relation("ProjectMessages")
   assignTeam           Team?                   @relation("AssignTeam", fields: [assignTeamId], references: [id])
   createdBy            User                    @relation("ProjectCreatedBy", fields: [createdById], references: [id])
   manager              User                    @relation("ProjectManager", fields: [managerId], references: [id])
@@ -608,7 +609,10 @@ model Message {
   createdAt    DateTime   @default(now())
   documentPath String?
   documentUrl  String?
+  sessionId    String?
+  projectId    String?
   user         User       @relation(fields: [userId], references: [id])
+  project      Project?   @relation("ProjectMessages", fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@map("messages")

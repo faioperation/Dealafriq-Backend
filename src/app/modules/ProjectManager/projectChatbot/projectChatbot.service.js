@@ -13,6 +13,8 @@ export const ProjectChatbotService = {
         agentName: payload.agentName ?? null,
         documentUrl: payload.documentUrl ?? null,
         documentPath: payload.documentPath ?? null,
+        sessionId: payload.sessionId ?? null,
+        projectId: payload.projectId ?? null,
       },
       include: {
         user: {
@@ -44,6 +46,52 @@ export const ProjectChatbotService = {
     });
   },
 
+  // Get ALL messages by session id for the logged-in user
+  getMessagesBySessionId: async (prisma, sessionId, userId) => {
+    return prisma.message.findMany({
+      where: { sessionId, userId },
+      orderBy: { createdAt: "asc" },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+    });
+  },
+  // Get all chatbot sessions for the logged-in user
+  getChatbotSessions: async (prisma, userId) => {
+    const messages = await prisma.message.findMany({
+      where: { userId, sessionId: { not: null } },
+      orderBy: { createdAt: "desc" },
+      select: {
+        sessionId: true,
+        projectId: true,
+        createdAt: true,
+        project: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    const sessions = [];
+    const seenSessionIds = new Set();
+
+    for (const message of messages) {
+      if (message.sessionId && !seenSessionIds.has(message.sessionId)) {
+        seenSessionIds.add(message.sessionId);
+        sessions.push({
+          sessionId: message.sessionId,
+          projectId: message.projectId,
+          projectName: message.project?.name ?? null,
+          lastMessageAt: message.createdAt,
+        });
+      }
+    }
+
+    return sessions;
+  },
   // Get single message (must belong to the logged-in user)
   getSingleMessage: async (prisma, id, userId) => {
     const message = await prisma.message.findUnique({
