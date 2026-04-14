@@ -22,6 +22,20 @@ router.get(
     ProjectChatbotController.getMyMessages,
 );
 
+// GET    /project-manager/project-chatbot/sessions
+router.get(
+    "/sessions",
+    checkAuthMiddleware(Role.PROJECT_MANAGER),
+    ProjectChatbotController.getChatbotSessions,
+);
+
+// GET    /project-manager/project-chatbot/session/:sessionId
+router.get(
+    "/session/:sessionId",
+    checkAuthMiddleware(Role.PROJECT_MANAGER),
+    ProjectChatbotController.getMessagesBySessionId,
+);
+
 // GET    /project-manager/project-chatbot/:id
 router.get(
     "/:id",

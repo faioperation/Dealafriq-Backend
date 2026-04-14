@@ -7,6 +7,8 @@ const createMessageSchema = z.object({
         agentName: z.string().optional(),
         documentUrl: z.string().url("Invalid document URL").optional(),
         documentPath: z.string().optional(),
+        sessionId: z.string().optional(),
+        projectId: z.string().optional(),
     }),
 });
 
