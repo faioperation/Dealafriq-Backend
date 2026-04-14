@@ -83,6 +83,17 @@ export const PMProjectManagementService = {
         // Initialize standardized health
         await ProjectHealthService.calculateAndUpsertHealth(prisma, project.id, payload.health);
 
+        // Create a baseline LessonLearn record immediately on project creation
+        await LessonLearnService.createLessonLearn(prisma, {
+            projectId: project.id,
+            projectName: project.name,
+            title: `Lesson Learn for ${project.name}`,
+            description: "Lesson learn record created at project creation. AI insights will update this record once available.",
+            source: "System",
+            status: "PENDING",
+            loggedDate: new Date().toISOString(),
+        }, userId);
+
         // Fire and forget (Background Task)
         PMProjectManagementService.syncProjectAiStatusBackground(prisma, project.id, userId).catch(err => {
             console.error("Critical error in background AI sync:", err);
