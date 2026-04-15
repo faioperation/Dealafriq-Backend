@@ -19,9 +19,16 @@ const getVendorsByProjectManagerId = async (projectManagerId) => {
             deletedAt: null
         },
         include: {
-            projects: true,
+            projects: {
+                select: {
+                    id: true,
+                    name: true,
+                    vendorName: true,
+                },
+            },
             emails: true
         }
+
     });
 
     // Further enrich by explicitly finding emails that strictly match the vendor's email address
@@ -63,9 +70,16 @@ const getAllVendors = async () => {
             deletedAt: null
         },
         include: {
-            projects: true,
+            projects: {
+                select: {
+                    id: true,
+                    name: true,
+                    vendorName: true,
+                },
+            },
             emails: true
         }
+
     });
 
     // Extracting comprehensive emails strictly matching the vendor's email address
