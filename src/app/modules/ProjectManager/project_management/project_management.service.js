@@ -7,6 +7,8 @@ import axios from "axios";
 import { envVars } from "../../../config/env.js";
 import { LessonLearnService } from "../leasonLearn/leasonLearn.service.js";
 import { ProjectHealthService } from "../projectHealth/projectHealth.service.js";
+import { VendorService } from "../vendorManagement/vendor.service.js";
+
 
 export const PMProjectManagementService = {
     createProject: async (prisma, payload, userId) => {
@@ -98,6 +100,14 @@ export const PMProjectManagementService = {
         PMProjectManagementService.syncProjectAiStatusBackground(prisma, project.id, userId).catch(err => {
             console.error("Critical error in background AI sync:", err);
         });
+
+        // Trigger vendor AI sync if a vendor is associated
+        if (payload.vendorId) {
+            VendorService.syncAllVendorsFromAi(prisma).catch(err => {
+                console.error("Error in background vendor AI sync from project creation:", err);
+            });
+        }
+
 
         await ActivityLogService.createLog(prisma, {
             type: "project",

@@ -1,4 +1,7 @@
 import prisma from "../../../prisma/client.js";
+import axios from "axios";
+import { envVars } from "../../../config/env.js";
+
 
 const createVendor = async (data, user) => {
     const {
@@ -17,12 +20,25 @@ const createVendor = async (data, user) => {
             } : undefined
         },
         include: {
-            projects: true
+            projects: {
+                select: {
+                    id: true,
+                    name: true,
+                    vendorName: true,
+                },
+            },
         }
+
+    });
+
+    // Fire and forget (Background Task)
+    syncAllVendorsFromAi(prisma).catch(err => {
+        console.error("Critical error in background vendor AI sync:", err);
     });
 
     return vendor;
 };
+
 
 const getAllVendors = async (query) => {
     const vendors = await prisma.vendor.findMany({
@@ -30,8 +46,15 @@ const getAllVendors = async (query) => {
             deletedAt: null
         },
         include: {
-            projects: true
+            projects: {
+                select: {
+                    id: true,
+                    name: true,
+                    vendorName: true,
+                },
+            },
         }
+
     });
     return vendors;
 };
@@ -40,8 +63,15 @@ const getVendorById = async (id) => {
     const vendor = await prisma.vendor.findUnique({
         where: { id },
         include: {
-            projects: true
+            projects: {
+                select: {
+                    id: true,
+                    name: true,
+                    vendorName: true,
+                },
+            },
         }
+
     });
     return vendor;
 };
@@ -72,8 +102,15 @@ const updateVendor = async (id, data, user) => {
         where: { id },
         data: updateData,
         include: {
-            projects: true
+            projects: {
+                select: {
+                    id: true,
+                    name: true,
+                    vendorName: true,
+                },
+            },
         }
+
     });
 
     return vendor;
@@ -90,10 +127,62 @@ const deleteVendor = async (id, user) => {
     return vendor;
 };
 
+const syncAllVendorsFromAi = async (prisma) => {
+    try {
+        const apiUrl = `${envVars.API_AI}/summary/vendor`;
+        const response = await axios.post(apiUrl, {}, {
+            headers: {
+                'x-backend-service': 'PROJECT_AI_BACKEND'
+            }
+        });
+
+        const projectsVendorsData = response.data;
+        if (!Array.isArray(projectsVendorsData)) {
+            console.error("Invalid AI API response for bulk vendor sync");
+            return;
+        }
+
+        for (const projectData of projectsVendorsData) {
+            const { session, vendors } = projectData;
+            if (!Array.isArray(vendors)) continue;
+
+            for (const vendorAiData of vendors) {
+                const { vendorId, ...restOfVendorData } = vendorAiData;
+                if (!vendorId) continue;
+
+                // Check if vendor exists in database
+                const vendorExists = await prisma.vendor.findUnique({
+                    where: { id: vendorId }
+                });
+
+                if (vendorExists) {
+                    // Format response: combine session with vendor data (excluding unnecessary IDs if any)
+                    const formattedResponse = {
+                        session,
+                        ...restOfVendorData
+                    };
+
+                    await prisma.vendor.update({
+                        where: { id: vendorId },
+                        data: {
+                            vendorAiResponse: formattedResponse
+                        }
+                    });
+                }
+            }
+        }
+        console.log(`Bulk Vendor AI Sync completed for ${projectsVendorsData.length} project sessions`);
+    } catch (error) {
+        console.error("Bulk Vendor AI Sync failed:", error.message);
+    }
+};
+
 export const VendorService = {
     createVendor,
     getAllVendors,
     getVendorById,
     updateVendor,
-    deleteVendor
+    deleteVendor,
+    syncAllVendorsFromAi
 };
+

@@ -4,6 +4,7 @@ import { PMProjectManagementService } from "../modules/ProjectManager/project_ma
 import { ProjectMeetingService } from "../modules/ProjectManager/projectMeeting/projectMeeting.service.js";
 import { RaiddService } from "../modules/ProjectManager/raiddManagement/raidd.service.js";
 import { ProjectDocumentService } from "../modules/ProjectManager/projectDocument/projectDocument.service.js";
+import { VendorService } from "../modules/ProjectManager/vendorManagement/vendor.service.js";
 
 /**
  * Initialize AI sync cron job
@@ -31,6 +32,10 @@ export const initAiSyncCron = () => {
             // 3. Sync RAIDD (All projects) - reusing project data if available
             console.log("Syncing RAIDD AI Data...🚄");
             await RaiddService.syncAllRaiddFromAi(prisma, projectsData);
+
+            // 4. Sync Vendors (All vendors)
+            console.log("Syncing Vendors AI Summary...🏪");
+            await VendorService.syncAllVendorsFromAi(prisma);
 
             console.log(`[${new Date().toISOString()}] Bulk AI Sync Cron Job completed successfully.`);
         } catch (error) {
