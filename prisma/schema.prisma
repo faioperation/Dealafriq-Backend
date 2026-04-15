@@ -379,6 +379,7 @@ model Vendor {
   meetingLinks       Json?     @default("[]")
   documents          Json?     @default("[]")
   slas               Json?     @default("[]")
+  vendorAiResponse   Json?
   created_by         String?
   updated_by         String?
   approved_by        String?
