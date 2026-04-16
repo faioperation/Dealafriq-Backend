@@ -420,9 +420,10 @@ model Email {
   tasks          Json?
   sentiment      String?
   decisions      Json?
-  raiddAnalysis  String?
+  raiddAnalysis  Json?
   raiddMessage   String?
   emailRawId     String?
+  fullAiResponse Json?
   approvedBy     User?     @relation("EmailApprovedBy", fields: [approved_by], references: [id])
   createdBy      User?     @relation("EmailCreatedBy", fields: [created_by], references: [id])
   deletedBy      User?     @relation("EmailDeletedBy", fields: [deleted_by], references: [id])
@@ -455,10 +456,11 @@ model Outlook {
   tasks            Json?
   sentiment        String?
   decisions        Json?
-  raiddAnalysis    String?
-  raiddMessage     String?
-  outlookRawId     String?
-  approvedBy       User?     @relation("OutlookApprovedBy", fields: [approved_by], references: [id])
+  raiddAnalysis    Json?
+  raiddMessage      String?
+  outlookRawId      String?
+  fullAiResponse    Json?
+  approvedBy        User?     @relation("OutlookApprovedBy", fields: [approved_by], references: [id])
   createdBy        User?     @relation("OutlookCreatedBy", fields: [created_by], references: [id])
   deletedBy        User?     @relation("OutlookDeletedBy", fields: [deleted_by], references: [id])
   updatedBy        User?     @relation("OutlookUpdatedBy", fields: [updated_by], references: [id])
@@ -481,7 +483,7 @@ model AiDetection {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
-  raiddAnalysis String?
+  raiddAnalysis Json?
   raiddMessage  String?
   fullAiResponse Json?
 
