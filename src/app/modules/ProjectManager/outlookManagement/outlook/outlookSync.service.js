@@ -69,7 +69,8 @@ const syncOutlookEmail = async (payload) => {
                     raiddAnalysis: aiResult.raiddAnalysis,
                     raiddMessage: aiResult.raiddMessage,
                     decisions: aiResult.decisions,
-                    sentiment: aiResult.sentiment
+                    sentiment: aiResult.sentiment,
+                    fullAiResponse: aiResult.fullAiResponse
                 }
             });
             console.log(`[AI Sync Outlook] Record updated successfully for ID: ${outlookEmail.id}`);
@@ -90,7 +91,7 @@ const syncOutlookEmail = async (payload) => {
                 raiddMessage: aiResult.raiddMessage,
                 sourceType: outlookEmail.source || 'outlook',
                 managerId: outlookEmail.created_by,
-                fullAiResponse: aiResult
+                fullAiResponse: aiResult.fullAiResponse
             }, outlookEmail.created_by);
         }
     } else {

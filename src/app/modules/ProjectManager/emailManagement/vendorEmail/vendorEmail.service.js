@@ -175,7 +175,8 @@ const syncEmail = async (payload) => {
                     raiddAnalysis: aiResult.raiddAnalysis,
                     raiddMessage: aiResult.raiddMessage,
                     decisions: aiResult.decisions,
-                    sentiment: aiResult.sentiment
+                    sentiment: aiResult.sentiment,
+                    fullAiResponse: aiResult.fullAiResponse
                 }
             });
             console.log(`[AI Sync] Record updated successfully for Email ID: ${email.id}`);
@@ -196,7 +197,7 @@ const syncEmail = async (payload) => {
                 raiddMessage: aiResult.raiddMessage,
                 sourceType: email.source || 'email',
                 managerId: email.created_by,
-                fullAiResponse: aiResult
+                fullAiResponse: aiResult.fullAiResponse
             }, email.created_by);
         }
     } else {
