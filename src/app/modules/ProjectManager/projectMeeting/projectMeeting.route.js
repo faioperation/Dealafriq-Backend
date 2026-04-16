@@ -23,6 +23,12 @@ router.get(
 );
 
 router.get(
+    "/my-meetings",
+    checkAuthMiddleware(Role.PROJECT_MANAGER),
+    ProjectMeetingController.getMyMeetings,
+);
+
+router.get(
     "/:id",
     checkAuthMiddleware(Role.PROJECT_MANAGER),
     ProjectMeetingController.getSingleMeeting,

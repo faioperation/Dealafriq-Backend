@@ -7,6 +7,8 @@ import { GoogleCalendarService } from "../googleCalender/googleCalender.service.
 import { buildFileUrl } from "../../../utils/buildFileUrl.js";
 import { TranscriptParser } from "../../../utils/transcript.parser.js";
 import path from "path";
+import { QueryBuilder } from "../../../utils/QueryBuilder.js";
+import { projectMeetingSearchableFields } from "../../../constant.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
@@ -142,6 +144,47 @@ export const ProjectMeetingService = {
         });
 
         return meetings.map(({ meetingUrl, ...meeting }) => meeting);
+    },
+
+    getMyMeetings: async (prisma, userId, query) => {
+        const queryBuilder = new QueryBuilder(query)
+            .search(projectMeetingSearchableFields)
+            .filter({}, {}) 
+            .sort("-createdAt")
+            .paginate();
+
+        const buildQuery = queryBuilder.build();
+        buildQuery.where = {
+            ...buildQuery.where,
+            project: {
+                managerId: userId,
+                deletedAt: null
+            }
+        };
+
+        const [result, total] = await Promise.all([
+            prisma.projectMeeting.findMany({
+                ...buildQuery,
+                include: {
+                    project: {
+                        select: {
+                            id: true,
+                            name: true,
+                        }
+                    },
+                    keyPoints: true,
+                    actionPoints: true,
+                },
+            }),
+            prisma.projectMeeting.count({ where: buildQuery.where }),
+        ]);
+
+        const dataWithoutUrl = result.map(({ meetingUrl, ...meeting }) => meeting);
+
+        return {
+            meta: queryBuilder.getMeta(total),
+            data: dataWithoutUrl,
+        };
     },
 
     getSingleMeeting: async (prisma, id, userId) => {

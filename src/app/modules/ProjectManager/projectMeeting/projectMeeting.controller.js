@@ -27,6 +27,17 @@ const getAllMeetings = catchAsync(async (req, res) => {
     });
 });
 
+const getMyMeetings = catchAsync(async (req, res) => {
+    const result = await ProjectMeetingService.getMyMeetings(prisma, req.user.id, req.query);
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: "Meetings fetched successfully",
+        meta: result.meta,
+        data: result.data,
+    });
+});
+
 const getSingleMeeting = catchAsync(async (req, res) => {
     const result = await ProjectMeetingService.getSingleMeeting(prisma, req.params.id, req.user.id);
     sendResponse(res, {
@@ -60,6 +71,7 @@ const deleteMeeting = catchAsync(async (req, res) => {
 export const ProjectMeetingController = {
     createMeeting,
     getAllMeetings,
+    getMyMeetings,
     getSingleMeeting,
     updateMeeting,
     deleteMeeting,
