@@ -89,7 +89,8 @@ const syncOutlookEmail = async (payload) => {
                 raiddAnalysis: aiResult.raiddAnalysis,
                 raiddMessage: aiResult.raiddMessage,
                 sourceType: outlookEmail.source || 'outlook',
-                managerId: outlookEmail.created_by
+                managerId: outlookEmail.created_by,
+                fullAiResponse: aiResult
             }, outlookEmail.created_by);
         }
     } else {

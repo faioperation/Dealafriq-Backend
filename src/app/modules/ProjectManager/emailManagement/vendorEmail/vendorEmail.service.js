@@ -195,7 +195,8 @@ const syncEmail = async (payload) => {
                 raiddAnalysis: aiResult.raiddAnalysis,
                 raiddMessage: aiResult.raiddMessage,
                 sourceType: email.source || 'email',
-                managerId: email.created_by
+                managerId: email.created_by,
+                fullAiResponse: aiResult
             }, email.created_by);
         }
     } else {
