@@ -483,6 +483,7 @@ model AiDetection {
   deletedAt     DateTime?
   raiddAnalysis String?
   raiddMessage  String?
+  fullAiResponse Json?
 
   @@map("AI_detection")
 }

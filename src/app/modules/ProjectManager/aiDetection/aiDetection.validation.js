@@ -6,6 +6,7 @@ const createAiDetectionSchema = z.object({
         summary: z.string().optional(),
         sourceType: z.string().min(1, "Source type is required"),
         managerId: z.string().optional(),
+        fullAiResponse: z.any().optional(),
     }),
 });
 
@@ -15,6 +16,7 @@ const updateAiDetectionSchema = z.object({
         summary: z.string().optional(),
         sourceType: z.string().optional(),
         managerId: z.string().optional(),
+        fullAiResponse: z.any().optional(),
     }),
 });
 
