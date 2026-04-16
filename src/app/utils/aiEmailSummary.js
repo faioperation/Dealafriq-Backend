@@ -90,11 +90,12 @@ const getAiEmailSummary = async (body) => {
 
         const result = {
             tasks,
-            raiddAnalysis: raiddAnalysisKey,
+            raiddAnalysis: data.category || (raiddAnalysisKey ? [raiddAnalysisKey] : []),
             raiddMessage: raiddMessageValue,
             decisions: decisionsStr,
             sentiment: data.sentiment || null,
-            summary: data.summary || null
+            summary: data.summary || null,
+            fullAiResponse: response.data // Include the full raw response from the API
         };
 
         console.log('[AI Utility] Returning result to service:', JSON.stringify(result, null, 2));
