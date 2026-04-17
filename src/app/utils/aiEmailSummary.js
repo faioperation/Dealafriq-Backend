@@ -106,6 +106,57 @@ const getAiEmailSummary = async (body) => {
     }
 };
 
+
+/**
+ * Call AI Chatbot API to generate a reply
+ * @param {string} userId - ID of the user
+ * @param {string} emailId - ID of the email/outlook record
+ * @param {string} type - 'email' or 'outlook'
+ */
+const getGeneratedReply = async (userId, emailId, type) => {
+    if (!userId || !emailId) return null;
+
+    try {
+        const apiUrl = `${envVars.AI_CHATBOT_API}/emails/draft-reply`;
+        console.log(`[AI Chatbot] Requesting reply for ${type} ID: ${emailId} (User: ${userId})`);
+
+        const response = await axios.post(apiUrl, {
+            user_id: userId,
+            email_id: emailId
+        }, {
+            headers: {
+                'x-backend-service': 'PROJECT_AI_BACKEND'
+            },
+            timeout: 300000 // 5 minutes
+        });
+
+        if (response.data) {
+            console.log(`[AI Chatbot] Response received for ${type} ID: ${emailId}`);
+            
+            // Update the database record with the response
+            if (type === 'email') {
+                await prisma.email.update({
+                    where: { id: emailId },
+                    data: { generatedReply: response.data }
+                });
+            } else if (type === 'outlook') {
+                await prisma.outlook.update({
+                    where: { id: emailId },
+                    data: { generatedReply: response.data }
+                });
+            }
+            console.log(`[AI Chatbot] Database updated for ${type} ID: ${emailId}`);
+            return response.data;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error(`[AI Chatbot] Error generating reply for ${type} ID: ${emailId}:`, error.response?.data || error.message);
+        return null;
+    }
+};
+
 export const AiEmailSummaryUtils = {
-    getAiEmailSummary
+    getAiEmailSummary,
+    getGeneratedReply
 };

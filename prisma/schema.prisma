@@ -424,6 +424,7 @@ model Email {
   raiddMessage   String?
   emailRawId     String?
   fullAiResponse Json?
+  generatedReply Json?
   approvedBy     User?     @relation("EmailApprovedBy", fields: [approved_by], references: [id])
   createdBy      User?     @relation("EmailCreatedBy", fields: [created_by], references: [id])
   deletedBy      User?     @relation("EmailDeletedBy", fields: [deleted_by], references: [id])
@@ -460,6 +461,7 @@ model Outlook {
   raiddMessage      String?
   outlookRawId      String?
   fullAiResponse    Json?
+  generatedReply    Json?
   approvedBy        User?     @relation("OutlookApprovedBy", fields: [approved_by], references: [id])
   createdBy        User?     @relation("OutlookCreatedBy", fields: [created_by], references: [id])
   deletedBy        User?     @relation("OutlookDeletedBy", fields: [deleted_by], references: [id])
