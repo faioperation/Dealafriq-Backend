@@ -53,6 +53,11 @@ const syncOutlookEmail = async (payload) => {
         data: emailData
     });
 
+    // Call AI generate reply asynchronously (non-blocking) - Always call on creation
+    if (outlookEmail.created_by) {
+        AiEmailSummaryUtils.getGeneratedReply(outlookEmail.created_by, outlookEmail.id, 'outlook');
+    }
+
     // 2. Call AI Summary API and wait for response (blocks here)
     if (outlookEmail.body) {
         console.log(`[AI Sync Outlook] Requesting AI summary for Outlook Message ID: ${outlookMessageId} (ID: ${outlookEmail.id})`);
