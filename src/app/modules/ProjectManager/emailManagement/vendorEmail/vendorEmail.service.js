@@ -34,9 +34,16 @@ const createEmail = async (payload) => {
         vendorEmail: vendor ? (vendor.email === senderEmail ? vendor.email : vendor.contactEmail) : null
     };
 
-    return await prisma.email.create({
+    const email = await prisma.email.create({
         data: emailData
     });
+
+    // Call AI generate reply asynchronously (non-blocking)
+    if (email.created_by) {
+        AiEmailSummaryUtils.getGeneratedReply(email.created_by, email.id, 'email');
+    }
+
+    return email;
 };
 
 /**
@@ -158,6 +165,11 @@ const syncEmail = async (payload) => {
     let email = await prisma.email.create({
         data: emailData
     });
+
+    // Call AI generate reply asynchronously (non-blocking) - Always call on creation
+    if (email.created_by) {
+        AiEmailSummaryUtils.getGeneratedReply(email.created_by, email.id, 'email');
+    }
 
     // 2. Call AI Summary API and wait for response (blocks here)
     if (email.body) {
