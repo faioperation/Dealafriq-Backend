@@ -45,6 +45,7 @@ const loadEnvVars = () => {
 
     "API_AI",
     "AI_CHATBOT_API",
+    "INTERNAL_BACKEND_SERVICE_KEY",
   ];
 
   requiredVars.forEach((key) => {
@@ -110,6 +111,7 @@ const loadEnvVars = () => {
     // AI API 
     API_AI: process.env.API_AI,
     AI_CHATBOT_API: process.env.AI_CHATBOT_API,
+    INTERNAL_BACKEND_SERVICE_KEY: process.env.INTERNAL_BACKEND_SERVICE_KEY,
   };
 };
 
