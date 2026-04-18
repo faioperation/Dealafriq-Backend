@@ -9,7 +9,7 @@ import { ProjectChatbotService } from "./projectChatbot.service.js";
 import { envVars } from "../../../config/env.js";
 
 const createMessage = catchAsync(async (req, res) => {
-    let { content, sender, agentName, sessionId, projectId } = req.body;
+    let { content, sender, agentName, sessionId, projectId, documentUrl } = req.body;
 
     // If projectId is provided and sessionId is empty, try to reuse existing session or generate a new one
     if (projectId && !sessionId) {
@@ -36,12 +36,12 @@ const createMessage = catchAsync(async (req, res) => {
         sender,
         agentName: agentName ?? null,
         documentPath: req.file ? `/uploads/${req.file.filename}` : null,
-        documentUrl: req.file ? `${envVars.BACKEND_URL}/uploads/${req.file.filename}` : null,
+        documentUrl: req.file ? `${envVars.BACKEND_URL}/uploads/${req.file.filename}` : (documentUrl || null),
         sessionId: sessionId ?? null,
         projectId: projectId ?? null,
     };
 
-    await ProjectChatbotService.createMessage(prisma, payload, req.user.id);
+    const userMessageResult = await ProjectChatbotService.createMessage(prisma, payload, req.user.id);
 
     let aiMessageResult = null;
 
@@ -53,7 +53,8 @@ const createMessage = catchAsync(async (req, res) => {
                 message: content,
                 session_id: sessionId || req.user.id,
                 project_id: projectId,
-                role: "USER"
+                role: "USER",
+                document_url: payload.documentUrl,
             });
 
             // If the AI returns a message string/response, save it as a new message from AGENT
@@ -78,7 +79,8 @@ const createMessage = catchAsync(async (req, res) => {
         success: true,
         message: "Message created successfully",
         data: {
-            aiMessage: aiMessageResult
+            userMessage: userMessageResult,
+            aiMessage: aiMessageResult,
         },
     });
 });
@@ -131,7 +133,7 @@ const updateMessage = catchAsync(async (req, res) => {
     // If a new file was uploaded, overwrite document fields
     if (req.file) {
         payload.documentPath = `/uploads/${req.file.filename}`;
-        payload.documentUrl = `${process.env.BACKEND_URL}/uploads/${req.file.filename}`;
+        payload.documentUrl = `${envVars.BACKEND_URL}/uploads/${req.file.filename}`;
     }
 
     const result = await ProjectChatbotService.updateMessage(

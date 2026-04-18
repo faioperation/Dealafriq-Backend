@@ -5,6 +5,8 @@ import { ProjectMeetingService } from "../modules/ProjectManager/projectMeeting/
 import { RaiddService } from "../modules/ProjectManager/raiddManagement/raidd.service.js";
 import { ProjectDocumentService } from "../modules/ProjectManager/projectDocument/projectDocument.service.js";
 import { VendorService } from "../modules/ProjectManager/vendorManagement/vendor.service.js";
+import { VendorEmailService } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.service.js";
+import { OutlookSyncService } from "../modules/ProjectManager/outlookManagement/outlook/outlookSync.service.js";
 
 /**
  * Initialize AI sync cron job
@@ -36,6 +38,11 @@ export const initAiSyncCron = () => {
             // 4. Sync Vendors (All vendors)
             console.log("Syncing Vendors AI Summary...🏪");
             await VendorService.syncAllVendorsFromAi(prisma);
+
+            // 5. Sync Emails & Outlook (Daily checks)
+            console.log("Syncing Gmail & Outlook AI Summaries...📧");
+            await VendorEmailService.syncAllEmailsFromAi(prisma);
+            await OutlookSyncService.syncAllOutlooksFromAi(prisma);
 
             console.log(`[${new Date().toISOString()}] Bulk AI Sync Cron Job completed successfully.`);
         } catch (error) {

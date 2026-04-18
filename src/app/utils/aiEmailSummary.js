@@ -1,15 +1,16 @@
 import axios from 'axios';
-import { envVars } from '../config/env.js';
+import prisma from '../prisma/client.js';
+import {envVars} from '../config/env.js';
 
-
-const getAiEmailSummary = async (body) => {
+const getAiEmailSummary = async (id, body) => {
     if (!body) return null;
 
     try {
         const apiUrl = `${envVars.API_AI}/summary/emails`;
-        console.log(`[AI Utility] Calling AI API: ${apiUrl} (Body length: ${body.length})`);
-        
+        console.log(`[AI Utility] Calling AI API for Email ID: ${id}: ${apiUrl}`);
+
         const response = await axios.post(apiUrl, {
+            email_id: id,
             body: body
         }, {
             headers: {
@@ -132,23 +133,32 @@ const getGeneratedReply = async (userId, emailId, type) => {
 
         if (response.data) {
             console.log(`[AI Chatbot] Response received for ${type} ID: ${emailId}`);
-            
-            // Update the database record with the response
+
+            // Handle potential array response
+            let responseData = response.data;
+            if (Array.isArray(responseData)) {
+                responseData = responseData[0];
+            }
+
+            // Match using email_id from response for safety
+            const targetId = responseData?.email_id || responseData?.id || emailId;
+
+            // Update the database record with the full response
             if (type === 'email') {
                 await prisma.email.update({
-                    where: { id: emailId },
-                    data: { generatedReply: response.data }
+                    where: { id: targetId },
+                    data: { generatedReply: responseData }
                 });
             } else if (type === 'outlook') {
                 await prisma.outlook.update({
-                    where: { id: emailId },
-                    data: { generatedReply: response.data }
+                    where: { id: targetId },
+                    data: { generatedReply: responseData }
                 });
             }
-            console.log(`[AI Chatbot] Database updated for ${type} ID: ${emailId}`);
-            return response.data;
+            console.log(`[AI Chatbot] Database updated for ${type} ID: ${targetId}`);
+            return responseData;
         }
-        
+
         return null;
     } catch (error) {
         console.error(`[AI Chatbot] Error generating reply for ${type} ID: ${emailId}:`, error.response?.data || error.message);

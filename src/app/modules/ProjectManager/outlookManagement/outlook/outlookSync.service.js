@@ -1,6 +1,8 @@
 import prisma from '../../../../prisma/client.js';
 import { AiEmailSummaryUtils } from '../../../../utils/aiEmailSummary.js';
 import { AiDetectionService } from '../../aiDetection/aiDetection.service.js';
+import axios from 'axios';
+import { envVars } from '../../../../config/env.js';
 
 
 /**
@@ -61,7 +63,7 @@ const syncOutlookEmail = async (payload) => {
     // 2. Call AI Summary API and wait for response (blocks here)
     if (outlookEmail.body) {
         console.log(`[AI Sync Outlook] Requesting AI summary for Outlook Message ID: ${outlookMessageId} (ID: ${outlookEmail.id})`);
-        const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(outlookEmail.body);
+        const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(outlookEmail.id, outlookEmail.body);
         
         if (aiResult) {
             console.log(`[AI Sync Outlook] AI Result received for ID: ${outlookEmail.id}. tasks: ${aiResult.tasks?.length || 0}, raiddAnalysis: ${aiResult.raiddAnalysis}`);
@@ -171,9 +173,76 @@ const deleteOutlook = async (id, userId) => {
     });
 };
 
+/**
+ * Bulk sync all outlook emails from AI
+ */
+const syncAllOutlooksFromAi = async (prisma) => {
+    try {
+        const apiUrl = `${envVars.API_AI}/summary/outlooks`;
+        console.log(`[AI Bulk Sync Outlook] Requesting bulk summary for Outlook...`);
+        
+        const response = await axios.post(apiUrl, {}, {
+            headers: {
+                'x-backend-service': 'PROJECT_AI_BACKEND'
+            }
+        });
+
+        const emailsData = response.data;
+        const results = Array.isArray(emailsData) ? emailsData : (emailsData?.data && Array.isArray(emailsData.data) ? emailsData.data : []);
+
+        if (results.length === 0) {
+            console.log("[AI Bulk Sync Outlook] No outlook data returned from AI.");
+            return;
+        }
+
+        for (const aiResult of results) {
+            const emailId = aiResult.email_id || aiResult.emailId || aiResult.id;
+            if (!emailId) continue;
+
+            const emailExists = await prisma.outlook.findUnique({
+                where: { id: emailId }
+            });
+
+            if (emailExists) {
+                const tasks = aiResult.tasks || (aiResult.actionPoints ? aiResult.actionPoints : []);
+                
+                await prisma.outlook.update({
+                    where: { id: emailId },
+                    data: {
+                        tasks: tasks,
+                        raiddAnalysis: aiResult.category || [],
+                        raiddMessage: aiResult.raiddMessage || null,
+                        decisions: Array.isArray(aiResult.decisionPoints) ? aiResult.decisionPoints.join('\n') : aiResult.decisionPoints,
+                        sentiment: aiResult.sentiment || null,
+                        fullAiResponse: aiResult
+                    }
+                });
+
+                const summaryParts = [];
+                if (tasks.length > 0) summaryParts.push(`Tasks:\n${tasks.join('\n')}`);
+                if (aiResult.decisionPoints) summaryParts.push(`Decisions:\n${aiResult.decisionPoints}`);
+
+                await AiDetectionService.createAiDetection(prisma, {
+                    title: emailExists.subject || 'New AI Detection from Outlook',
+                    summary: summaryParts.join('\n\n'),
+                    raiddAnalysis: aiResult.category || [],
+                    raiddMessage: aiResult.raiddMessage || null,
+                    sourceType: emailExists.source || 'outlook',
+                    managerId: emailExists.created_by,
+                    fullAiResponse: aiResult
+                }, emailExists.created_by);
+            }
+        }
+        console.log(`[AI Bulk Sync Outlook] Bulk Sync completed for ${results.length} records.`);
+    } catch (error) {
+        console.error("[AI Bulk Sync Outlook] Bulk Sync failed:", error.message);
+    }
+};
+
 export const OutlookSyncService = {
     syncOutlookEmail,
     getAllOutlooks,
     getSingleOutlook,
-    deleteOutlook
+    deleteOutlook,
+    syncAllOutlooksFromAi
 };

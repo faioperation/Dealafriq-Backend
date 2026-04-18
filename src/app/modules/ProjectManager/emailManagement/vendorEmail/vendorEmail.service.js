@@ -174,7 +174,7 @@ const syncEmail = async (payload) => {
     // 2. Call AI Summary API and wait for response (blocks here)
     if (email.body) {
         console.log(`[AI Sync] Requesting AI summary for Gmail Message ID: ${gmailMessageId} (ID: ${email.id})`);
-        const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(email.body);
+        const aiResult = await AiEmailSummaryUtils.getAiEmailSummary(email.id, email.body);
 
         if (aiResult) {
             console.log(`[AI Sync] AI Result received for Email ID: ${email.id}. tasks: ${aiResult.tasks?.length || 0}, raiddAnalysis: ${aiResult.raiddAnalysis}`);
@@ -219,11 +219,81 @@ const syncEmail = async (payload) => {
     return email;
 };
 
+/**
+ * Bulk sync all emails from AI
+ */
+const syncAllEmailsFromAi = async (prisma) => {
+    try {
+        const apiUrl = `${envVars.API_AI}/summary/emails`;
+        console.log(`[AI Bulk Sync] Requesting bulk summary for Gmail emails...`);
+        
+        const response = await axios.post(apiUrl, {}, {
+            headers: {
+                'x-backend-service': 'PROJECT_AI_BACKEND'
+            }
+        });
+
+        const emailsData = response.data;
+        // Handle both flat array or { data: [] } structure
+        const results = Array.isArray(emailsData) ? emailsData : (emailsData?.data && Array.isArray(emailsData.data) ? emailsData.data : []);
+
+        if (results.length === 0) {
+            console.log("[AI Bulk Sync] No email data returned from AI for bulk sync.");
+            return;
+        }
+
+        for (const aiResult of results) {
+            const emailId = aiResult.email_id || aiResult.emailId || aiResult.id;
+            if (!emailId) continue;
+
+            const emailExists = await prisma.email.findUnique({
+                where: { id: emailId }
+            });
+
+            if (emailExists) {
+                // Parse AI result exactly like in syncEmail
+                const tasks = aiResult.tasks || (aiResult.actionPoints ? aiResult.actionPoints : []);
+                
+                await prisma.email.update({
+                    where: { id: emailId },
+                    data: {
+                        tasks: tasks,
+                        raiddAnalysis: aiResult.category || [],
+                        raiddMessage: aiResult.raiddMessage || null,
+                        decisions: Array.isArray(aiResult.decisionPoints) ? aiResult.decisionPoints.join('\n') : aiResult.decisionPoints,
+                        sentiment: aiResult.sentiment || null,
+                        fullAiResponse: aiResult
+                    }
+                });
+
+                // Create AI detection record
+                const summaryParts = [];
+                if (tasks.length > 0) summaryParts.push(`Tasks:\n${tasks.join('\n')}`);
+                if (aiResult.decisionPoints) summaryParts.push(`Decisions:\n${aiResult.decisionPoints}`);
+
+                await AiDetectionService.createAiDetection(prisma, {
+                    title: emailExists.subject || 'New AI Detection from Email',
+                    summary: summaryParts.join('\n\n'),
+                    raiddAnalysis: aiResult.category || [],
+                    raiddMessage: aiResult.raiddMessage || null,
+                    sourceType: emailExists.source || 'email',
+                    managerId: emailExists.created_by,
+                    fullAiResponse: aiResult
+                }, emailExists.created_by);
+            }
+        }
+        console.log(`[AI Bulk Sync] Bulk Email AI Sync completed for ${results.length} records.`);
+    } catch (error) {
+        console.error("[AI Bulk Sync] Bulk Email AI Sync failed:", error.message);
+    }
+};
+
 export const VendorEmailService = {
     createEmail,
     getAllEmails,
     getSingleEmail,
     updateEmail,
     deleteEmail,
-    syncEmail
+    syncEmail,
+    syncAllEmailsFromAi
 };
