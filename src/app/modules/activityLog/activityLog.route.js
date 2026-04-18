@@ -3,11 +3,13 @@ import { ActivityLogController } from "./activityLog.controller.js";
 
 import { checkAuthMiddleware } from "../../middleware/checkAuthMiddleware.js";
 import { Role } from "../../utils/role.js";
+import { checkInternalService } from "../../middleware/checkInternalService.js";
 
 const router = Router();
 
 router.get(
     "/get-all-logs-for-ai",
+    checkInternalService(),
     ActivityLogController.getAllLogs
 );
 router.get(
@@ -23,6 +25,7 @@ router.get(
 );
 router.get(
     "/get-all-logs-for-ai/grouped",
+    checkInternalService(),
     ActivityLogController.getGroupedByProject
 );
 
