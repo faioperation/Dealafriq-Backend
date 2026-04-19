@@ -7,7 +7,7 @@ import validateRequest from "../../../middleware/validateRequest.js";
 import { Role } from "../../../utils/role.js";
 import { ProjectManagerController } from "./project_manager.controller.js";
 import { ProjectManagerValidation } from "./project_manager.validation.js";
-import { checkInternalService } from "../../../middleware/checkInternalService.js";
+// import { checkInternalService } from "../../../middleware/checkInternalService.js";
 
 const router = express.Router();
 
@@ -25,7 +25,7 @@ router.get(
 );
 router.get(
     "/all/for-ai",
-    checkInternalService(),
+    // checkInternalService(),
     ProjectManagerController.getAllProjectManagers
 );
 
