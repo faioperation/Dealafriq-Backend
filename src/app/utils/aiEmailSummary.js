@@ -14,7 +14,7 @@ const getAiEmailSummary = async (id, body) => {
             body: body
         }, {
             headers: {
-                'x-backend-service': 'PROJECT_AI_BACKEND'
+                'x-backend-service': envVars.AI_SERVICE_SECRET
             },
             timeout: 300000 // 5 minutes
         });
@@ -126,7 +126,7 @@ const getGeneratedReply = async (userId, emailId, type) => {
             email_id: emailId
         }, {
             headers: {
-                'x-backend-service': 'PROJECT_AI_BACKEND'
+               'x-backend-service': envVars.AI_SERVICE_SECRET
             },
             timeout: 300000 // 5 minutes
         });

@@ -314,7 +314,7 @@ export const PMProjectManagementService = {
                 // Use POST with header as required by the AI service (matching RAIDD/Meeting logic)
                 const response = await axios.post(apiUrl, {}, {
                     headers: {
-                        'x-backend-service': 'PROJECT_AI_BACKEND'
+                        'x-backend-service': envVars.AI_SERVICE_SECRET
                     }
                 });
 
@@ -381,7 +381,7 @@ export const PMProjectManagementService = {
             const apiUrl = `${envVars.API_AI}/summary/project`;
             const response = await axios.post(apiUrl, {}, {
                 headers: {
-                    'x-backend-service': 'PROJECT_AI_BACKEND'
+                    'x-backend-service': envVars.AI_SERVICE_SECRET
                 }
             });
 
