@@ -14,7 +14,7 @@ const getAiEmailSummary = async (id, body) => {
             body: body
         }, {
             headers: {
-                'x-backend-service': envVars.AI_SERVICE_SECRET
+                'x-backend-service': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImUzMDAyMTM3LTU5MmMtNGI4Mi04Nzk2LTdiOWI5YzA2MWU0NCIsImVtYWlsIjoic2hhcmFoJzaW9uIjowLCJpYXQiOjE3NzY0ODkyMzEsImV4cCI6MTc3NzA5NDAzMX0.ahuFS_2BlgjN-O6XjRQesTOlGEcqrij9J70RUO8Clh0"
             },
             timeout: 300000 // 5 minutes
         });
@@ -126,7 +126,7 @@ const getGeneratedReply = async (userId, emailId, type) => {
             email_id: emailId
         }, {
             headers: {
-               'x-backend-service': envVars.AI_SERVICE_SECRET
+               'x-backend-service': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImUzMDAyMTM3LTU5MmMtNGI4Mi04Nzk2LTdiOWI5YzA2MWU0NCIsImVtYWlsIjoic2hhcmFoJzaW9uIjowLCJpYXQiOjE3NzY0ODkyMzEsImV4cCI6MTc3NzA5NDAzMX0.ahuFS_2BlgjN-O6XjRQesTOlGEcqrij9J70RUO8Clh0"
             },
             timeout: 300000 // 5 minutes
         });
