@@ -96,7 +96,7 @@ const getAiEmailSummary = async (id, body) => {
             decisions: decisionsStr,
             sentiment: data.sentiment || null,
             summary: data.summary || null,
-            fullAiResponse: response.data // Include the full raw response from the API
+            fullAiResponse: data // Include the parsed AI response data
         };
 
         console.log('[AI Utility] Returning result to service:', JSON.stringify(result, null, 2));
