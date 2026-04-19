@@ -183,7 +183,7 @@ const syncAllOutlooksFromAi = async (prisma) => {
         
         const response = await axios.post(apiUrl, {}, {
             headers: {
-                'x-backend-service': 'PROJECT_AI_BACKEND'
+              'x-backend-service': envVars.AI_SERVICE_SECRET
             }
         });
 
