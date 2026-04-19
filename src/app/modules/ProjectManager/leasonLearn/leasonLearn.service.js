@@ -277,5 +277,4 @@ export const LessonLearnService = {
 
         return deletedLessonLearn;
     },
-    syncAllLessonLearnsFromAi,
 };
