@@ -49,7 +49,8 @@ export const LessonLearnService = {
                 project_id: project.id
             }, {
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    "x-backend-service": "PROJECT_AI_BACKEND"
                 },
                 timeout: 60000 // 1 minute timeout
             });

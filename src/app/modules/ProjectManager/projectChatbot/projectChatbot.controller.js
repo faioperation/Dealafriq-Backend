@@ -49,13 +49,21 @@ const createMessage = catchAsync(async (req, res) => {
         try {
             // Send request to AI endpoint
             const aiEndpoint = `${envVars.AI_CHATBOT_API || "https://ai2.pmify.cloud/api/v1"}/chat/`;
-            const aiResponse = await axios.post(aiEndpoint, {
-                message: content,
-                session_id: sessionId || req.user.id,
-                project_id: projectId,
-                role: "USER",
-                document_url: payload.documentUrl,
-            });
+           const aiResponse = await axios.post(
+  aiEndpoint,
+  {
+    message: content,
+    session_id: sessionId || req.user.id,
+    project_id: projectId,
+    role: "USER",
+    document_url: payload.documentUrl,
+  },
+  {
+    headers: {
+      "x-backend-service": "PROJECT_AI_BACKEND"
+    }
+  }
+);
 
             // If the AI returns a message string/response, save it as a new message from AGENT
             const aiReplyContent = aiResponse?.data?.reply;
