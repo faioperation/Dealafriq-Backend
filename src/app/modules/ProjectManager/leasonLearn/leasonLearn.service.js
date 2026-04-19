@@ -113,6 +113,25 @@ export const LessonLearnService = {
         }
     },
 
+    syncAllLessonLearnsFromAi: async (prisma) => {
+        try {
+            console.log(`[AI Bulk Sync] Requesting bulk summary for Lesson Learns...`);
+            const activeProjects = await prisma.project.findMany({
+                where: { deletedAt: null }
+            });
+
+            for (const project of activeProjects) {
+                // Pass project manager ID as the user handling sync (or fallback logic if needed)
+                await LessonLearnService.syncLessonLearnForProject(prisma, project, project.managerId);
+                // Introduce a minor delay to prevent rate-limiting the AI API if there are many projects
+                await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+            console.log(`[AI Bulk Sync] Bulk Lesson Learn AI Sync completed for ${activeProjects.length} active projects.`);
+        } catch (error) {
+            console.error("[AI Bulk Sync] Bulk Lesson Learn AI Sync failed:", error.message);
+        }
+    },
+
     getAllLessonLearns: async (prisma, userId) => {
         // 1. Fetch all active projects of the user
         const projects = await prisma.project.findMany({
@@ -258,4 +277,5 @@ export const LessonLearnService = {
 
         return deletedLessonLearn;
     },
+    syncAllLessonLearnsFromAi,
 };
