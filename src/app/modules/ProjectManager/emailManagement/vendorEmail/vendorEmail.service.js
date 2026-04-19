@@ -230,7 +230,7 @@ const syncAllEmailsFromAi = async (prisma) => {
         
         const response = await axios.post(apiUrl, {}, {
             headers: {
-                'x-backend-service': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+                'x-backend-service': "PROJECT_AI_BACKEND" // Use a different key or the same key as needed
             }
         });
 

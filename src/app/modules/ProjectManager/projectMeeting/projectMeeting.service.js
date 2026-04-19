@@ -325,7 +325,7 @@ export const ProjectMeetingService = {
 
             const response = await axios.post(`${envVars.API_AI}/summary/meeting`, {}, {
                 headers: {
-                  'x-backend-service': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+                  'x-backend-service': "PROJECT_AI_BACKEND"
                 }
             });
             const projectsData = response.data;

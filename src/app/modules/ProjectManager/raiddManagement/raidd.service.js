@@ -247,7 +247,7 @@ export const RaiddService = {
 
             const response = await axios.post(`${envVars.API_AI}/summary/project`, {}, {
                 headers: {
-                   'x-backend-service': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+                   'x-backend-service': "PROJECT_AI_BACKEND"
                 }
             });
             
@@ -304,7 +304,7 @@ export const RaiddService = {
             if (!projectsData) {
                 const response = await axios.post(`${envVars.API_AI}/summary/project`, {}, {
                     headers: {
-                        'x-backend-service': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+                        'x-backend-service': "PROJECT_AI_BACKEND"
                     }
                 });
                 projectsData = response.data;
