@@ -247,7 +247,7 @@ export const RaiddService = {
 
             const response = await axios.post(`${envVars.API_AI}/summary/project`, {}, {
                 headers: {
-                    'x-backend-service': 'PROJECT_AI_BACKEND'
+                   'x-backend-service': envVars.AI_SERVICE_SECRET
                 }
             });
             
@@ -304,7 +304,7 @@ export const RaiddService = {
             if (!projectsData) {
                 const response = await axios.post(`${envVars.API_AI}/summary/project`, {}, {
                     headers: {
-                        'x-backend-service': 'PROJECT_AI_BACKEND'
+                        'x-backend-service': envVars.AI_SERVICE_SECRET
                     }
                 });
                 projectsData = response.data;

@@ -1,3 +1,4 @@
+import { envVars } from '../../../../config/env.js';
 import prisma from '../../../../prisma/client.js';
 import { AiEmailSummaryUtils } from '../../../../utils/aiEmailSummary.js';
 import { AiDetectionService } from '../../aiDetection/aiDetection.service.js';
@@ -229,7 +230,7 @@ const syncAllEmailsFromAi = async (prisma) => {
         
         const response = await axios.post(apiUrl, {}, {
             headers: {
-                'x-backend-service': 'PROJECT_AI_BACKEND'
+                'x-backend-service': envVars.AI_SERVICE_SECRET
             }
         });
 
