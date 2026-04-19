@@ -178,7 +178,7 @@ const deleteOutlook = async (id, userId) => {
  */
 const syncAllOutlooksFromAi = async (prisma) => {
     try {
-        const apiUrl = `${envVars.API_AI}/summary/outlooks`;
+        const apiUrl = `${envVars.API_AI}/summary/outlook`;
         console.log(`[AI Bulk Sync Outlook] Requesting bulk summary for Outlook...`);
         
         const response = await axios.post(apiUrl, {}, {
