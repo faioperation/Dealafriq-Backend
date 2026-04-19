@@ -230,7 +230,7 @@ const syncAllEmailsFromAi = async (prisma) => {
         
         const response = await axios.post(apiUrl, {}, {
             headers: {
-                'x-backend-service': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImUzMDAyMTM3LTU5MmMtNGI4Mi04Nzk2LTdiOWI5YzA2MWU0NCIsImVtYWlsIjoic2hhcmFoJzaW9uIjowLCJpYXQiOjE3NzY0ODkyMzEsImV4cCI6MTc3NzA5NDAzMX0.ahuFS_2BlgjN-O6XjRQesTOlGEcqrij9J70RUO8Clh0"
+                'x-backend-service': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
             }
         });
 
