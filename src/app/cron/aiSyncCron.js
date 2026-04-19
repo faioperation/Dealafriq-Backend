@@ -7,6 +7,7 @@ import { ProjectDocumentService } from "../modules/ProjectManager/projectDocumen
 import { VendorService } from "../modules/ProjectManager/vendorManagement/vendor.service.js";
 import { VendorEmailService } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.service.js";
 import { OutlookSyncService } from "../modules/ProjectManager/outlookManagement/outlook/outlookSync.service.js";
+import { LessonLearnService } from "../modules/ProjectManager/leasonLearn/leasonLearn.service.js";
 
 /**
  * Initialize AI sync cron job
@@ -34,6 +35,10 @@ export const initAiSyncCron = () => {
             // 3. Sync RAIDD (All projects) - reusing project data if available
             console.log("Syncing RAIDD AI Data...🚄");
             await RaiddService.syncAllRaiddFromAi(prisma, projectsData);
+
+            // 3.5 Sync Lesson Learns (All active projects)
+            console.log("Syncing Lesson Learns AI Data...🧠");
+            await LessonLearnService.syncAllLessonLearnsFromAi(prisma);
 
             // 4. Sync Vendors (All vendors)
             console.log("Syncing Vendors AI Summary...🏪");
