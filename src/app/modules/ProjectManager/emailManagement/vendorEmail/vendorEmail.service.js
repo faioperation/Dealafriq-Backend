@@ -1,5 +1,6 @@
 import { envVars } from '../../../../config/env.js';
 import prisma from '../../../../prisma/client.js';
+import axios from 'axios';
 import { AiEmailSummaryUtils } from '../../../../utils/aiEmailSummary.js';
 import { AiDetectionService } from '../../aiDetection/aiDetection.service.js';
 
