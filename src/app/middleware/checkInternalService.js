@@ -13,7 +13,6 @@ export const checkInternalService = () => {
         if (!secretKey || secretKey !== envVars.INTERNAL_BACKEND_SERVICE_KEY) {
             throw new AppError(StatusCodes.UNAUTHORIZED, "Unauthorized access. Invalid or missing service key.");
         }
-
         next();
     };
 };
