@@ -108,8 +108,20 @@ export const LessonLearnService = {
                 }
             }
         } catch (error) {
-            console.error(`[AI sync] Error for project ${project.id}:`, error.response?.data || error.message);
-            return null;
+            const errorDetail = error.response?.data?.detail;
+            
+            // Handle the specific error thrown by AI backend when a project lacks sufficient data
+            if (errorDetail === 'An error occurred while generating insights.') {
+                console.log(`[AI sync] Skipping AI insights for project ${project.id} - Insufficient data for generation.`);
+            } else {
+                console.error(`[AI sync] Error for project ${project.id}:`, error.response?.data || error.message);
+            }
+
+            // Fallback to returning the existing record so the frontend still receives the baseline record
+            const existing = await prisma.lessonLearn.findFirst({
+                where: { projectId: project.id, deleted_at: null }
+            });
+            return existing || null;
         }
     },
 
