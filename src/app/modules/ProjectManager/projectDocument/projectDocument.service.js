@@ -227,7 +227,7 @@ export const ProjectDocumentService = {
             const apiUrl = `${envVars.API_AI}/summary/document`;
             const response = await axios.post(apiUrl, {}, {
                 headers: {
-                    'x-backend-service': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+                    'x-backend-service': "PROJECT_AI_BACKEND"
                 }
             });
 
