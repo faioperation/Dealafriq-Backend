@@ -204,6 +204,8 @@ const syncAllOutlooksFromAi = async (prisma) => {
             });
 
             if (emailExists) {
+                const isFirstSync = !emailExists.fullAiResponse;
+
                 const tasks = aiResult.tasks || (aiResult.actionPoints ? aiResult.actionPoints : []);
                 
                 await prisma.outlook.update({
@@ -218,19 +220,21 @@ const syncAllOutlooksFromAi = async (prisma) => {
                     }
                 });
 
-                const summaryParts = [];
-                if (tasks.length > 0) summaryParts.push(`Tasks:\n${tasks.join('\n')}`);
-                if (aiResult.decisionPoints) summaryParts.push(`Decisions:\n${aiResult.decisionPoints}`);
+                if (isFirstSync) {
+                    const summaryParts = [];
+                    if (tasks.length > 0) summaryParts.push(`Tasks:\n${tasks.join('\n')}`);
+                    if (aiResult.decisionPoints) summaryParts.push(`Decisions:\n${aiResult.decisionPoints}`);
 
-                await AiDetectionService.createAiDetection(prisma, {
-                    title: emailExists.subject || 'New AI Detection from Outlook',
-                    summary: summaryParts.join('\n\n'),
-                    raiddAnalysis: aiResult.category || [],
-                    raiddMessage: aiResult.raiddMessage || null,
-                    sourceType: emailExists.source || 'outlook',
-                    managerId: emailExists.created_by,
-                    fullAiResponse: aiResult
-                }, emailExists.created_by);
+                    await AiDetectionService.createAiDetection(prisma, {
+                        title: emailExists.subject || 'New AI Detection from Outlook',
+                        summary: summaryParts.join('\n\n'),
+                        raiddAnalysis: aiResult.category || [],
+                        raiddMessage: aiResult.raiddMessage || null,
+                        sourceType: emailExists.source || 'outlook',
+                        managerId: emailExists.created_by,
+                        fullAiResponse: aiResult
+                    }, emailExists.created_by);
+                }
             }
         }
         console.log(`[AI Bulk Sync Outlook] Bulk Sync completed for ${results.length} records.`);
