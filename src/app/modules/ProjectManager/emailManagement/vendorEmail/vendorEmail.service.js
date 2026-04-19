@@ -253,6 +253,8 @@ const syncAllEmailsFromAi = async (prisma) => {
             });
 
             if (emailExists) {
+                const isFirstSync = !emailExists.fullAiResponse;
+
                 // Parse AI result exactly like in syncEmail
                 const tasks = aiResult.tasks || (aiResult.actionPoints ? aiResult.actionPoints : []);
                 
@@ -268,20 +270,22 @@ const syncAllEmailsFromAi = async (prisma) => {
                     }
                 });
 
-                // Create AI detection record
-                const summaryParts = [];
-                if (tasks.length > 0) summaryParts.push(`Tasks:\n${tasks.join('\n')}`);
-                if (aiResult.decisionPoints) summaryParts.push(`Decisions:\n${aiResult.decisionPoints}`);
+                if (isFirstSync) {
+                    // Create AI detection record
+                    const summaryParts = [];
+                    if (tasks.length > 0) summaryParts.push(`Tasks:\n${tasks.join('\n')}`);
+                    if (aiResult.decisionPoints) summaryParts.push(`Decisions:\n${aiResult.decisionPoints}`);
 
-                await AiDetectionService.createAiDetection(prisma, {
-                    title: emailExists.subject || 'New AI Detection from Email',
-                    summary: summaryParts.join('\n\n'),
-                    raiddAnalysis: aiResult.category || [],
-                    raiddMessage: aiResult.raiddMessage || null,
-                    sourceType: emailExists.source || 'email',
-                    managerId: emailExists.created_by,
-                    fullAiResponse: aiResult
-                }, emailExists.created_by);
+                    await AiDetectionService.createAiDetection(prisma, {
+                        title: emailExists.subject || 'New AI Detection from Email',
+                        summary: summaryParts.join('\n\n'),
+                        raiddAnalysis: aiResult.category || [],
+                        raiddMessage: aiResult.raiddMessage || null,
+                        sourceType: emailExists.source || 'email',
+                        managerId: emailExists.created_by,
+                        fullAiResponse: aiResult
+                    }, emailExists.created_by);
+                }
             }
         }
         console.log(`[AI Bulk Sync] Bulk Email AI Sync completed for ${results.length} records.`);
