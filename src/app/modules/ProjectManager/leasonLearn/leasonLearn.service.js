@@ -153,12 +153,14 @@ export const LessonLearnService = {
             },
             include: {
                 lessonLearns: {
-                    where: { deleted_at: null }
+                    where: { deleted_at: null },
+                    orderBy: { created_at: 'desc' }
                 },
                 vendor: {
                     select: { name: true, email: true }
                 }
-            }
+            },
+            orderBy: { createdAt: 'desc' }
         });
 
         const syncedLessonLearns = [];
@@ -185,7 +187,8 @@ export const LessonLearnService = {
             }
         }
 
-        return syncedLessonLearns;
+        // 3. Final sort by created_at desc to ensure newest ones across all projects are first
+        return syncedLessonLearns.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     },
 
     getSingleLessonLearn: async (prisma, id, userId) => {
