@@ -360,6 +360,7 @@ export const ProjectMeetingService = {
 );
 
             let targetIdUpdated = false;
+            let updatedCount = 0;
 
             if (!Array.isArray(projectsData)) {
                 throw new AppError(StatusCodes.BAD_REQUEST, "Invalid response from AI API");
