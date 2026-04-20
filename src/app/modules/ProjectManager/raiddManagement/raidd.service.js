@@ -237,64 +237,90 @@ export const RaiddService = {
     },
 
     syncSingleRaiddFromAi: async (prisma, raiddId, userId) => {
-        try {
-            const raidd = await prisma.raidd.findUnique({
-                where: { id: raiddId },
-                include: { project: true }
-            });
+        const delays = [15000, 30000, 45000, 60000, 60000]; // 15s, 30s, 45s, 60s, 60s
 
-            if (!raidd || raidd.project.deletedAt !== null) return;
+        for (let attempt = 0; attempt < delays.length; attempt++) {
+            try {
+                console.log(`[RAIDD AI Sync] Attempt ${attempt + 1} for RAIDD ${raiddId} starting in ${delays[attempt] / 1000}s...`);
+                await new Promise(resolve => setTimeout(resolve, delays[attempt]));
 
-            const response = await axios.post(`${envVars.API_AI}/summary/project`, {}, {
-                headers: {
-                   'x-backend-service': "PROJECT_AI_BACKEND"
+                const raidd = await prisma.raidd.findUnique({
+                    where: { id: raiddId, deleted_at: null },
+                    include: { project: true }
+                });
+
+                if (!raidd || raidd.project.deletedAt !== null) {
+                    console.log(`[RAIDD AI Sync] RAIDD ${raiddId} not found or project deleted. Stopping retries.`);
+                    return;
                 }
-            });
-            
-            const projectsData = response.data;
-            if (!Array.isArray(projectsData)) return;
 
-            // Find the AI project data by matching projectId
-            const aiProjectData = projectsData.find(p => p.projectId === raidd.projectId);
-            if (!aiProjectData || !aiProjectData.raiddFlags) return;
+                const response = await axios.post(`${envVars.API_AI}/summary/project`, {}, {
+                    headers: {
+                        'x-backend-service': "PROJECT_AI_BACKEND"
+                    }
+                });
+                
+                const projectsData = response.data;
+                if (!Array.isArray(projectsData)) {
+                    console.warn(`[RAIDD AI Sync] Invalid AI response format on attempt ${attempt + 1}.`);
+                    continue;
+                }
 
-            const { raiddFlags } = aiProjectData;
-            
-            // Match the database RAIDD type to the AI categories
-            let aiItems = [];
-            switch (raidd.type) {
-                case "RISK": aiItems = raiddFlags.risks; break;
-                case "ASSUMPTION": aiItems = raiddFlags.assumptions; break;
-                case "ISSUE": aiItems = raiddFlags.issues; break;
-                case "DEPENDENCY": aiItems = raiddFlags.dependencies; break;
-                case "DECISION": aiItems = raiddFlags.decisions; break;
+                // Find the AI project data by matching projectId
+                const aiProjectData = projectsData.find(p => p.projectId === raidd.projectId);
+                if (!aiProjectData || !aiProjectData.raiddFlags) {
+                    console.log(`[RAIDD AI Sync] Attempt ${attempt + 1} completed but no RAIDD flags found for project ${raidd.projectId} yet.`);
+                    continue;
+                }
+
+                const { raiddFlags } = aiProjectData;
+                
+                // Match the database RAIDD type to the AI categories
+                let aiItems = [];
+                switch (raidd.type) {
+                    case "RISK": aiItems = raiddFlags.risks; break;
+                    case "ASSUMPTION": aiItems = raiddFlags.assumptions; break;
+                    case "ISSUE": aiItems = raiddFlags.issues; break;
+                    case "DEPENDENCY": aiItems = raiddFlags.dependencies; break;
+                    case "DECISION": aiItems = raiddFlags.decisions; break;
+                }
+
+                if (Array.isArray(aiItems) && aiItems.length > 0) {
+                    const validItems = aiItems.filter(i => typeof i === 'string' && i.trim() !== '');
+                    if (validItems.length > 0) {
+                        const combinedDescription = validItems.map(item => `- ${item}`).join('\n');
+                        
+                        // Update this specific RAIDD record with the combined AI data
+                        await prisma.raidd.update({
+                            where: { id: raiddId },
+                            data: {
+                                description: combinedDescription,
+                                updated_by: userId
+                            }
+                        });
+
+                        await ActivityLogService.createLog(prisma, {
+                            type: "raidd",
+                            crudId: raiddId,
+                            action: "update_ai",
+                            userId: userId,
+                            projectId: raidd.projectId,
+                        });
+
+                        console.log(`[RAIDD AI Sync] Success on attempt ${attempt + 1} for RAIDD:`, raiddId);
+                        return; // Success, exit retry loop
+                    }
+                }
+                
+                console.log(`[RAIDD AI Sync] Attempt ${attempt + 1} completed but no specific AI items found for RAIDD type ${raidd.type} in project ${raidd.projectId}.`);
+
+            } catch (error) {
+                console.error(`[RAIDD AI Sync] Attempt ${attempt + 1} failed for RAIDD ${raiddId}:`, error.message);
             }
 
-            if (Array.isArray(aiItems) && aiItems.length > 0) {
-                const validItems = aiItems.filter(i => typeof i === 'string' && i.trim() !== '');
-                if (validItems.length > 0) {
-                    const combinedDescription = validItems.map(item => `- ${item}`).join('\n');
-                    
-                    // Update this specific RAIDD record with the combined AI data
-                    await prisma.raidd.update({
-                        where: { id: raiddId },
-                        data: {
-                            description: combinedDescription,
-                            updated_by: userId
-                        }
-                    });
-
-                    await ActivityLogService.createLog(prisma, {
-                        type: "raidd",
-                        crudId: raiddId,
-                        action: "update_ai",
-                        userId: userId,
-                        projectId: raidd.projectId,
-                    });
-                }
+            if (attempt === delays.length - 1) {
+                console.warn(`[RAIDD AI Sync] All ${delays.length} attempts failed for RAIDD ${raiddId}. AI data might still be processing.`);
             }
-        } catch (error) {
-            console.error("Failed to sync AI RAIDD summary for single record:", error.message);
         }
     },
 

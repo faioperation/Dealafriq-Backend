@@ -234,8 +234,10 @@ export const ProjectDocumentService = {
             const projectsData = response.data;
             if (!Array.isArray(projectsData)) {
                 console.error("Invalid AI API response for bulk document sync");
-                return;
+                return [];
             }
+
+            const updatedIds = [];
 
             for (const aiProject of projectsData) {
                 const { documents } = aiProject;
@@ -254,21 +256,47 @@ export const ProjectDocumentService = {
                             where: { id: documentId },
                             data: { aiDocumentSummary: summary }
                         });
+                        updatedIds.push(documentId);
                     }
                 }
             }
-            console.log(`Bulk Document AI Sync completed successfully`);
+            console.log(`Bulk Document AI Sync completed successfully. ${updatedIds.length} documents updated.`);
+            return updatedIds;
         } catch (error) {
             console.error("Bulk Document AI Sync failed:", error.message);
+            return [];
         }
     },
 
     syncDocumentAiSummaryBackground: async (prisma, documentIds, userId) => {
-        try {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            await ProjectDocumentService.syncAllDocumentsFromAi(prisma);
-        } catch (error) {
-            console.error("Background document sync failed:", error);
+        let remainingIds = [...documentIds];
+        const delays = [15000, 30000, 45000, 60000, 60000]; // 15s, 30s, 45s, 60s, 60s
+
+        for (let attempt = 0; attempt < delays.length; attempt++) {
+            if (remainingIds.length === 0) break;
+
+            try {
+                console.log(`[Document AI Sync] Attempt ${attempt + 1} for ${remainingIds.length} documents starting in ${delays[attempt] / 1000}s...`);
+                await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+
+                const updatedIds = await ProjectDocumentService.syncAllDocumentsFromAi(prisma);
+                
+                // Filter out IDs that have been successfully updated
+                remainingIds = remainingIds.filter(id => !updatedIds.includes(id));
+
+                if (remainingIds.length === 0) {
+                    console.log(`[Document AI Sync] All documents updated successfully on attempt ${attempt + 1}.`);
+                    break;
+                } else {
+                    console.log(`[Document AI Sync] Attempt ${attempt + 1} completed. ${remainingIds.length} documents still waiting for AI data.`);
+                }
+            } catch (error) {
+                console.error(`[Document AI Sync] Critical error in attempt ${attempt + 1}:`, error);
+            }
+
+            if (attempt === delays.length - 1 && remainingIds.length > 0) {
+                console.warn(`[Document AI Sync] All ${delays.length} attempts failed for documents: ${remainingIds.join(", ")}`);
+            }
         }
     },
 
