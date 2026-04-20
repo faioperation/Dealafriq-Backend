@@ -187,8 +187,13 @@ export const LessonLearnService = {
             }
         }
 
-        // 3. Final sort by created_at desc to ensure newest ones across all projects are first
-        return syncedLessonLearns.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        // 3. Final sort by date desc to ensure newest ones across all projects are first
+        // Prioritize loggedDate, fallback to created_at
+        return syncedLessonLearns.sort((a, b) => {
+            const dateA = new Date(a.loggedDate || a.created_at);
+            const dateB = new Date(b.loggedDate || b.created_at);
+            return dateB - dateA;
+        });
     },
 
     getSingleLessonLearn: async (prisma, id, userId) => {
