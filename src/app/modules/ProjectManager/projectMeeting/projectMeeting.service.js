@@ -117,9 +117,33 @@ export const ProjectMeetingService = {
             userId,
             projectId: meeting.projectId,
         });
-        // Trigger AI sync in the background
-        ProjectMeetingService.syncAiMeetingSummary(prisma, userId).catch(error => {
-            console.error("Background AI Sync failed:", error.message);
+        // Trigger AI sync in the background with retry logic
+        const syncWithRetry = async () => {
+            const delays = [15000, 30000, 45000, 60000, 60000]; // 15s, 30s, 45s, 60s, 60s
+            for (let attempt = 0; attempt < delays.length; attempt++) {
+                try {
+                    console.log(`[Meeting AI Sync] Attempt ${attempt + 1} for meeting ${meeting.id} starting in ${delays[attempt] / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+                    
+                    const result = await ProjectMeetingService.syncAiMeetingSummary(prisma, userId, meeting.id);
+                    if (result && result.targetIdUpdated) {
+                        console.log(`[Meeting AI Sync] Success on attempt ${attempt + 1} for meeting ${meeting.id}`);
+                        break;
+                    } else {
+                        console.log(`[Meeting AI Sync] Attempt ${attempt + 1} joined successfully but target meeting ${meeting.id} was not in AI response yet.`);
+                    }
+                } catch (error) {
+                    console.error(`[Meeting AI Sync] Attempt ${attempt + 1} failed for meeting ${meeting.id}:`, error.message);
+                }
+                
+                if (attempt === delays.length - 1) {
+                    console.warn(`[Meeting AI Sync] All ${delays.length} attempts failed for meeting ${meeting.id}. AI data might still be processing or API is down.`);
+                }
+            }
+        };
+
+        syncWithRetry().catch(error => {
+            console.error("Critical error in background AI Sync loop:", error.message);
         });
 
         // Trigger Google Calendar sync in the background
@@ -318,10 +342,10 @@ export const ProjectMeetingService = {
         return deletedMeeting;
     },
 
-    syncAiMeetingSummary: async (prisma, userId) => {
+    syncAiMeetingSummary: async (prisma, userId, targetMeetingId = null) => {
         try {
-            // Wait 5 seconds to ensure the meeting creation is propagated to the AI system
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            // No initial fixed wait here anymore, it's handled by the retry loop in createMeeting or caller
+            // If called without targetMeetingId (e.g. manual trigger), we might still want a small delay or none.
 
             const response = await axios.post(`${envVars.API_AI}/summary/meeting`, {}, {
                 headers: {
@@ -335,7 +359,7 @@ export const ProjectMeetingService = {
   JSON.stringify(projectsData, null, 2)
 );
 
-            let updatedCount = 0;
+            let targetIdUpdated = false;
 
             if (!Array.isArray(projectsData)) {
                 throw new AppError(StatusCodes.BAD_REQUEST, "Invalid response from AI API");
@@ -417,11 +441,15 @@ export const ProjectMeetingService = {
                             });
                         }
 
+                        if (meetingId === targetMeetingId) {
+                            targetIdUpdated = true;
+                        }
+
                         updatedCount++;
                     }
                 }
             }
-            return { updatedCount, message: `Successfully updated ${updatedCount} meetings with AI summaries.` };
+            return { updatedCount, targetIdUpdated, message: `Successfully updated ${updatedCount} meetings with AI summaries.` };
         } catch (error) {
             throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to sync AI meeting summaries: " + error.message);
         }

@@ -168,6 +168,7 @@ model Project {
   projectAiSummary     String[]                @default([])
   projectProgress      String?                 @default("0%")
   weeklyAiSummary      String?
+  projectAiDetails     Json?
   cancelledReason      String?
   activityLogs         ActivityLog[]           @relation("ProjectActivityLogs")
   calendarEvents       GoogleCalendarEvent[]   @relation("ProjectCalendarEvents")
@@ -203,7 +204,8 @@ model ProjectTask {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
+  taskDescription String?
+  
   @@map("project_tasks")
 }
 

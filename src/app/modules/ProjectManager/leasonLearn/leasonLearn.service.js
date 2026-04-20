@@ -154,6 +154,9 @@ export const LessonLearnService = {
             include: {
                 lessonLearns: {
                     where: { deleted_at: null }
+                },
+                vendor: {
+                    select: { name: true, email: true }
                 }
             }
         });
@@ -175,7 +178,8 @@ export const LessonLearnService = {
                     project: {
                         id: project.id,
                         name: project.name,
-                        managerId: project.managerId
+                        managerId: project.managerId,
+                        vendor: project.vendor ? { name: project.vendor.name, email: project.vendor.email } : null
                     }
                 });
             }
@@ -193,6 +197,9 @@ export const LessonLearnService = {
                         id: true,
                         managerId: true,
                         deletedAt: true,
+                        vendor: {
+                            select: { name: true, email: true }
+                        }
                     },
                 },
             },
@@ -211,7 +218,7 @@ export const LessonLearnService = {
         }
 
         const { current_situation_summary, aiResponse, ...lessonLearnWithoutExcluded } = lessonLearn;
-        return lessonLearnWithoutExcluded;
+        return { ...lessonLearnWithoutExcluded, vendor: lessonLearn.project.vendor ? { name: lessonLearn.project.vendor.name, email: lessonLearn.project.vendor.email } : null };
     },
 
     updateLessonLearn: async (prisma, id, payload, userId) => {
