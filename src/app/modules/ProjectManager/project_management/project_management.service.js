@@ -213,6 +213,7 @@ export const PMProjectManagementService = {
                         keyPoints: true,
                         actionPoints: true,
                     },
+                    orderBy: { createdAt: 'desc' }
                 },
             },
         });
