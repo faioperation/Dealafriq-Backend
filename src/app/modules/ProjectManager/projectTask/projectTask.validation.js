@@ -4,6 +4,7 @@ const createProjectTaskSchema = z.object({
     body: z.object({
         projectId: z.string().uuid("Invalid project ID"),
         title: z.string().min(1, "Task title is required"),
+        taskDescription: z.string().optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
         priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
@@ -22,6 +23,7 @@ const createProjectTaskSchema = z.object({
 const updateProjectTaskSchema = z.object({
     body: z.object({
         title: z.string().optional(),
+        taskDescription: z.string().optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
         priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),

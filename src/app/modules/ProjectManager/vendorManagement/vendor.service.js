@@ -10,13 +10,15 @@ const createVendor = async (data, user) => {
         ...vendorData
     } = data;
 
+    const parsedProjectIds = typeof projectIds === 'string' ? JSON.parse(projectIds) : projectIds;
+
     const vendor = await prisma.vendor.create({
         data: {
             ...vendorData,
             meetingLinks: meetingLinks ? JSON.parse(meetingLinks) : [],
             created_by: user.id,
-            projects: projectIds ? {
-                connect: projectIds.map(id => ({ id }))
+            projects: parsedProjectIds && Array.isArray(parsedProjectIds) ? {
+                connect: parsedProjectIds.map(id => ({ id }))
             } : undefined
         },
         include: {
@@ -31,9 +33,33 @@ const createVendor = async (data, user) => {
 
     });
 
-    // Fire and forget (Background Task)
-    syncAllVendorsFromAi(prisma).catch(err => {
-        console.error("Critical error in background vendor AI sync:", err);
+    // Trigger AI sync in the background with retry logic
+    const syncWithRetry = async () => {
+        const delays = [15000, 30000, 45000, 60000, 60000]; // 15s, 30s, 45s, 60s, 60s
+        for (let attempt = 0; attempt < delays.length; attempt++) {
+            try {
+                console.log(`[Vendor AI Sync] Attempt ${attempt + 1} for vendor ${vendor.id} starting in ${delays[attempt] / 1000}s...`);
+                await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+                
+                const result = await syncAllVendorsFromAi(prisma, vendor.id);
+                if (result && result.targetIdUpdated) {
+                    console.log(`[Vendor AI Sync] Success on attempt ${attempt + 1} for vendor ${vendor.id}`);
+                    break;
+                } else {
+                    console.log(`[Vendor AI Sync] Attempt ${attempt + 1} completed but target vendor ${vendor.id} was not in AI response yet.`);
+                }
+            } catch (error) {
+                console.error(`[Vendor AI Sync] Attempt ${attempt + 1} failed for vendor ${vendor.id}:`, error.message);
+            }
+            
+            if (attempt === delays.length - 1) {
+                console.warn(`[Vendor AI Sync] All ${delays.length} attempts failed for vendor ${vendor.id}. AI data might still be processing.`);
+            }
+        }
+    };
+
+    syncWithRetry().catch(err => {
+        console.error("Critical error in background vendor AI sync loop:", err);
     });
 
     return vendor;
@@ -92,9 +118,11 @@ const updateVendor = async (id, data, user) => {
         updateData.meetingLinks = typeof meetingLinks === 'string' ? JSON.parse(meetingLinks) : meetingLinks;
     }
 
-    if (projectIds) {
+    const parsedProjectIds = typeof projectIds === 'string' ? JSON.parse(projectIds) : projectIds;
+
+    if (parsedProjectIds && Array.isArray(parsedProjectIds)) {
         updateData.projects = {
-            set: projectIds.map(pid => ({ id: pid }))
+            set: parsedProjectIds.map(pid => ({ id: pid }))
         };
     }
 
@@ -127,7 +155,7 @@ const deleteVendor = async (id, user) => {
     return vendor;
 };
 
-const syncAllVendorsFromAi = async (prisma) => {
+const syncAllVendorsFromAi = async (prisma, targetVendorId = null) => {
     try {
         const apiUrl = `${envVars.API_AI}/summary/vendor`;
         const response = await axios.post(apiUrl, {}, {
@@ -139,8 +167,11 @@ const syncAllVendorsFromAi = async (prisma) => {
         const projectsVendorsData = response.data;
         if (!Array.isArray(projectsVendorsData)) {
             console.error("Invalid AI API response for bulk vendor sync");
-            return;
+            return { updatedCount: 0, targetIdUpdated: false };
         }
+
+        let updatedCount = 0;
+        let targetIdUpdated = false;
 
         for (const projectData of projectsVendorsData) {
             const { session, vendors } = projectData;
@@ -168,12 +199,20 @@ const syncAllVendorsFromAi = async (prisma) => {
                             vendorAiResponse: formattedResponse
                         }
                     });
+
+                    if (vendorId === targetVendorId) {
+                        targetIdUpdated = true;
+                    }
+
+                    updatedCount++;
                 }
             }
         }
-        console.log(`Bulk Vendor AI Sync completed for ${projectsVendorsData.length} project sessions`);
+        console.log(`Bulk Vendor AI Sync completed for ${projectsVendorsData.length} project sessions. ${updatedCount} vendors updated.`);
+        return { updatedCount, targetIdUpdated };
     } catch (error) {
         console.error("Bulk Vendor AI Sync failed:", error.message);
+        return { updatedCount: 0, targetIdUpdated: false };
     }
 };
 

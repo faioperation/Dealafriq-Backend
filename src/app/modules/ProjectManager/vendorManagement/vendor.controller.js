@@ -50,9 +50,20 @@ const createVendorController = async (req, res, next) => {
         if (vendorData.numberOfProjects) vendorData.numberOfProjects = parseInt(vendorData.numberOfProjects);
         if (vendorData.contactProjects) vendorData.contactProjects = parseInt(vendorData.contactProjects);
 
-        // Handle Project IDs (could be string or array)
+        // Handle Project IDs (could be string [e.g. from Postman form-data] or actual array)
         if (vendorData.projectIds && typeof vendorData.projectIds === 'string') {
-            vendorData.projectIds = [vendorData.projectIds];
+            try {
+                // If it's a JSON array string, parse it
+                if (vendorData.projectIds.trim().startsWith('[')) {
+                    vendorData.projectIds = JSON.parse(vendorData.projectIds);
+                } else {
+                    // It's a single ID string, wrap it in an array
+                    vendorData.projectIds = [vendorData.projectIds];
+                }
+            } catch (e) {
+                // Fallback to single ID if parsing fails
+                vendorData.projectIds = [vendorData.projectIds];
+            }
         }
 
         const vendor = await VendorService.createVendor(vendorData, user);
@@ -143,7 +154,15 @@ const updateVendorController = async (req, res, next) => {
         if (vendorData.contactProjects) vendorData.contactProjects = parseInt(vendorData.contactProjects);
 
         if (vendorData.projectIds && typeof vendorData.projectIds === 'string') {
-            vendorData.projectIds = [vendorData.projectIds];
+            try {
+                if (vendorData.projectIds.trim().startsWith('[')) {
+                    vendorData.projectIds = JSON.parse(vendorData.projectIds);
+                } else {
+                    vendorData.projectIds = [vendorData.projectIds];
+                }
+            } catch (e) {
+                vendorData.projectIds = [vendorData.projectIds];
+            }
         }
 
         const vendor = await VendorService.updateVendor(req.params.id, vendorData, user);
