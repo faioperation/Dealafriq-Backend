@@ -43,7 +43,6 @@ export const RaiddService = {
 
         return raidd;
     },
-
     getAllRaidds: async (prisma, projectId, userId) => {
         await verifyProjectOwnership(prisma, projectId, userId);
 
@@ -59,7 +58,10 @@ export const RaiddService = {
                         endDate: true,
                         vendor: {
                             select: {
+                                name: true,
                                 email: true,
+                                designation: true,
+                                numberOfProjects: true,
                             },
                         },
                         manager: {
@@ -90,15 +92,15 @@ export const RaiddService = {
                     select: {
                         id: true,
                         name: true,
-                        description: true,
                         vendorName: true,
-                        startDate: true,
-                        endDate: true,
                         managerId: true,
                         deletedAt: true,
                         vendor: {
                             select: {
+                                name: true,
                                 email: true,
+                                designation: true,
+                                numberOfProjects: true,
                             },
                         },
                         manager: {
@@ -220,13 +222,14 @@ export const RaiddService = {
                     select: {
                         id: true,
                         name: true,
-                        description: true,
                         vendorName: true,
                         startDate: true,
                         endDate: true,
                         vendor: {
                             select: {
+                                name: true,
                                 email: true,
+                                numberOfProjects: true,
                             },
                         },
                     },
@@ -254,20 +257,19 @@ export const RaiddService = {
                     return;
                 }
 
-                const response = await axios.post(`${envVars.API_AI}/summary/project`, {}, {
+                const response = await axios.post(`${envVars.API_AI}/summary/project`, {
+                    project_id: raidd.projectId
+                }, {
                     headers: {
                         'x-backend-service': "PROJECT_AI_BACKEND"
                     }
                 });
                 
                 const projectsData = response.data;
-                if (!Array.isArray(projectsData)) {
-                    console.warn(`[RAIDD AI Sync] Invalid AI response format on attempt ${attempt + 1}.`);
-                    continue;
-                }
+                const aiProjectData = Array.isArray(projectsData)
+                    ? projectsData.find(p => p.projectId === raidd.projectId)
+                    : projectsData;
 
-                // Find the AI project data by matching projectId
-                const aiProjectData = projectsData.find(p => p.projectId === raidd.projectId);
                 if (!aiProjectData || !aiProjectData.raiddFlags) {
                     console.log(`[RAIDD AI Sync] Attempt ${attempt + 1} completed but no RAIDD flags found for project ${raidd.projectId} yet.`);
                     continue;

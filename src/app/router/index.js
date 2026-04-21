@@ -15,7 +15,6 @@ import { OutlookRoutes } from "../modules/ProjectManager/outlookManagement/outlo
 import { PMProjectManagementRoutes } from "../modules/ProjectManager/project_management/project_management.route.js";
 import { ProjectAgreementRoutes } from "../modules/ProjectManager/projectAgreement/projectAgreement.route.js";
 import { ProjectDocumentRoutes } from "../modules/ProjectManager/projectDocument/projectDocument.route.js";
-import { ProjectHealthRoutes } from "../modules/ProjectManager/projectHealth/projectHealth.route.js";
 import { ProjectMeetingRoutes } from "../modules/ProjectManager/projectMeeting/projectMeeting.route.js";
 import { ProjectMilestoneRoutes } from "../modules/ProjectManager/projectMilestone/projectMilestone.route.js";
 import { ProjectTaskRoutes } from "../modules/ProjectManager/projectTask/projectTask.route.js";
@@ -100,10 +99,6 @@ const moduleRoutes = [
   {
     path: "/project-manager/project-assignment",
     route: ProjectAgreementRoutes,
-  },
-  {
-    path: "/project-manager/project-health",
-    route: ProjectHealthRoutes,
   },
   {
     path: "/project-manager/project-agreement",

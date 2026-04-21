@@ -1,7 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
-import { ProjectHealthService } from "../projectHealth/projectHealth.service.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
   const project = await prisma.project.findFirst({
@@ -32,8 +31,6 @@ const updateProjectProgress = async (prisma, projectId) => {
     data: { projectProgress },
   });
 
-  // Dynamic Health Update
-  await ProjectHealthService.calculateAndUpsertHealth(prisma, projectId);
 };
 
 export const ProjectTaskService = {

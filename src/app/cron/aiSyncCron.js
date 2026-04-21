@@ -1,10 +1,10 @@
 import cron from "node-cron";
 import prisma from "../prisma/client.js";
-// import { PMProjectManagementService } from "../modules/ProjectManager/project_management/project_management.service.js";
-// import { ProjectMeetingService } from "../modules/ProjectManager/projectMeeting/projectMeeting.service.js";
-// import { RaiddService } from "../modules/ProjectManager/raiddManagement/raidd.service.js";
-// import { ProjectDocumentService } from "../modules/ProjectManager/projectDocument/projectDocument.service.js";
-// import { VendorService } from "../modules/ProjectManager/vendorManagement/vendor.service.js";
+import { PMProjectManagementService } from "../modules/ProjectManager/project_management/project_management.service.js";
+import { ProjectMeetingService } from "../modules/ProjectManager/projectMeeting/projectMeeting.service.js";
+import { RaiddService } from "../modules/ProjectManager/raiddManagement/raidd.service.js";
+import { ProjectDocumentService } from "../modules/ProjectManager/projectDocument/projectDocument.service.js";
+import { VendorService } from "../modules/ProjectManager/vendorManagement/vendor.service.js";
 
 import { VendorEmailService } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.service.js";
 import { OutlookSyncService } from "../modules/ProjectManager/outlookManagement/outlook/outlookSync.service.js";
@@ -21,27 +21,27 @@ export const initAiSyncCron = () => {
         console.log("-----------------start ai sync------------------------");
         console.log(`[${new Date().toISOString()}] Starting Bulk AI Sync Cron Job...`);
         try {
-            // // 1. Sync Meetings (All projects)
+            // 1. Sync Meetings (All projects)
             console.log("Syncing Meetings AI Summary...🍊");
             await ProjectMeetingService.syncAiMeetingSummary(prisma, null);
 
-            // // 2. Sync Projects (All projects)
+            // 2. Sync Projects (All projects)
             console.log("Syncing Projects AI Summary & Progress...🛑");
             const projectsData = await PMProjectManagementService.syncAllProjectsFromAi(prisma);
 
-            // // 2.5 Sync Documents (All documents)
+            // 2.5 Sync Documents (All documents)
             console.log("Syncing Documents AI Summary...📄");
             await ProjectDocumentService.syncAllDocumentsFromAi(prisma);
 
-            // // 3. Sync RAIDD (All projects) - reusing project data if available
-            console.log("Syncing RAIDD AI Data...🚄");
-            await RaiddService.syncAllRaiddFromAi(prisma, projectsData);
+            // 3. Sync RAIDD (All projects) - reusing project data if available
+            // console.log("Syncing RAIDD AI Data...🚄");
+            // await RaiddService.syncAllRaiddFromAi(prisma, projectsData);
 
             // 3.5 Sync Lesson Learns (All active projects)
             console.log("Syncing Lesson Learns AI Data...🧠");
             await LessonLearnService.syncAllLessonLearnsFromAi(prisma);
 
-            // // 4. Sync Vendors (All vendors)
+            // 4. Sync Vendors (All vendors)
             console.log("Syncing Vendors AI Summary...🏪");
             await VendorService.syncAllVendorsFromAi(prisma);
 
@@ -57,5 +57,5 @@ export const initAiSyncCron = () => {
         console.log("----------------end ai sync-------------------------");
     });
 
-  console.log("✅ AI Sync Cron Job scheduled successfully (runs daily at 12:00 AM)");
+  console.log("✅ AI Sync Cron Job scheduled successfully (runs every 7 days at 12:00 AM)");
 };

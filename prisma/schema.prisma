@@ -177,7 +177,7 @@ model Project {
   projectAgreements    ProjectAgreements[]
   assignments          ProjectAssignment[]
   documents            ProjectDocumentUpload[]
-  health               ProjectHealth[]
+  projectHealth        Json?
   meetings             ProjectMeeting[]
   milestones           ProjectMilestone[]
   tasks                ProjectTask[]
@@ -334,18 +334,6 @@ model ProjectAssignment {
   @@map("project_assignments")
 }
 
-model ProjectHealth {
-  id           String        @id @default(uuid())
-  projectId    String
-  score        Int?
-  status       String?
-  createdAt    DateTime      @default(now())
-  healthStatus HealthStatus?
-  type         HealthType?
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@map("project_health")
-}
 
 model MeetingTranscript {
   id         String   @id @default(uuid())
@@ -694,25 +682,6 @@ enum ProjectRole {
   CLIENT
 }
 
-enum HealthType {
-  OVERALL_STATUS
-  BUDGET_STATUS
-  TEAM_SENTIMENT
-  TASK_STATUS
-}
-
-enum HealthStatus {
-  ON_TRACK
-  PENDING
-  AT_RISK
-  OFF_TRACK
-  GOOD
-  EXCELLENT
-  LOW
-  BAD
-  NORMAL
-  PERFECT
-}
 
 enum SenderType {
   USER

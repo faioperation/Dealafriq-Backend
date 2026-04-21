@@ -6,7 +6,6 @@ import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 import axios from "axios";
 import { envVars } from "../../../config/env.js";
 import { LessonLearnService } from "../leasonLearn/leasonLearn.service.js";
-import { ProjectHealthService } from "../projectHealth/projectHealth.service.js";
 import { VendorService } from "../vendorManagement/vendor.service.js";
 
 
@@ -66,7 +65,6 @@ export const PMProjectManagementService = {
             include: {
                 meetings: true,
                 documents: true,
-                health: true,
                 tasks: true,
                 projectAgreements: true,
                 transcripts: true,
@@ -82,8 +80,6 @@ export const PMProjectManagementService = {
             }
         });
         
-        // Initialize standardized health
-        await ProjectHealthService.calculateAndUpsertHealth(prisma, project.id, payload.health);
 
         // Create a baseline LessonLearn record immediately on project creation
         await LessonLearnService.createLessonLearn(prisma, {
@@ -154,7 +150,6 @@ export const PMProjectManagementService = {
                     assignTeam: true,
                     tasks: true,
                     milestones: true,
-                    health: true,
                     meetings: {
                         include: {
                             keyPoints: true,
@@ -205,7 +200,6 @@ export const PMProjectManagementService = {
                 assignTeam: true,
                 tasks: true,
                 milestones: true,
-                health: true,
                 documents: true,
                 transcripts: true,
                 meetings: {
@@ -251,8 +245,6 @@ export const PMProjectManagementService = {
             data: updateData,
         });
 
-        // Update health status if progress might have changed
-        await ProjectHealthService.calculateAndUpsertHealth(prisma, id);
 
         await ActivityLogService.createLog(prisma, {
             type: "project",
@@ -341,14 +333,13 @@ export const PMProjectManagementService = {
                             projectProgress,
                             projectAiSummary: { push: aiSummary },
                             weeklyAiSummary: aiSummary,
-                            projectAiDetails: fullPayload
+                            projectAiDetails: fullPayload,
+                            projectHealth: fullPayload.projectHealth || []
                         }
                     });
 
                     console.log(`[Project AI Sync] Success on attempt ${attempt + 1} for project:`, id);
                     
-                    // 3.5 Update Dynamic Health Status
-                    await ProjectHealthService.calculateAndUpsertHealth(prisma, id);
 
                     // 4. Sync Lesson Learn AI data
                     await LessonLearnService.syncLessonLearnForProject(prisma, project, userId);
@@ -417,12 +408,10 @@ export const PMProjectManagementService = {
                             projectAiSummary: {
                                 push: summary
                             },
-                            weeklyAiSummary: summary
+                            weeklyAiSummary: summary,
+                            projectHealth: aiProject.projectHealth || []
                         }
                     });
-                    
-                    // Update Dynamic Health Status
-                    await ProjectHealthService.calculateAndUpsertHealth(prisma, projectId);
                 }
             }
             console.log(`Bulk Project AI Sync completed for ${projectsData.length} items`);
