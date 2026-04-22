@@ -168,6 +168,7 @@ model Project {
   projectAiSummary     String[]                @default([])
   projectProgress      String?                 @default("0%")
   weeklyAiSummary      String?
+  weeklySummaryDate    DateTime?
   projectAiDetails     Json?
   cancelledReason      String?
   activityLogs         ActivityLog[]           @relation("ProjectActivityLogs")

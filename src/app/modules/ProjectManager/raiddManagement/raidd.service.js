@@ -19,14 +19,29 @@ const verifyProjectOwnership = async (prisma, projectId, userId) => {
 
 export const RaiddService = {
     createRaidd: async (prisma, payload, userId) => {
-        await verifyProjectOwnership(prisma, payload.projectId, userId);
+        const { aiDetectionId, ...raiddData } = payload;
+
+        await verifyProjectOwnership(prisma, raiddData.projectId, userId);
 
         const raidd = await prisma.raidd.create({
             data: {
-                ...payload,
+                ...raiddData,
                 created_by: userId,
             },
         });
+
+        // If this RAIDD was created from an AI Detection, auto-delete the detection record
+        if (aiDetectionId) {
+            try {
+                await prisma.aiDetection.delete({
+                    where: { id: aiDetectionId },
+                });
+                console.log(`[RAIDD Creation] Auto-deleted AI Detection record: ${aiDetectionId}`);
+            } catch (error) {
+                console.error(`[RAIDD Creation] Failed to auto-delete AI Detection ${aiDetectionId}:`, error.message);
+                // We don't throw here to avoid failing the RAIDD creation if only the deletion fails
+            }
+        }
 
         await ActivityLogService.createLog(prisma, {
             type: "raidd",
@@ -72,6 +87,8 @@ export const RaiddService = {
                                 email: true,
                             },
                         },
+                        projectAiDetails: true,
+                        weeklySummaryDate: true,
                     },
                 },
             },
@@ -111,6 +128,8 @@ export const RaiddService = {
                                 email: true,
                             },
                         },
+                        projectAiDetails: true,
+                        weeklySummaryDate: true,
                     },
                 },
             },
@@ -232,6 +251,8 @@ export const RaiddService = {
                                 numberOfProjects: true,
                             },
                         },
+                        projectAiDetails: true,
+                        weeklySummaryDate: true,
                     },
                 },
             },

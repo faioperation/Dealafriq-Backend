@@ -158,6 +158,9 @@ export const LessonLearnService = {
                 },
                 vendor: {
                     select: { name: true, email: true }
+                },
+                projectOwner: {
+                    select: { firstName: true, lastName: true }
                 }
             },
             orderBy: { createdAt: 'desc' }
@@ -226,7 +229,8 @@ export const LessonLearnService = {
         }
 
         const { current_situation_summary, aiResponse, ...lessonLearnWithoutExcluded } = lessonLearn;
-        return { ...lessonLearnWithoutExcluded, vendor: lessonLearn.project.vendor ? { name: lessonLearn.project.vendor.name, email: lessonLearn.project.vendor.email } : null };
+        const ownerName = lessonLearn.project.projectOwner ? `${lessonLearn.project.projectOwner.firstName} ${lessonLearn.project.projectOwner.lastName}` : null;
+        return { ...lessonLearnWithoutExcluded, vendor: lessonLearn.project.vendor ? { name: lessonLearn.project.vendor.name, email: lessonLearn.project.vendor.email } : null, ownerName };
     },
 
     updateLessonLearn: async (prisma, id, payload, userId) => {

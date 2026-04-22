@@ -5,21 +5,15 @@ import { envVars } from "../../../config/env.js";
 
 const createVendor = async (data, user) => {
     const {
-        projectIds, // Assuming array of strings
         meetingLinks,
         ...vendorData
     } = data;
-
-    const parsedProjectIds = typeof projectIds === 'string' ? JSON.parse(projectIds) : projectIds;
 
     const vendor = await prisma.vendor.create({
         data: {
             ...vendorData,
             meetingLinks: meetingLinks ? JSON.parse(meetingLinks) : [],
             created_by: user.id,
-            projects: parsedProjectIds && Array.isArray(parsedProjectIds) ? {
-                connect: parsedProjectIds.map(id => ({ id }))
-            } : undefined
         },
         include: {
             projects: {
@@ -27,6 +21,7 @@ const createVendor = async (data, user) => {
                     id: true,
                     name: true,
                     vendorName: true,
+                    projectAiSummary: true,
                 },
             },
         }
@@ -77,6 +72,7 @@ const getAllVendors = async (query) => {
                     id: true,
                     name: true,
                     vendorName: true,
+                    projectAiSummary: true,
                 },
             },
         }
@@ -94,6 +90,7 @@ const getVendorById = async (id) => {
                     id: true,
                     name: true,
                     vendorName: true,
+                    projectAiSummary: true,
                 },
             },
         }
@@ -104,7 +101,6 @@ const getVendorById = async (id) => {
 
 const updateVendor = async (id, data, user) => {
     const {
-        projectIds,
         meetingLinks,
         ...vendorData
     } = data;
@@ -118,14 +114,6 @@ const updateVendor = async (id, data, user) => {
         updateData.meetingLinks = typeof meetingLinks === 'string' ? JSON.parse(meetingLinks) : meetingLinks;
     }
 
-    const parsedProjectIds = typeof projectIds === 'string' ? JSON.parse(projectIds) : projectIds;
-
-    if (parsedProjectIds && Array.isArray(parsedProjectIds)) {
-        updateData.projects = {
-            set: parsedProjectIds.map(pid => ({ id: pid }))
-        };
-    }
-
     const vendor = await prisma.vendor.update({
         where: { id },
         data: updateData,
@@ -135,6 +123,7 @@ const updateVendor = async (id, data, user) => {
                     id: true,
                     name: true,
                     vendorName: true,
+                    projectAiSummary: true,
                 },
             },
         }
@@ -158,6 +147,8 @@ const deleteVendor = async (id, user) => {
 const syncAllVendorsFromAi = async (prisma, targetVendorId = null) => {
     try {
         const apiUrl = `${envVars.API_AI}/summary/vendor`;
+        console.log(`[Vendor AI Sync] Fetching data from: ${apiUrl}`);
+        
         const response = await axios.post(apiUrl, {}, {
             headers: {
                 'x-backend-service': "PROJECT_AI_BACKEND"
@@ -173,34 +164,52 @@ const syncAllVendorsFromAi = async (prisma, targetVendorId = null) => {
         let updatedCount = 0;
         let targetIdUpdated = false;
 
+        // Fetch target vendor name if targetVendorId is provided
+        let targetVendorName = null;
+        if (targetVendorId) {
+            const targetVendor = await prisma.vendor.findUnique({
+                where: { id: targetVendorId },
+                select: { name: true }
+            });
+            targetVendorName = targetVendor?.name;
+        }
+
         for (const projectData of projectsVendorsData) {
             const { session, vendors } = projectData;
             if (!Array.isArray(vendors)) continue;
 
             for (const vendorAiData of vendors) {
-                const { vendorId, ...restOfVendorData } = vendorAiData;
-                if (!vendorId) continue;
+                const { vendorId, vendorName, ...restOfVendorData } = vendorAiData;
+                if (!vendorId && !vendorName) continue;
 
-                // Check if vendor exists in database
-                const vendorExists = await prisma.vendor.findUnique({
+                // 1. Try to find vendor by ID
+                let vendor = await prisma.vendor.findUnique({
                     where: { id: vendorId }
                 });
 
-                if (vendorExists) {
-                    // Format response: combine session with vendor data (excluding unnecessary IDs if any)
+                // 2. Fallback: try to find by name if ID fails
+                if (!vendor && vendorName) {
+                    vendor = await prisma.vendor.findFirst({
+                        where: { name: vendorName, deletedAt: null }
+                    });
+                }
+
+                if (vendor) {
                     const formattedResponse = {
                         session,
+                        vendorName,
                         ...restOfVendorData
                     };
 
                     await prisma.vendor.update({
-                        where: { id: vendorId },
+                        where: { id: vendor.id },
                         data: {
                             vendorAiResponse: formattedResponse
                         }
                     });
 
-                    if (vendorId === targetVendorId) {
+                    // Check if we updated the target vendor (either by ID or by matching name)
+                    if (vendor.id === targetVendorId || (vendorName === targetVendorName && targetVendorName)) {
                         targetIdUpdated = true;
                     }
 
@@ -208,10 +217,11 @@ const syncAllVendorsFromAi = async (prisma, targetVendorId = null) => {
                 }
             }
         }
-        console.log(`Bulk Vendor AI Sync completed for ${projectsVendorsData.length} project sessions. ${updatedCount} vendors updated.`);
+        console.log(`Bulk Vendor AI Sync completed. ${updatedCount} vendors updated.`);
         return { updatedCount, targetIdUpdated };
     } catch (error) {
-        console.error("Bulk Vendor AI Sync failed:", error.message);
+        const errorMessage = error.response ? `${error.message} (Data: ${JSON.stringify(error.response.data)})` : error.message;
+        console.error("Bulk Vendor AI Sync failed:", errorMessage);
         return { updatedCount: 0, targetIdUpdated: false };
     }
 };

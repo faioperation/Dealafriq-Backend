@@ -35,7 +35,6 @@ export const AdminProjectService = {
                     assignTeam: true,
                     tasks: true,
                     milestones: true,
-                    health: true,
                     meetings: {
                         include: {
                             keyPoints: true,
@@ -48,7 +47,6 @@ export const AdminProjectService = {
                             actionPoints: true,
                         },
                     },
-                    health: true,
                     transcripts: true,
                 },
             }),
@@ -93,7 +91,8 @@ export const AdminProjectService = {
                     },
                     assignTeam: true,
                     raidd: true,
-                      meetings: {
+                    tasks: true,
+                    meetings: {
                         include: {
                             keyPoints: true,
                             actionPoints: true,
@@ -144,6 +143,7 @@ export const AdminProjectService = {
                 },
                 assignTeam: true,
                 raidd: true,
+                tasks: true,
                 meetings: {
                     include: {
                         keyPoints: true,
@@ -189,7 +189,6 @@ export const AdminProjectService = {
                 assignTeam: true,
                 tasks: true,
                 milestones: true,
-                health: true,
                 documents: true,
                 transcripts: true,
                 meetings: {
@@ -256,7 +255,7 @@ export const AdminProjectService = {
                     },
                 },
                 milestones: true,
-                health: true,
+                tasks: true,
                 meetings: {
                     include: {
                         keyPoints: true,
@@ -323,7 +322,7 @@ export const AdminProjectService = {
                 },
                 // ⚡ Keep minimal for performance (add more if needed)
                 milestones: true,
-                health: true,
+                tasks: true,
             },
         });
 

@@ -36,6 +36,7 @@ export const PMProjectManagementService = {
                 projectOwner: { connect: { id: userId } },
                 projectProgress: payload.projectProgress || "0%",
                 assignTeam: actualAssignTeamId ? { connect: { id: actualAssignTeamId } } : undefined,
+                vendor: payload.vendorId ? { connect: { id: payload.vendorId } } : undefined,
 
 
                 documents: payload.documents ? {
@@ -163,7 +164,6 @@ export const PMProjectManagementService = {
                             actionPoints: true,
                         },
                     },
-                    health: true,
                     transcripts: true,
                 },
             }),
@@ -243,6 +243,9 @@ export const PMProjectManagementService = {
         const updatedProject = await prisma.project.update({
             where: { id },
             data: updateData,
+            include: {
+                tasks: true,
+            }
         });
 
 
@@ -306,8 +309,8 @@ export const PMProjectManagementService = {
 
                 // 2. Fetch AI Summary from External AI API
                 // 2. Fetch AI payload from External AI API
-                let aiSummary = "";
                 let fullPayload = {};
+                let aiData = null;
                 try {
                     const apiUrl = `${envVars.API_AI}/summary/project`;
                     const response = await axios.post(apiUrl, {}, {
@@ -316,25 +319,25 @@ export const PMProjectManagementService = {
                         }
                     });
                     const projectsData = response.data;
-                    const aiData = Array.isArray(projectsData)
+                    aiData = Array.isArray(projectsData)
                         ? projectsData.find(p => p.projectId === id)
                         : projectsData;
                     fullPayload = aiData || {};
-                    aiSummary = aiData?.summary ?? "";
                 } catch (error) {
                     console.error(`[Project AI Sync] API Call failed on attempt ${attempt + 1}:`, error.message);
                 }
 
-                if (aiSummary) {
+                if (aiData?.summary || aiData?.weeklySummary) {
                     // 3. Update the Project with summary and raw payload
                     await prisma.project.update({
                         where: { id },
                         data: {
                             projectProgress,
-                            projectAiSummary: { push: aiSummary },
-                            weeklyAiSummary: aiSummary,
+                            projectAiSummary: aiData?.summary ? { push: aiData.summary } : undefined,
+                            weeklyAiSummary: aiData?.weeklySummary || aiData?.summary,
+                            weeklySummaryDate: new Date(),
                             projectAiDetails: fullPayload,
-                            projectHealth: fullPayload.projectHealth || []
+                            projectHealth: aiData.projectHealth || []
                         }
                     });
 
@@ -383,8 +386,9 @@ export const PMProjectManagementService = {
             }
 
             for (const aiProject of projectsData) {
-                const { projectId, summary } = aiProject;
-                if (!projectId || !summary) continue;
+                const { projectId, summary, weeklySummary } = aiProject;
+                if (!projectId) continue;
+                if (!summary && !weeklySummary) continue;
 
                 // Check if project exists in database
                 const projectExists = await prisma.project.findUnique({
@@ -405,10 +409,11 @@ export const PMProjectManagementService = {
                         where: { id: projectId },
                         data: {
                             projectProgress,
-                            projectAiSummary: {
+                            projectAiSummary: summary ? {
                                 push: summary
-                            },
-                            weeklyAiSummary: summary,
+                            } : undefined,
+                            weeklyAiSummary: weeklySummary || summary,
+                            weeklySummaryDate: new Date(),
                             projectHealth: aiProject.projectHealth || []
                         }
                     });

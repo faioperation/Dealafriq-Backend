@@ -13,6 +13,7 @@ const createRaiddSchema = z.object({
             (val) => (typeof val === "string" ? val.toUpperCase() : val),
             z.enum(["LOW", "MEDIUM", "HIGH"]).optional()
         ),
+        aiDetectionId: z.string().uuid("Invalid AI Detection ID").optional(),
     }),
 });
 
