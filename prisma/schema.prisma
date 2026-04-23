@@ -178,7 +178,7 @@ model Project {
   projectAgreements    ProjectAgreements[]
   assignments          ProjectAssignment[]
   documents            ProjectDocumentUpload[]
-  projectHealth        Json?
+  projectHealth        String?  
   meetings             ProjectMeeting[]
   milestones           ProjectMilestone[]
   tasks                ProjectTask[]
@@ -665,6 +665,7 @@ enum TaskStatus {
   IN_PROGRESS
   REVIEW
   COMPLETED
+  CANCELLED
   BLOCKED
 }
 
@@ -673,6 +674,7 @@ enum MilestoneStatus {
   IN_PROGRESS
   COMPLETED
   DELAYED
+    CANCELLED
 }
 
 enum ProjectRole {

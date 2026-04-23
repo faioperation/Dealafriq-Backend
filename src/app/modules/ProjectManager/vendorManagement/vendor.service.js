@@ -75,7 +75,8 @@ const getAllVendors = async (query) => {
                     projectAiSummary: true,
                 },
             },
-        }
+        },
+        orderBy: { createdAt: 'desc' }
 
     });
     return vendors;

@@ -6,6 +6,7 @@ import { AdminProjectRoutes } from "../modules/Admin/project/project.route.js";
 import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
 import { DashboardRoutes } from "../modules/Admin/dashboard/dashboard.route.js";
 import { AdminVendorRoutes } from "../modules/Admin/vendorManagement/adminVendor.route.js";
+import { AdminMeetingRoutes } from "../modules/Admin/MeetingManagement/meeting.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
@@ -30,6 +31,7 @@ import { UserRoutes } from "../modules/user/user.route.js";
 import { LessonLearnRoutes } from "../modules/ProjectManager/leasonLearn/leasonLearn.route.js";
 import { GoogleCalendarRoutes } from "../modules/ProjectManager/googleCalender/googleCalender.route.js";
 import { NotificationRoutes } from "../modules/ProjectManager/notification/notification.route.js";
+import { DraftMailRoutes } from "../modules/ProjectManager/draftMail/draftMail.route.js";
 
 
 
@@ -69,6 +71,10 @@ const moduleRoutes = [
   {
     path: "/admin/vendor-management",
     route: AdminVendorRoutes,
+  },
+  {
+    path: "/admin/meeting-management",
+    route: AdminMeetingRoutes,
   },
   // Admin Routes ends here
   // Project Manager Routes starts here
@@ -168,6 +174,10 @@ const moduleRoutes = [
   {
     path: "/project-manager/notifications",
     route: NotificationRoutes,
+  },
+  {
+    path: "/project-manager/draft-mail",
+    route: DraftMailRoutes,
   },
   // Project Manager Routes ends here
 ];
