@@ -38,16 +38,6 @@ export const ProjectDocumentService = {
 
         // We use a transaction or just map multiple creates to get returning data
         const results = await Promise.all(payloads.map(async (payload) => {
-            if (payload.setDate && project.startDate) {
-                const dSet = new Date(payload.setDate);
-                const dStart = new Date(project.startDate);
-                dSet.setUTCHours(0, 0, 0, 0);
-                dStart.setUTCHours(0, 0, 0, 0);
-                if (dSet < dStart) {
-                    throw new AppError(StatusCodes.BAD_REQUEST, "Document set date can not be before project start date");
-                }
-            }
-
             const { keyPoints, actionPoints, ...docData } = payload;
 
             const nestedData = {
@@ -244,17 +234,47 @@ export const ProjectDocumentService = {
                 if (!Array.isArray(documents)) continue;
 
                 for (const doc of documents) {
-                    const { documentId, summary } = doc;
+                    const { documentId, summary, actionPoints, discussionPoints } = doc;
                     if (!documentId) continue;
 
                     const docExists = await prisma.projectDocumentUpload.findUnique({
                         where: { id: documentId }
                     });
 
-                    if (docExists && summary) {
+                    if (docExists) {
+                        const updateData = {};
+                        if (summary) updateData.aiDocumentSummary = summary;
+
+                        // Handle actionPoints from AI
+                        if (Array.isArray(actionPoints) && actionPoints.length > 0) {
+                            // Delete existing points first (optional, but cleaner for AI sync)
+                            await prisma.documentActionPoint.deleteMany({
+                                where: { documentId }
+                            });
+                            updateData.actionPoints = {
+                                create: actionPoints.map(content => ({
+                                    content,
+                                    status: "PENDING"
+                                }))
+                            };
+                        }
+
+                        // Handle discussionPoints from AI (map to keyPoints)
+                        if (Array.isArray(discussionPoints) && discussionPoints.length > 0) {
+                            await prisma.documentKeyPoint.deleteMany({
+                                where: { documentId }
+                            });
+                            updateData.keyPoints = {
+                                create: discussionPoints.map(content => ({
+                                    content,
+                                    status: "TO_BE_VALIDATED"
+                                }))
+                            };
+                        }
+
                         await prisma.projectDocumentUpload.update({
                             where: { id: documentId },
-                            data: { aiDocumentSummary: summary }
+                            data: updateData
                         });
                         updatedIds.push(documentId);
                     }
@@ -280,7 +300,7 @@ export const ProjectDocumentService = {
                 await new Promise(resolve => setTimeout(resolve, delays[attempt]));
 
                 const updatedIds = await ProjectDocumentService.syncAllDocumentsFromAi(prisma);
-                
+
                 // Filter out IDs that have been successfully updated
                 remainingIds = remainingIds.filter(id => !updatedIds.includes(id));
 

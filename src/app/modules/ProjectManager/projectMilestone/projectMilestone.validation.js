@@ -5,7 +5,7 @@ const createProjectMilestoneSchema = z.object({
         projectId: z.string().uuid("Invalid project ID"),
         title: z.string().min(1, "Milestone title is required"),
         description: z.string().optional(),
-        milestoneDate: z.string().min(1, "Milestone date is required"),
+        milestoneDate: z.string().optional(),
         status: z.enum(["UPCOMING", "IN_PROGRESS", "COMPLETED", "DELAYED"]),
     }),
 });

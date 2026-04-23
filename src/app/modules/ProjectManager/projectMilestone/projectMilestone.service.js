@@ -1,6 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
+import { PMProjectManagementService } from "../project_management/project_management.service.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
   const project = await prisma.project.findFirst({
@@ -32,6 +33,11 @@ export const ProjectMilestoneService = {
       action: "create",
       userId,
       projectId: milestone.projectId,
+    });
+
+    // Trigger AI sync in background
+    PMProjectManagementService.syncProjectAiStatusBackground(prisma, milestone.projectId, userId).catch(err => {
+      console.error("[Milestone Create] Error in background AI sync:", err);
     });
 
     return milestone;

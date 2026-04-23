@@ -78,7 +78,9 @@ const getAllVendors = async () => {
                 },
             },
             emails: true
-        }
+        },
+        take:1,
+        orderBy: { createdAt: 'desc' }
 
     });
 

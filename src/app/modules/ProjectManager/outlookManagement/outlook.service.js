@@ -55,7 +55,7 @@ const connectAccount = async (userId, code) => {
         where: { userId, provider: 'outlook' }
     });
 
-    const result = await (existingAccount ? 
+    const result = await (existingAccount ?
         prisma.emailAccount.update({
             where: { id: existingAccount.id },
             data: {
@@ -220,7 +220,7 @@ const syncAllConnectedAccounts = async () => {
                     body: rawBody,
                     senderEmail,
                     receiverEmail: account.email,
-                    category: null, // Outlook graph doesn't give category easily like Gmail
+                    category: 'personal', // Outlook graph doesn't give category easily like Gmail
                     receivedAt: msg.receivedDateTime,
                     source: 'outlook',
                     created_by: account.userId
@@ -236,33 +236,89 @@ const syncAllConnectedAccounts = async () => {
 const getUnifiedInbox = async (userId, query) => {
     const queryBuilder = new QueryBuilder(query).filter().build();
 
-    const where = {
+    // Base where clause for both Gmail and Outlook
+    const baseWhere = {
         ...queryBuilder.where,
         created_by: userId,
-        deletedAt: null
+        deletedAt: null,
     };
 
+    // Gmail emails (no category filter needed)
     const gmailEmails = await prisma.email.findMany({
-        where,
+        where: baseWhere,
         include: { vendor: true },
         orderBy: { receivedAt: 'desc' },
-        take: 20
+        take: 20,
     });
 
+    // Outlook emails filtered to 'personal' category only
+    const outlookWhere = { ...baseWhere, category: 'personal' };
     const outlookEmails = await prisma.outlook.findMany({
-        where,
+        where: outlookWhere,
         include: { vendor: true },
         orderBy: { receivedAt: 'desc' },
-        take: 20
+        take: 20,
     });
 
-    // Combine and sort
+    // Combine and sort most recent first
     const unified = [
         ...gmailEmails.map(e => ({ ...e, type: 'gmail' })),
-        ...outlookEmails.map(e => ({ ...e, type: 'outlook' }))
+        ...outlookEmails.map(e => ({ ...e, type: 'outlook' })),
     ].sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt));
 
-    return unified.slice(0, 20);
+    const sliced = unified.slice(0, 20);
+
+    // Initialize overall stats counters
+    const overallStats = {
+        totalTasks: 0,
+        totalIssues: 0,
+        totalRisks: 0,
+        totalAssumptions: 0,
+        totalDependencies: 0,
+        totalDecisions: 0,
+        totalAiPossessed: 0,
+    };
+
+    // Compute overall stats while iterating through sliced
+    sliced.forEach(item => {
+        const ai = item.fullAiResponse || {};
+        const raidd = ai.raiddAnalysis || {};
+        
+        // Helper to check if a category has any content (array with items or non-empty string)
+        const hasContent = (val) => {
+            if (!val) return false;
+            if (Array.isArray(val)) return val.length > 0;
+            if (typeof val === 'string') return val.trim().length > 0;
+            return true; // Any other non-null truthy value
+        };
+
+        if (Array.isArray(item.tasks) && item.tasks.length > 0) overallStats.totalTasks += 1;
+        
+        if (hasContent(ai.issues) || hasContent(ai.issue) || hasContent(ai.totalIssues) || hasContent(raidd.issues) || hasContent(raidd.issue)) {
+            overallStats.totalIssues += 1;
+        }
+        
+        if (hasContent(ai.risks) || hasContent(ai.riskPoints) || hasContent(raidd.risks) || hasContent(raidd.riskPoints)) {
+            overallStats.totalRisks += 1;
+        }
+        
+        if (hasContent(ai.assumptions) || hasContent(ai.assumptionPoints) || hasContent(raidd.assumptions) || hasContent(raidd.assumptionPoints)) {
+            overallStats.totalAssumptions += 1;
+        }
+        
+        if (hasContent(ai.dependencies) || hasContent(ai.dependencyPoints) || hasContent(raidd.dependencies) || hasContent(raidd.dependencyPoints)) {
+            overallStats.totalDependencies += 1;
+        }
+        
+        if (hasContent(ai.decisions) || hasContent(ai.decisionPoints) || hasContent(raidd.decisions) || hasContent(raidd.decisionPoints)) {
+            overallStats.totalDecisions += 1;
+        }
+
+        if (item.fullAiResponse) overallStats.totalAiPossessed += 1;
+    });
+
+    // Return only the data array and overall stats
+    return { data: sliced, overallStats };
 };
 
 const getSingleUnifiedMessage = async (id, userId) => {

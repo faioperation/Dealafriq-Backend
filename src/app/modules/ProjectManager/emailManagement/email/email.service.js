@@ -278,18 +278,23 @@ const syncAllConnectedAccounts = async () => {
                 const categoryLabel = detail.data.labelIds?.find(l => l.startsWith('CATEGORY_'));
                 const category = categoryLabel ? categoryLabel.replace('CATEGORY_', '').toLowerCase() : null;
 
-                await VendorEmailService.syncEmail({
-                    gmailMessageId: msg.id,
-                    emailRawId: msg.id,
-                    subject,
-                    body,
-                    senderEmail,
-                    receiverEmail: accountEmail, // Use the actual Gmail address
-                    category,
-                    receivedAt,
-                    source: 'email',
-                    created_by: account.userId // Audit as synced by this user's account
-                });
+                // Only sync if it's a personal email
+                if (category === 'personal') {
+                    await VendorEmailService.syncEmail({
+                        gmailMessageId: msg.id,
+                        emailRawId: msg.id,
+                        subject,
+                        body,
+                        senderEmail,
+                        receiverEmail: accountEmail, // Use the actual Gmail address
+                        category,
+                        receivedAt,
+                        source: 'email',
+                        created_by: account.userId // Audit as synced by this user's account
+                    });
+                } else {
+                    console.log(`Skipping non-personal email (${category}) for user: ${account.userId}`);
+                }
             }
             console.log(`Finished syncing account: ${account.userId}`);
         } catch (error) {

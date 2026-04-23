@@ -9,13 +9,7 @@ const createProjectMeetingSchema = z.object({
         projectSummary: z.string().optional(),
         meetingUrl: z.string().url("Invalid meeting URL").optional().or(z.literal("")),
         videoPlayUrl: z.string().url("Invalid video play URL").optional().or(z.literal("")),
-        meetingDate: z.string().optional().refine((val) => {
-            if (!val) return true;
-            const meetingD = new Date(val);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            return meetingD >= today;
-        }, { message: "Meeting date cannot be in the past" }),
+        meetingDate: z.string().optional(),
 
         keyPoints: z.array(
             z.object({
@@ -41,13 +35,7 @@ const updateProjectMeetingSchema = z.object({
         projectSummary: z.string().optional(),
         meetingUrl: z.string().url("Invalid meeting URL").optional().or(z.literal("")),
         videoPlayUrl: z.string().url("Invalid video play URL").optional().or(z.literal("")),
-        meetingDate: z.string().optional().refine((val) => {
-            if (!val) return true;
-            const meetingD = new Date(val);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            return meetingD >= today;
-        }, { message: "Meeting date cannot be in the past" }),
+        meetingDate: z.string().optional(),
 
         keyPoints: z.array(
             z.object({
