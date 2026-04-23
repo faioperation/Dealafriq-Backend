@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
-import { ProjectHealthService } from "../projectHealth/projectHealth.service.js";
+import { PMProjectManagementService } from "../project_management/project_management.service.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
   const project = await prisma.project.findFirst({
@@ -32,8 +32,6 @@ const updateProjectProgress = async (prisma, projectId) => {
     data: { projectProgress },
   });
 
-  // Dynamic Health Update
-  await ProjectHealthService.calculateAndUpsertHealth(prisma, projectId);
 };
 
 export const ProjectTaskService = {
@@ -57,6 +55,11 @@ export const ProjectTaskService = {
     });
 
     await updateProjectProgress(prisma, task.projectId);
+    
+    // Trigger AI sync in background
+    PMProjectManagementService.syncProjectAiStatusBackground(prisma, task.projectId, userId).catch(err => {
+      console.error("[Task Create] Error in background AI sync:", err);
+    });
 
     return task;
   },

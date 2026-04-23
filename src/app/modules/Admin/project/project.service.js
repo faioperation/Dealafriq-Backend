@@ -1,5 +1,7 @@
 import { projectSearchableFields } from "../../../constant.js";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
+import { AppError } from "../../../errorHelper/appError.js";
+import { StatusCodes } from "http-status-codes";
 
 export const AdminProjectService = {
     getAllProjects: async (prisma, query) => {
@@ -35,7 +37,6 @@ export const AdminProjectService = {
                     assignTeam: true,
                     tasks: true,
                     milestones: true,
-                    health: true,
                     meetings: {
                         include: {
                             keyPoints: true,
@@ -48,7 +49,6 @@ export const AdminProjectService = {
                             actionPoints: true,
                         },
                     },
-                    health: true,
                     transcripts: true,
                 },
             }),
@@ -93,7 +93,8 @@ export const AdminProjectService = {
                     },
                     assignTeam: true,
                     raidd: true,
-                      meetings: {
+                    tasks: true,
+                    meetings: {
                         include: {
                             keyPoints: true,
                             actionPoints: true,
@@ -144,6 +145,7 @@ export const AdminProjectService = {
                 },
                 assignTeam: true,
                 raidd: true,
+                tasks: true,
                 meetings: {
                     include: {
                         keyPoints: true,
@@ -189,7 +191,6 @@ export const AdminProjectService = {
                 assignTeam: true,
                 tasks: true,
                 milestones: true,
-                health: true,
                 documents: true,
                 transcripts: true,
                 meetings: {
@@ -256,7 +257,7 @@ export const AdminProjectService = {
                     },
                 },
                 milestones: true,
-                health: true,
+                tasks: true,
                 meetings: {
                     include: {
                         keyPoints: true,
@@ -265,7 +266,25 @@ export const AdminProjectService = {
                 },
             },
         });
-
+        // Compute task status breakdown for each project
+        projects.forEach((project) => {
+          const statusCounts = {
+            PENDING: 0,
+            IN_PROGRESS: 0,
+            REVIEW: 0,
+            COMPLETED: 0,
+            CANCELLED: 0,
+          };
+          if (Array.isArray(project.tasks)) {
+            project.tasks.forEach((t) => {
+              const s = t.status;
+              if (statusCounts.hasOwnProperty(s)) {
+                statusCounts[s]++;
+              }
+            });
+          }
+          project.totalTask = statusCounts;
+        });
         return projects;
     },
 
@@ -323,7 +342,10 @@ export const AdminProjectService = {
                 },
                 // ⚡ Keep minimal for performance (add more if needed)
                 milestones: true,
-                health: true,
+                tasks: true,
+                // Compute task status breakdown
+                // Will be added after fetching the project
+
             },
         });
 
@@ -331,7 +353,26 @@ export const AdminProjectService = {
             throw new AppError(StatusCodes.NOT_FOUND, "Project not found");
         }
 
+        // Compute status counts
+        const statusCounts = {
+          PENDING: 0,
+          IN_PROGRESS: 0,
+          REVIEW: 0,
+          COMPLETED: 0,
+          CANCELLED: 0,
+        };
+        if (project.tasks && Array.isArray(project.tasks)) {
+          project.tasks.forEach((t) => {
+            const s = t.status;
+            if (statusCounts.hasOwnProperty(s)) {
+              statusCounts[s]++;
+            }
+          });
+        }
+        // Attach totalTask summary
+        project.totalTask = statusCounts;
         return project;
+
     }
 
 };

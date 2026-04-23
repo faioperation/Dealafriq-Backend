@@ -46,6 +46,8 @@ const syncOutlookEmail = async (payload) => {
 
     const emailData = {
         ...payload,
+        // Ensure a default category of "personal" if not provided
+        category: payload.category ?? 'personal',
         vendorId: vendor ? vendor.id : null,
         vendorEmail: vendor ? (vendor.email === senderEmail ? vendor.email : vendor.contactEmail) : null
     };
