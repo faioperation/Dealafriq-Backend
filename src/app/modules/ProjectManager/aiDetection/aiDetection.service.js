@@ -21,31 +21,39 @@ const createAiDetection = async (prisma, payload, userId) => {
 };
 
 const getAllAiDetections = async (prisma, userId) => {
+    const where = { deletedAt: null };
+    if (userId) {
+        where.managerId = userId;
+    }
     return prisma.aiDetection.findMany({
-        where: { deletedAt: null },
+        where,
         orderBy: { createdAt: "desc" },
     });
 };
 
-const getAiDetectionById = async (prisma, id) => {
-    const aiDetection = await prisma.aiDetection.findUnique({
-        where: { id, deletedAt: null },
+const getAiDetectionById = async (prisma, id, userId = null) => {
+    const where = { id, deletedAt: null };
+    if (userId) {
+        where.managerId = userId;
+    }
+    const aiDetection = await prisma.aiDetection.findFirst({
+        where,
     });
 
     if (!aiDetection) {
-        throw new AppError(StatusCodes.NOT_FOUND, "AI Detection record not found");
+        throw new AppError(StatusCodes.NOT_FOUND, "AI Detection record not found or access denied");
     }
 
     return aiDetection;
 };
 
 const updateAiDetection = async (prisma, id, payload, userId) => {
-    const aiDetection = await prisma.aiDetection.findUnique({
-        where: { id, deletedAt: null },
+    const aiDetection = await prisma.aiDetection.findFirst({
+        where: { id, managerId: userId, deletedAt: null },
     });
 
     if (!aiDetection) {
-        throw new AppError(StatusCodes.NOT_FOUND, "AI Detection record not found");
+        throw new AppError(StatusCodes.NOT_FOUND, "AI Detection record not found or access denied");
     }
 
     const updatedAiDetection = await prisma.aiDetection.update({
@@ -67,12 +75,12 @@ const updateAiDetection = async (prisma, id, payload, userId) => {
 };
 
 const deleteAiDetection = async (prisma, id, userId) => {
-    const aiDetection = await prisma.aiDetection.findUnique({
-        where: { id, deletedAt: null },
+    const aiDetection = await prisma.aiDetection.findFirst({
+        where: { id, managerId: userId, deletedAt: null },
     });
 
     if (!aiDetection) {
-        throw new AppError(StatusCodes.NOT_FOUND, "AI Detection record not found");
+        throw new AppError(StatusCodes.NOT_FOUND, "AI Detection record not found or access denied");
     }
 
     // Soft delete
