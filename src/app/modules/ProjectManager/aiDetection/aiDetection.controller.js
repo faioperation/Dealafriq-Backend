@@ -25,7 +25,7 @@ const getAllAiDetections = catchAsync(async (req, res) => {
 });
 
 const getAiDetectionById = catchAsync(async (req, res) => {
-    const result = await AiDetectionService.getAiDetectionById(prisma, req.params.id);
+    const result = await AiDetectionService.getAiDetectionById(prisma, req.params.id, req.user.id);
     sendResponse(res, {
         statusCode: StatusCodes.OK,
         success: true,

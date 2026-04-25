@@ -9,6 +9,7 @@ import { TranscriptParser } from "../../../utils/transcript.parser.js";
 import path from "path";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 import { projectMeetingSearchableFields } from "../../../constant.js";
+import { AiDetectionService } from "../aiDetection/aiDetection.service.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
@@ -347,17 +348,35 @@ export const ProjectMeetingService = {
             // No initial fixed wait here anymore, it's handled by the retry loop in createMeeting or caller
             // If called without targetMeetingId (e.g. manual trigger), we might still want a small delay or none.
 
-            const response = await axios.post(`${envVars.API_AI}/summary/meeting`, {}, {
-                headers: {
-                  'x-backend-service': "PROJECT_AI_BACKEND"
-                }
-            });
-            const projectsData = response.data;
-            
-           console.log(
-  "=== AI API Response Data for Meetings 🧑‍💼 ===\n",
-  JSON.stringify(projectsData, null, 2)
-);
+            // Call both AI APIs with individual error handling and correct internal keys
+            let projectsData = [];
+            let transcriptData = [];
+
+            try {
+                const meetingResponse = await axios.post(`${envVars.API_AI}/summary/meeting`, {}, {
+                    headers: { 'x-backend-service': envVars.INTERNAL_BACKEND_SERVICE_KEY }
+                });
+                projectsData = meetingResponse.data;
+                console.log(
+                    "=== AI API Response Data for Meetings 🧑‍💼 ===\n",
+                    JSON.stringify(projectsData, null, 2)
+                );
+            } catch (err) {
+                console.error("[AI Sync] Meeting summary API failed:", err.message);
+            }
+
+            try {
+                const transcriptResponse = await axios.post(`${envVars.API_AI}/summary/transcripts`, {}, {
+                    headers: { 'x-backend-service': envVars.INTERNAL_BACKEND_SERVICE_KEY }
+                });
+                transcriptData = transcriptResponse.data;
+                console.log(
+                    "=== AI API Response Data for Transcripts 📝 ===\n",
+                    JSON.stringify(transcriptData, null, 2)
+                );
+            } catch (err) {
+                console.error("[AI Sync] Transcript detection API failed or not found:", err.message);
+            }
 
             let targetIdUpdated = false;
             let updatedCount = 0;
@@ -367,7 +386,7 @@ export const ProjectMeetingService = {
             }
 
             for (const projectItem of projectsData) {
-                const { meetings, projectId } = projectItem;
+                const { meetings, projectId, session } = projectItem;
                 if (!meetings || !Array.isArray(meetings)) continue;
 
                 for (const aiMeeting of meetings) {
@@ -380,6 +399,9 @@ export const ProjectMeetingService = {
                     });
 
                     if (meetingExists) {
+                        // Only update if the project status matches the AI session
+                        if (meetingExists.project.status !== session) continue;
+
                         const updateData = {
                             notes: notes || meetingExists.notes,
                             agenda: agenda || meetingExists.agenda,
@@ -450,6 +472,43 @@ export const ProjectMeetingService = {
                     }
                 }
             }
+            
+            // Handle Transcript Data and AI Detection
+            if (Array.isArray(transcriptData)) {
+                for (const transcriptItem of transcriptData) {
+                    const { meetingId, summary, raiddAnalysis } = transcriptItem;
+                    if (!meetingId) continue;
+
+                    const meeting = await prisma.projectMeeting.findUnique({
+                        where: { id: meetingId },
+                        include: { project: true }
+                    });
+
+                    if (meeting) {
+                        // Check if detection already exists for this transcript to avoid duplicates during retries
+                        const existingDetection = await prisma.aiDetection.findFirst({
+                            where: {
+                                sourceType: 'meeting_transcript',
+                                title: meeting.title || 'New AI Detection from Meeting Transcript',
+                                summary: summary,
+                            }
+                        });
+
+                        if (!existingDetection) {
+                            // Create AI detection record
+                            await AiDetectionService.createAiDetection(prisma, {
+                                title: meeting.title || 'New AI Detection from Meeting Transcript',
+                                summary: summary,
+                                raiddAnalysis: raiddAnalysis,
+                                sourceType: 'meeting_transcript',
+                                managerId: meeting.project?.managerId || userId,
+                                fullAiResponse: transcriptItem
+                            }, userId);
+                        }
+                    }
+                }
+            }
+
             return { updatedCount, targetIdUpdated, message: `Successfully updated ${updatedCount} meetings with AI summaries.` };
         } catch (error) {
             throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to sync AI meeting summaries: " + error.message);
