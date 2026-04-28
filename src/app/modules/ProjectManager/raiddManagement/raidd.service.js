@@ -26,6 +26,8 @@ export const RaiddService = {
         const raidd = await prisma.raidd.create({
             data: {
                 ...raiddData,
+                assumptionValidationDueDate: raiddData.assumptionValidationDueDate ? new Date(raiddData.assumptionValidationDueDate) : undefined,
+                decisionDueDate: raiddData.decisionDueDate ? new Date(raiddData.decisionDueDate) : undefined,
                 created_by: userId,
             },
         });
@@ -175,6 +177,8 @@ export const RaiddService = {
             where: { id },
             data: {
                 ...payload,
+                assumptionValidationDueDate: payload.assumptionValidationDueDate ? new Date(payload.assumptionValidationDueDate) : undefined,
+                decisionDueDate: payload.decisionDueDate ? new Date(payload.decisionDueDate) : undefined,
                 updated_by: userId,
             },
         });
