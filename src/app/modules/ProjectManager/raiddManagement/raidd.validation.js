@@ -13,6 +13,9 @@ const createRaiddSchema = z.object({
             (val) => (typeof val === "string" ? val.toUpperCase() : val),
             z.enum(["LOW", "MEDIUM", "HIGH"]).optional()
         ),
+        assumptionValidationDueDate: z.string().datetime().optional(),
+        decisionDueDate: z.string().datetime().optional(),
+        decisionOwner: z.string().optional(),
         aiDetectionId: z.string().uuid("Invalid AI Detection ID").optional(),
     }),
 });
@@ -29,6 +32,9 @@ const updateRaiddSchema = z.object({
             (val) => (typeof val === "string" ? val.toUpperCase() : val),
             z.enum(["LOW", "MEDIUM", "HIGH"]).optional()
         ),
+        assumptionValidationDueDate: z.string().datetime().optional(),
+        decisionDueDate: z.string().datetime().optional(),
+        decisionOwner: z.string().optional(),
     }),
 });
 

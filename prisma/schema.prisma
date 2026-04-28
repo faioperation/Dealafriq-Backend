@@ -484,20 +484,23 @@ model AiDetection {
 }
 
 model Raidd {
-  id          String       @id @default(uuid())
-  projectId   String
-  title       String?
-  description String?
-  type        RaiddType
-  status      RaiddStatus?
-  created_by  String
-  updated_by  String?
-  approved_by String?
-  deleted_by  String?
-  created_at  DateTime     @default(now())
-  updated_at  DateTime     @updatedAt
-  deleted_at  DateTime?
-  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id                            String       @id @default(uuid())
+  projectId                     String
+  title                         String?
+  description                   String?
+  type                          RaiddType
+  status                        RaiddStatus?
+  assumptionValidationDueDate   DateTime?
+  decisionDueDate               DateTime?
+  decisionOwner                 String?
+  created_by                    String
+  updated_by                    String?
+  approved_by                   String?
+  deleted_by                    String?
+  created_at                    DateTime     @default(now())
+  updated_at                    DateTime     @updatedAt
+  deleted_at                    DateTime?
+  project                       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("raidd")
 }
