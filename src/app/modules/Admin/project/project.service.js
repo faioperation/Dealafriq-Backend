@@ -92,6 +92,7 @@ export const AdminProjectService = {
                         },
                     },
                     assignTeam: true,
+                    vendor: true,
                     raidd: true,
                     tasks: true,
                     meetings: {
@@ -144,6 +145,7 @@ export const AdminProjectService = {
                     },
                 },
                 assignTeam: true,
+                vendor: true,
                 raidd: true,
                 tasks: true,
                 meetings: {
