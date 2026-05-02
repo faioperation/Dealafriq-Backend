@@ -19,9 +19,21 @@ router.get(
 );
 
 router.get(
+    "/all/with-raidd/chatbot",
+    // checkInternalService(),
+    AdminProjectController.getAllProjectsWithRaiddForChatbot
+);
+
+router.get(
     "/with-raidd/for-ai/:id",
     // checkInternalService(),
     AdminProjectController.getProjectWithRaiddById
+);
+
+router.get(
+    "/with-raidd/chatbot/:id",
+    // checkInternalService(),
+    AdminProjectController.getProjectWithRaiddByIdForChatbot
 );
 
 router.get(

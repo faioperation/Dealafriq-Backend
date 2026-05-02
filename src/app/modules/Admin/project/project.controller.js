@@ -29,6 +29,18 @@ export const AdminProjectController = {
         });
     }),
 
+    getAllProjectsWithRaiddForChatbot: catchAsync(async (req, res) => {
+        const result = await AdminProjectService.getAllProjectsWithRaiddForChatbot(prisma, req.query);
+
+        sendResponse(res, {
+            statusCode: StatusCodes.OK,
+            success: true,
+            message: "Projects with RAIDDs for chatbot retrieved successfully",
+            meta: result.meta,
+            data: result.data,
+        });
+    }),
+
     getProjectWithRaiddById: catchAsync(async (req, res) => {
         const result = await AdminProjectService.getProjectWithRaiddById(prisma, req.params.id);
 
@@ -36,6 +48,17 @@ export const AdminProjectController = {
             statusCode: StatusCodes.OK,
             success: true,
             message: "Project with RAIDD retrieved successfully",
+            data: result,
+        });
+    }),
+
+    getProjectWithRaiddByIdForChatbot: catchAsync(async (req, res) => {
+        const result = await AdminProjectService.getProjectWithRaiddByIdForChatbot(prisma, req.params.id);
+
+        sendResponse(res, {
+            statusCode: StatusCodes.OK,
+            success: true,
+            message: "Project with RAIDD for chatbot retrieved successfully",
             data: result,
         });
     }),
