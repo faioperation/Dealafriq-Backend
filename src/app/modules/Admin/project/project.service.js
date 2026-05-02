@@ -129,6 +129,66 @@ export const AdminProjectService = {
         };
     },
 
+    getAllProjectsWithRaiddForChatbot: async (prisma, query) => {
+        const result = await AdminProjectService.getAllProjectsWithRaidd(prisma, query);
+
+        // Filter out "raw ai response" and other sensitive/unnecessary AI fields for chatbot
+        const filteredData = result.data.map((item) => AdminProjectService.filterProjectDataForChatbot(item));
+
+        return {
+            ...result,
+            data: filteredData,
+        };
+    },
+
+    getProjectWithRaiddByIdForChatbot: async (prisma, id) => {
+        const result = await AdminProjectService.getProjectWithRaiddById(prisma, id);
+
+        // Filter out "raw ai response" and other sensitive/unnecessary AI fields for chatbot
+        const filteredData = result.map((item) => AdminProjectService.filterProjectDataForChatbot(item));
+
+        return filteredData;
+    },
+
+    filterProjectDataForChatbot: (item) => {
+        const { project, raidd } = item;
+
+        // Remove AI related fields from project
+        const {
+            projectAiDetails,
+            projectAiSummary,
+            weeklyAiSummary,
+            weeklyMeetingSummary,
+            projectSummary,
+            ...restProject
+        } = project;
+
+        // Remove AI related fields from meetings if they exist
+        if (restProject.meetings && Array.isArray(restProject.meetings)) {
+            restProject.meetings = restProject.meetings.map((meeting) => {
+                const {
+                    aiMeetingSummary,
+                    transcriptData,
+                    transcriptPath,
+                    transcriptUrl,
+                    ...restMeeting
+                } = meeting;
+                return restMeeting;
+            });
+        }
+
+        // Remove AI related fields from vendor if it exists
+        if (restProject.vendor) {
+            const { vendorAiResponse, ...restVendor } = restProject.vendor;
+            restProject.vendor = restVendor;
+        }
+
+        return {
+            project: restProject,
+            raidd,
+        };
+    },
+
     getProjectWithRaiddById: async (prisma, id) => {
         const project = await prisma.project.findFirst({
             where: {
