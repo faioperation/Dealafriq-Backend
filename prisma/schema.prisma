@@ -412,6 +412,7 @@ model Email {
   sentiment      String?
   decisions      Json?
   raiddAnalysis  Json?
+  raiddData      Json?
   raiddMessage   String?
   emailRawId     String?
   fullAiResponse Json?
@@ -449,6 +450,7 @@ model Outlook {
   sentiment        String?
   decisions        Json?
   raiddAnalysis    Json?
+  raiddData        Json?
   raiddMessage      String?
   outlookRawId      String?
   fullAiResponse    Json?
@@ -477,6 +479,7 @@ model AiDetection {
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
   raiddAnalysis Json?
+  raiddData     Json?
   raiddMessage  String?
   fullAiResponse Json?
 
@@ -677,7 +680,7 @@ enum MilestoneStatus {
   IN_PROGRESS
   COMPLETED
   DELAYED
-    CANCELLED
+  CANCELLED
 }
 
 enum ProjectRole {

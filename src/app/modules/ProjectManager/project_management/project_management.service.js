@@ -7,7 +7,7 @@ import axios from "axios";
 import { envVars } from "../../../config/env.js";
 import { LessonLearnService } from "../leasonLearn/leasonLearn.service.js";
 import { VendorService } from "../vendorManagement/vendor.service.js";
-
+import { RaiddService } from "../raiddManagement/raidd.service.js";
 
 export const PMProjectManagementService = {
     createProject: async (prisma, payload, userId) => {
@@ -255,6 +255,11 @@ export const PMProjectManagementService = {
             action: "update",
             userId,
             projectId: id,
+        });
+
+        // Fire and forget (Background Task) for RAIDD AI Sync on project update
+        RaiddService.syncRaiddsForProjectFromAi(prisma, id, userId).catch(err => {
+            console.error("Critical error in background RAIDD AI sync after project update:", err);
         });
 
         return updatedProject;

@@ -32,15 +32,103 @@ export const RaiddService = {
             },
         });
 
-        // If this RAIDD was created from an AI Detection, auto-delete the detection record
+        // If this RAIDD was created from an AI Detection, update or auto-delete the detection record
         if (aiDetectionId) {
             try {
-                await prisma.aiDetection.delete({
-                    where: { id: aiDetectionId },
+                const aiDetection = await prisma.aiDetection.findUnique({
+                    where: { id: aiDetectionId }
                 });
-                console.log(`[RAIDD Creation] Auto-deleted AI Detection record: ${aiDetectionId}`);
+
+                if (aiDetection) {
+                    let raiddKey = "";
+                    let categoryToRemove = "";
+                    switch (raiddData.type) {
+                        case "RISK": 
+                            raiddKey = "risks"; 
+                            categoryToRemove = "Risk"; 
+                            break;
+                        case "ASSUMPTION": 
+                            raiddKey = "assumptions"; 
+                            categoryToRemove = "Assumption"; 
+                            break;
+                        case "ISSUE": 
+                            raiddKey = "issues"; 
+                            categoryToRemove = "Issue"; 
+                            break;
+                        case "DEPENDENCY": 
+                            raiddKey = "dependencies"; 
+                            categoryToRemove = "Dependency"; 
+                            break;
+                        case "DECISION": 
+                            raiddKey = "decisions"; 
+                            categoryToRemove = "Decision"; 
+                            break;
+                    }
+
+                    if (raiddKey) {
+                        let newRaiddData = aiDetection.raiddData ? { ...aiDetection.raiddData } : null;
+                        let newRaiddAnalysis = aiDetection.raiddAnalysis ? (Array.isArray(aiDetection.raiddAnalysis) ? [ ...aiDetection.raiddAnalysis ] : aiDetection.raiddAnalysis) : null;
+                        
+                        // Remove the specific key from raiddData
+                        if (newRaiddData && newRaiddData[raiddKey] !== undefined) {
+                            delete newRaiddData[raiddKey];
+                            
+                            // If empty, set to null
+                            if (Object.keys(newRaiddData).length === 0) {
+                                newRaiddData = null;
+                            }
+                        }
+
+                        if (Array.isArray(newRaiddAnalysis)) {
+                            newRaiddAnalysis = newRaiddAnalysis.filter(item => 
+                                typeof item === 'string' &&
+                                item.toLowerCase() !== categoryToRemove.toLowerCase() &&
+                                item.toLowerCase() !== raiddKey.toLowerCase()
+                            );
+                        }
+
+                        let newFullAiResponse = aiDetection.fullAiResponse ? JSON.parse(JSON.stringify(aiDetection.fullAiResponse)) : null;
+                        if (newFullAiResponse) {
+                            if (newFullAiResponse.raiddAnalysis && newFullAiResponse.raiddAnalysis[raiddKey] !== undefined) {
+                                delete newFullAiResponse.raiddAnalysis[raiddKey];
+                            }
+                            if (Array.isArray(newFullAiResponse.category)) {
+                                newFullAiResponse.category = newFullAiResponse.category.filter(item => 
+                                    typeof item === 'string' &&
+                                    item.toLowerCase() !== categoryToRemove.toLowerCase() &&
+                                    item.toLowerCase() !== raiddKey.toLowerCase()
+                                );
+                            }
+                        }
+
+                        if (!newRaiddData || Object.keys(newRaiddData).length === 0) {
+                            // If raiddData is totally empty now, delete the whole detection
+                            await prisma.aiDetection.delete({
+                                where: { id: aiDetectionId },
+                            });
+                            console.log(`[RAIDD Creation] Auto-deleted full AI Detection record: ${aiDetectionId}`);
+                        } else {
+                            // Otherwise, just update the fields
+                            await prisma.aiDetection.update({
+                                where: { id: aiDetectionId },
+                                data: {
+                                    raiddData: newRaiddData,
+                                    raiddAnalysis: newRaiddAnalysis,
+                                    fullAiResponse: newFullAiResponse
+                                }
+                            });
+                            console.log(`[RAIDD Creation] Updated AI Detection record: removed ${raiddKey} for ${aiDetectionId}`);
+                        }
+                    } else {
+                        // Fallback, if no matching key, just delete the whole thing
+                        await prisma.aiDetection.delete({
+                            where: { id: aiDetectionId },
+                        });
+                        console.log(`[RAIDD Creation] Auto-deleted full AI Detection record: ${aiDetectionId}`);
+                    }
+                }
             } catch (error) {
-                console.error(`[RAIDD Creation] Failed to auto-delete AI Detection ${aiDetectionId}:`, error.message);
+                console.error(`[RAIDD Creation] Failed to process AI Detection ${aiDetectionId}:`, error.message);
                 // We don't throw here to avoid failing the RAIDD creation if only the deletion fails
             }
         }
@@ -402,6 +490,73 @@ export const RaiddService = {
             console.log(`Bulk RAIDD AI Sync completed for projects in response`);
         } catch (error) {
             console.error("Bulk RAIDD AI Sync failed:", error.message);
+        }
+    },
+
+    syncRaiddsForProjectFromAi: async (prisma, projectId, userId) => {
+        try {
+            console.log(`[RAIDD AI Sync] Triggering background sync for all RAIDDs in project ${projectId}...`);
+            const response = await axios.post(`${envVars.API_AI}/summary/project`, {
+                project_id: projectId
+            }, {
+                headers: {
+                    'x-backend-service': "PROJECT_AI_BACKEND"
+                }
+            });
+            
+            const projectsData = response.data;
+            const aiProjectData = Array.isArray(projectsData)
+                ? projectsData.find(p => p.projectId === projectId)
+                : projectsData;
+
+            if (!aiProjectData || !aiProjectData.raiddFlags) {
+                console.log(`[RAIDD AI Sync] No RAIDD flags found for project ${projectId}.`);
+                return;
+            }
+
+            const { raiddFlags } = aiProjectData;
+            
+            // Find all RAIDD items for this project
+            const raiddItems = await prisma.raidd.findMany({
+                where: { projectId, deleted_at: null }
+            });
+
+            for (const raidd of raiddItems) {
+                let aiItems = [];
+                switch (raidd.type) {
+                    case "RISK": aiItems = raiddFlags.risks; break;
+                    case "ASSUMPTION": aiItems = raiddFlags.assumptions; break;
+                    case "ISSUE": aiItems = raiddFlags.issues; break;
+                    case "DEPENDENCY": aiItems = raiddFlags.dependencies; break;
+                    case "DECISION": aiItems = raiddFlags.decisions; break;
+                }
+
+                if (Array.isArray(aiItems) && aiItems.length > 0) {
+                    const validItems = aiItems.filter(i => typeof i === 'string' && i.trim() !== '');
+                    if (validItems.length > 0) {
+                        const combinedDescription = validItems.map(item => `- ${item}`).join('\n');
+                        
+                        await prisma.raidd.update({
+                            where: { id: raidd.id },
+                            data: {
+                                description: combinedDescription,
+                                updated_by: userId
+                            }
+                        });
+
+                        await ActivityLogService.createLog(prisma, {
+                            type: "raidd",
+                            crudId: raidd.id,
+                            action: "update_ai",
+                            userId: userId,
+                            projectId: projectId,
+                        });
+                    }
+                }
+            }
+            console.log(`[RAIDD AI Sync] Successfully synced all RAIDDs for project ${projectId}`);
+        } catch (error) {
+            console.error(`[RAIDD AI Sync] Failed to sync RAIDDs for project ${projectId}:`, error.message);
         }
     }
 };
