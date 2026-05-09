@@ -490,8 +490,8 @@ model Raidd {
   id                            String       @id @default(uuid())
   projectId                     String
   title                         String?
-  description                   String?
-  type                          RaiddType
+  description                   Json?
+  type                          RaiddType[]
   status                        RaiddStatus?
   assumptionValidationDueDate   DateTime?
   decisionDueDate               DateTime?

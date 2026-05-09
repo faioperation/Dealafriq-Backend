@@ -19,64 +19,61 @@ const verifyProjectOwnership = async (prisma, projectId, userId) => {
 
 export const RaiddService = {
     createRaidd: async (prisma, payload, userId) => {
-        const { aiDetectionId, ...raiddData } = payload;
-
+        const { aiDetectionId, type, ...raiddData } = payload;
         await verifyProjectOwnership(prisma, raiddData.projectId, userId);
 
-        const raidd = await prisma.raidd.create({
+        const typesToCreate = Array.isArray(type) ? type : [type];
+
+        const createdRaidd = await prisma.raidd.create({
             data: {
                 ...raiddData,
+                type: typesToCreate,
                 assumptionValidationDueDate: raiddData.assumptionValidationDueDate ? new Date(raiddData.assumptionValidationDueDate) : undefined,
                 decisionDueDate: raiddData.decisionDueDate ? new Date(raiddData.decisionDueDate) : undefined,
                 created_by: userId,
-            },
+            }
         });
 
-        // If this RAIDD was created from an AI Detection, update or auto-delete the detection record
-        if (aiDetectionId) {
-            try {
-                const aiDetection = await prisma.aiDetection.findUnique({
-                    where: { id: aiDetectionId }
-                });
+        await ActivityLogService.createLog(prisma, {
+            type: "raidd",
+            crudId: createdRaidd.id,
+            action: "create",
+            userId,
+            projectId: createdRaidd.projectId,
+        });
 
-                if (aiDetection) {
+        // Trigger AI sync for THIS specific raidd record without awaiting it
+        RaiddService.syncSingleRaiddFromAi(prisma, createdRaidd.id, userId).catch(error => {
+            console.error("Background AI Sync for RAIDD failed:", error.message);
+        });
+
+        let aiDetection = null;
+        if (aiDetectionId) {
+            aiDetection = await prisma.aiDetection.findUnique({
+                where: { id: aiDetectionId }
+            });
+        }
+
+        if (aiDetection) {
+            try {
+                let newRaiddData = aiDetection.raiddData ? { ...aiDetection.raiddData } : null;
+                let newRaiddAnalysis = aiDetection.raiddAnalysis ? (Array.isArray(aiDetection.raiddAnalysis) ? [ ...aiDetection.raiddAnalysis ] : aiDetection.raiddAnalysis) : null;
+                let newFullAiResponse = aiDetection.fullAiResponse ? JSON.parse(JSON.stringify(aiDetection.fullAiResponse)) : null;
+
+                for (const t of typesToCreate) {
                     let raiddKey = "";
                     let categoryToRemove = "";
-                    switch (raiddData.type) {
-                        case "RISK": 
-                            raiddKey = "risks"; 
-                            categoryToRemove = "Risk"; 
-                            break;
-                        case "ASSUMPTION": 
-                            raiddKey = "assumptions"; 
-                            categoryToRemove = "Assumption"; 
-                            break;
-                        case "ISSUE": 
-                            raiddKey = "issues"; 
-                            categoryToRemove = "Issue"; 
-                            break;
-                        case "DEPENDENCY": 
-                            raiddKey = "dependencies"; 
-                            categoryToRemove = "Dependency"; 
-                            break;
-                        case "DECISION": 
-                            raiddKey = "decisions"; 
-                            categoryToRemove = "Decision"; 
-                            break;
+                    switch (t) {
+                        case "RISK": raiddKey = "risks"; categoryToRemove = "Risk"; break;
+                        case "ASSUMPTION": raiddKey = "assumptions"; categoryToRemove = "Assumption"; break;
+                        case "ISSUE": raiddKey = "issues"; categoryToRemove = "Issue"; break;
+                        case "DEPENDENCY": raiddKey = "dependencies"; categoryToRemove = "Dependency"; break;
+                        case "DECISION": raiddKey = "decisions"; categoryToRemove = "Decision"; break;
                     }
 
                     if (raiddKey) {
-                        let newRaiddData = aiDetection.raiddData ? { ...aiDetection.raiddData } : null;
-                        let newRaiddAnalysis = aiDetection.raiddAnalysis ? (Array.isArray(aiDetection.raiddAnalysis) ? [ ...aiDetection.raiddAnalysis ] : aiDetection.raiddAnalysis) : null;
-                        
-                        // Remove the specific key from raiddData
                         if (newRaiddData && newRaiddData[raiddKey] !== undefined) {
                             delete newRaiddData[raiddKey];
-                            
-                            // If empty, set to null
-                            if (Object.keys(newRaiddData).length === 0) {
-                                newRaiddData = null;
-                            }
                         }
 
                         if (Array.isArray(newRaiddAnalysis)) {
@@ -87,7 +84,6 @@ export const RaiddService = {
                             );
                         }
 
-                        let newFullAiResponse = aiDetection.fullAiResponse ? JSON.parse(JSON.stringify(aiDetection.fullAiResponse)) : null;
                         if (newFullAiResponse) {
                             if (newFullAiResponse.raiddAnalysis && newFullAiResponse.raiddAnalysis[raiddKey] !== undefined) {
                                 delete newFullAiResponse.raiddAnalysis[raiddKey];
@@ -100,53 +96,35 @@ export const RaiddService = {
                                 );
                             }
                         }
-
-                        if (!newRaiddData || Object.keys(newRaiddData).length === 0) {
-                            // If raiddData is totally empty now, delete the whole detection
-                            await prisma.aiDetection.delete({
-                                where: { id: aiDetectionId },
-                            });
-                            console.log(`[RAIDD Creation] Auto-deleted full AI Detection record: ${aiDetectionId}`);
-                        } else {
-                            // Otherwise, just update the fields
-                            await prisma.aiDetection.update({
-                                where: { id: aiDetectionId },
-                                data: {
-                                    raiddData: newRaiddData,
-                                    raiddAnalysis: newRaiddAnalysis,
-                                    fullAiResponse: newFullAiResponse
-                                }
-                            });
-                            console.log(`[RAIDD Creation] Updated AI Detection record: removed ${raiddKey} for ${aiDetectionId}`);
-                        }
-                    } else {
-                        // Fallback, if no matching key, just delete the whole thing
-                        await prisma.aiDetection.delete({
-                            where: { id: aiDetectionId },
-                        });
-                        console.log(`[RAIDD Creation] Auto-deleted full AI Detection record: ${aiDetectionId}`);
                     }
                 }
+
+                if (newRaiddData && Object.keys(newRaiddData).length === 0) {
+                    newRaiddData = null;
+                }
+
+                if (!newRaiddData) {
+                    await prisma.aiDetection.delete({
+                        where: { id: aiDetectionId },
+                    });
+                    console.log(`[RAIDD Creation] Auto-deleted full AI Detection record: ${aiDetectionId}`);
+                } else {
+                    await prisma.aiDetection.update({
+                        where: { id: aiDetectionId },
+                        data: {
+                            raiddData: newRaiddData,
+                            raiddAnalysis: newRaiddAnalysis,
+                            fullAiResponse: newFullAiResponse
+                        }
+                    });
+                    console.log(`[RAIDD Creation] Updated AI Detection record: removed selected types for ${aiDetectionId}`);
+                }
             } catch (error) {
-                console.error(`[RAIDD Creation] Failed to process AI Detection ${aiDetectionId}:`, error.message);
-                // We don't throw here to avoid failing the RAIDD creation if only the deletion fails
+                console.error("Error auto-deleting AI Detection after RAIDD creation:", error);
             }
         }
 
-        await ActivityLogService.createLog(prisma, {
-            type: "raidd",
-            crudId: raidd.id,
-            action: "create",
-            userId,
-            projectId: raidd.projectId,
-        });
-
-        // Trigger AI sync for THIS specific raidd record without awaiting it
-        RaiddService.syncSingleRaiddFromAi(prisma, raidd.id, userId).catch(error => {
-            console.error("Background AI Sync for RAIDD failed:", error.message);
-        });
-
-        return raidd;
+        return createdRaidd;
     },
     getAllRaidds: async (prisma, projectId, userId) => {
         await verifyProjectOwnership(prisma, projectId, userId);
