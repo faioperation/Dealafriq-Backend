@@ -76,6 +76,7 @@ const syncOutlookEmail = async (payload) => {
                 data: {
                     tasks: aiResult.tasks,
                     raiddAnalysis: aiResult.raiddAnalysis,
+                    raiddData: aiResult.raiddData,
                     raiddMessage: aiResult.raiddMessage,
                     decisions: aiResult.decisions,
                     sentiment: aiResult.sentiment,
@@ -95,8 +96,9 @@ const syncOutlookEmail = async (payload) => {
 
             await AiDetectionService.createAiDetection(prisma, {
                 title: outlookEmail.subject || 'New AI Detection from Outlook',
-                summary: summaryParts.join('\n\n'),
+                summary: aiResult.summary || summaryParts.join('\n\n'),
                 raiddAnalysis: aiResult.raiddAnalysis,
+                raiddData: aiResult.raiddData,
                 raiddMessage: aiResult.raiddMessage,
                 sourceType: outlookEmail.source || 'outlook',
                 managerId: outlookEmail.created_by,
@@ -210,11 +212,25 @@ const syncAllOutlooksFromAi = async (prisma) => {
 
                 const tasks = aiResult.tasks || (aiResult.actionPoints ? aiResult.actionPoints : []);
                 
+                let filteredRaiddData = null;
+                if (aiResult.raiddAnalysis && typeof aiResult.raiddAnalysis === 'object') {
+                    filteredRaiddData = {};
+                    for (const key in aiResult.raiddAnalysis) {
+                        if (aiResult.raiddAnalysis[key] !== null) {
+                            filteredRaiddData[key] = aiResult.raiddAnalysis[key];
+                        }
+                    }
+                    if (Object.keys(filteredRaiddData).length === 0) {
+                        filteredRaiddData = null;
+                    }
+                }
+
                 await prisma.outlook.update({
                     where: { id: emailId },
                     data: {
                         tasks: tasks,
                         raiddAnalysis: aiResult.category || [],
+                        raiddData: filteredRaiddData,
                         raiddMessage: aiResult.raiddMessage || null,
                         decisions: Array.isArray(aiResult.decisionPoints) ? aiResult.decisionPoints.join('\n') : aiResult.decisionPoints,
                         sentiment: aiResult.sentiment || null,
@@ -229,8 +245,9 @@ const syncAllOutlooksFromAi = async (prisma) => {
 
                     await AiDetectionService.createAiDetection(prisma, {
                         title: emailExists.subject || 'New AI Detection from Outlook',
-                        summary: summaryParts.join('\n\n'),
+                        summary: aiResult.summary || summaryParts.join('\n\n'),
                         raiddAnalysis: aiResult.category || [],
+                        raiddData: filteredRaiddData,
                         raiddMessage: aiResult.raiddMessage || null,
                         sourceType: emailExists.source || 'outlook',
                         managerId: emailExists.created_by,
