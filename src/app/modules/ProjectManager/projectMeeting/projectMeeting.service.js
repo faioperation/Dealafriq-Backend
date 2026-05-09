@@ -495,11 +495,26 @@ export const ProjectMeetingService = {
                         });
 
                         if (!existingDetection) {
+                            // Filter raiddData
+                            let filteredRaiddData = null;
+                            if (raiddAnalysis && typeof raiddAnalysis === 'object') {
+                                filteredRaiddData = {};
+                                for (const key in raiddAnalysis) {
+                                    if (raiddAnalysis[key] !== null) {
+                                        filteredRaiddData[key] = raiddAnalysis[key];
+                                    }
+                                }
+                                if (Object.keys(filteredRaiddData).length === 0) {
+                                    filteredRaiddData = null;
+                                }
+                            }
+
                             // Create AI detection record
                             await AiDetectionService.createAiDetection(prisma, {
                                 title: meeting.title || 'New AI Detection from Meeting Transcript',
                                 summary: summary,
-                                raiddAnalysis: raiddAnalysis,
+                                raiddAnalysis: transcriptItem.category || [],
+                                raiddData: filteredRaiddData,
                                 sourceType: 'meeting_transcript',
                                 managerId: meeting.project?.managerId || userId,
                                 fullAiResponse: transcriptItem

@@ -89,13 +89,28 @@ const getAiEmailSummary = async (id, body) => {
             }
         }
 
+        let filteredRaiddData = null;
+        if (data.raiddAnalysis && typeof data.raiddAnalysis === 'object') {
+            filteredRaiddData = {};
+            for (const key in data.raiddAnalysis) {
+                if (data.raiddAnalysis[key] !== null) {
+                    filteredRaiddData[key] = data.raiddAnalysis[key];
+                }
+            }
+            // If it becomes an empty object after filtering, we can keep it or make it null. Let's keep it as is.
+            if (Object.keys(filteredRaiddData).length === 0) {
+                filteredRaiddData = null;
+            }
+        }
+
         const result = {
             tasks,
-            raiddAnalysis: data.category || (raiddAnalysisKey ? [raiddAnalysisKey] : []),
+            raiddAnalysis: data.category || [],
             raiddMessage: raiddMessageValue,
             decisions: decisionsStr,
             sentiment: data.sentiment || null,
             summary: data.summary || null,
+            raiddData: filteredRaiddData,
             fullAiResponse: data // Include the parsed AI response data
         };
 

@@ -125,7 +125,7 @@ const getDashboardStats = async (prisma, query = {}) => {
     ]);
 
     const projectList = projectsRaw.map(p => ({
-        projectId: p.id.split('-')[0],
+        projectId: p.id,
         projectName: p.name,
         owner: `${p.manager.firstName} ${p.manager.lastName || ""}`.trim(),
         status: p.status,

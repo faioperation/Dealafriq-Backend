@@ -187,6 +187,7 @@ const syncEmail = async (payload) => {
                 data: {
                     tasks: aiResult.tasks,
                     raiddAnalysis: aiResult.raiddAnalysis,
+                    raiddData: aiResult.raiddData,
                     raiddMessage: aiResult.raiddMessage,
                     decisions: aiResult.decisions,
                     sentiment: aiResult.sentiment,
@@ -206,8 +207,9 @@ const syncEmail = async (payload) => {
 
             await AiDetectionService.createAiDetection(prisma, {
                 title: email.subject || 'New AI Detection from Email',
-                summary: summaryParts.join('\n\n'),
+                summary: aiResult.summary || summaryParts.join('\n\n'),
                 raiddAnalysis: aiResult.raiddAnalysis,
+                raiddData: aiResult.raiddData,
                 raiddMessage: aiResult.raiddMessage,
                 sourceType: email.source || 'email',
                 managerId: email.created_by,
@@ -258,11 +260,25 @@ const syncAllEmailsFromAi = async (prisma) => {
                 // Parse AI result exactly like in syncEmail
                 const tasks = aiResult.tasks || (aiResult.actionPoints ? aiResult.actionPoints : []);
                 
+                let filteredRaiddData = null;
+                if (aiResult.raiddAnalysis && typeof aiResult.raiddAnalysis === 'object') {
+                    filteredRaiddData = {};
+                    for (const key in aiResult.raiddAnalysis) {
+                        if (aiResult.raiddAnalysis[key] !== null) {
+                            filteredRaiddData[key] = aiResult.raiddAnalysis[key];
+                        }
+                    }
+                    if (Object.keys(filteredRaiddData).length === 0) {
+                        filteredRaiddData = null;
+                    }
+                }
+
                 await prisma.email.update({
                     where: { id: emailId },
                     data: {
                         tasks: tasks,
                         raiddAnalysis: aiResult.category || [],
+                        raiddData: filteredRaiddData,
                         raiddMessage: aiResult.raiddMessage || null,
                         decisions: Array.isArray(aiResult.decisionPoints) ? aiResult.decisionPoints.join('\n') : aiResult.decisionPoints,
                         sentiment: aiResult.sentiment || null,
@@ -278,8 +294,9 @@ const syncAllEmailsFromAi = async (prisma) => {
 
                     await AiDetectionService.createAiDetection(prisma, {
                         title: emailExists.subject || 'New AI Detection from Email',
-                        summary: summaryParts.join('\n\n'),
+                        summary: aiResult.summary || summaryParts.join('\n\n'),
                         raiddAnalysis: aiResult.category || [],
+                        raiddData: filteredRaiddData,
                         raiddMessage: aiResult.raiddMessage || null,
                         sourceType: emailExists.source || 'email',
                         managerId: emailExists.created_by,
