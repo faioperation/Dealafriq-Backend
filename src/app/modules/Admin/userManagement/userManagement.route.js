@@ -1,36 +1,42 @@
 import express from 'express';
-// import { checkAuthMiddleware } from '../../../../middleware/checkAuthMiddleware.js';
-// import { Role } from '../../../../utils/role.js';
+
 import { UserManagementController } from './userManagement.controller.js';
-// import { checkInternalService } from '../../../middleware/checkInternalService.js';
+import { checkInternalService } from '../../../middleware/checkInternalService.js';
 
 const router = express.Router();
 
-// Only Super Admin and Admin can access these routes
+// public email for ai
 router.get(
     '/all',
-    // checkInternalService(),
+    checkInternalService(),
     UserManagementController.getAllEmails
 );
 
 
 router.get(
     '/user/:userId',
-    // checkInternalService(),
+    checkInternalService(),
     UserManagementController.getEmailsByUserId
 );
 
-// Public User 
+// Public User for user
 router.get(
     '/users',
-    // checkInternalService(),
+    checkInternalService(),
     UserManagementController.getAllUsers
 );
 
 router.get(
     '/users/:userId',
-    // checkInternalService(),
+    checkInternalService(),
     UserManagementController.getUserById
+);
+
+// Public AI detection for AI
+router.get(
+    '/ai-detections',
+    checkInternalService(),
+    UserManagementController.getAllAiDetections
 );
 
 export const UserManagementRoutes = router;

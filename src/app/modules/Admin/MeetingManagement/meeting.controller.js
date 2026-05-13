@@ -17,6 +17,33 @@ const getLatestMeeting = catchAsync(async (req, res) => {
     });
 });
 
+const getAllMeetings = catchAsync(async (req, res) => {
+    const result = await MeetingService.getAllMeetings(req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Meetings retrieved successfully',
+        data: result
+    });
+});
+
+/**
+ * Get single meeting controller
+ */
+const getSingleMeeting = catchAsync(async (req, res) => {
+    const result = await MeetingService.getSingleMeeting(req.params.id);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Meeting retrieved successfully',
+        data: result
+    });
+});
+
 export const MeetingController = {
-    getLatestMeeting
+    getLatestMeeting,
+    getAllMeetings,
+    getSingleMeeting
 };

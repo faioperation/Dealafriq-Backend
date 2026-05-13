@@ -47,9 +47,20 @@ const getUserById = catchAsync(async (req, res) => {
 });
 
 
+const getAllAiDetections = catchAsync(async (req, res) => {
+    const result = await UserManagementService.getAllAiDetections();
+
+    res.status(200).json({
+        success: true,
+        message: 'All AI detections fetched successfully',
+        data: result
+    });
+});
+
 export const UserManagementController = {
     getAllEmails,
     getEmailsByUserId,
     getAllUsers,
     getUserById,
+    getAllAiDetections,
 };

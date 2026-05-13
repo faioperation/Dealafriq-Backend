@@ -246,7 +246,7 @@ const getUnifiedInbox = async (userId, query) => {
     // Gmail emails (no category filter needed)
     const gmailEmails = await prisma.email.findMany({
         where: baseWhere,
-        include: { vendor: true },
+        include: { client: true },
         orderBy: { receivedAt: 'desc' },
         take: 20,
     });
@@ -255,7 +255,7 @@ const getUnifiedInbox = async (userId, query) => {
     const outlookWhere = { ...baseWhere, category: 'personal' };
     const outlookEmails = await prisma.outlook.findMany({
         where: outlookWhere,
-        include: { vendor: true },
+        include: { client: true },
         orderBy: { receivedAt: 'desc' },
         take: 20,
     });
@@ -325,7 +325,7 @@ const getSingleUnifiedMessage = async (id, userId) => {
     // Try searching in Gmail emails first
     const gmailEmail = await prisma.email.findFirst({
         where: { id, created_by: userId },
-        include: { vendor: true }
+        include: { client: true }
     });
 
     if (gmailEmail) {
@@ -335,7 +335,7 @@ const getSingleUnifiedMessage = async (id, userId) => {
     // Try searching in Outlook emails
     const outlookEmail = await prisma.outlook.findFirst({
         where: { id, created_by: userId },
-        include: { vendor: true }
+        include: { client: true }
     });
 
     if (outlookEmail) {

@@ -44,11 +44,13 @@ const createProjectSchema = z.object({
     body: z.object({
         name: z.string().min(1, "Project name is required"),
         description: z.string().optional(),
+        clientName: z.string().optional(),
         vendorName: z.string().optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
         assignTeamId: z.string().uuid("Invalid assign team ID").optional(),
         assignTeam: z.string().uuid("Invalid assign team ID").optional(),
+        clientId: z.string().uuid("Invalid client ID").optional(),
         vendorId: z.string().uuid("Invalid vendor ID").optional(),
         status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
         health: z.preprocess(parseJSON, z.array(z.object({
@@ -82,10 +84,12 @@ const updateProjectSchema = z.object({
     body: z.object({
         name: z.string().optional(),
         description: z.string().optional(),
+        clientName: z.string().optional(),
         vendorName: z.string().optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
         assignTeamId: z.string().uuid("Invalid assign team ID").optional(),
+        clientId: z.string().uuid("Invalid client ID").optional(),
         vendorId: z.string().uuid("Invalid vendor ID").optional(),
         status: z.enum(["DRAFT", "IN_PROGRESS", "ONGOING", "ON_HOLD", "COMPLETED", "CANCELLED"]).optional(),
         cancelledReason: z.string().optional(),

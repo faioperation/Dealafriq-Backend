@@ -1,6 +1,6 @@
 import { catchAsync } from "../../../../utils/catchAsync.js";
 import { sendResponse } from "../../../../utils/sendResponse.js";
-import { VendorEmailService } from "./vendorEmail.service.js";
+import { ClientEmailService } from "./clientEmail.service.js";
 import httpStatus from "http-status-codes";
 
 const createEmail = catchAsync(async (req, res) => {
@@ -10,7 +10,7 @@ const createEmail = catchAsync(async (req, res) => {
         data.created_by = req.user.id;
     }
 
-    const result = await VendorEmailService.createEmail(data);
+    const result = await ClientEmailService.createEmail(data);
 
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
@@ -23,7 +23,7 @@ const createEmail = catchAsync(async (req, res) => {
 const getAllEmails = catchAsync(async (req, res) => {
     const filters = req.query;
     const userId = req.user.id;
-    const result = await VendorEmailService.getAllEmails(userId, filters);
+    const result = await ClientEmailService.getAllEmails(userId, filters);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -36,7 +36,7 @@ const getAllEmails = catchAsync(async (req, res) => {
 const getSingleEmail = catchAsync(async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
-    const result = await VendorEmailService.getSingleEmail(id, userId);
+    const result = await ClientEmailService.getSingleEmail(id, userId);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -55,7 +55,7 @@ const updateEmail = catchAsync(async (req, res) => {
         data.updated_by = userId;
     }
 
-    const result = await VendorEmailService.updateEmail(id, userId, data);
+    const result = await ClientEmailService.updateEmail(id, userId, data);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -69,7 +69,7 @@ const deleteEmail = catchAsync(async (req, res) => {
     const { id } = req.params;
     const userId = req.user ? req.user.id : null;
 
-    const result = await VendorEmailService.deleteEmail(id, userId);
+    const result = await ClientEmailService.deleteEmail(id, userId);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -79,7 +79,7 @@ const deleteEmail = catchAsync(async (req, res) => {
     });
 });
 
-export const VendorEmailController = {
+export const ClientEmailController = {
     createEmail,
     getAllEmails,
     getSingleEmail,

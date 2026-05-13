@@ -4,9 +4,9 @@ import { PMProjectManagementService } from "../modules/ProjectManager/project_ma
 import { ProjectMeetingService } from "../modules/ProjectManager/projectMeeting/projectMeeting.service.js";
 import { RaiddService } from "../modules/ProjectManager/raiddManagement/raidd.service.js";
 import { ProjectDocumentService } from "../modules/ProjectManager/projectDocument/projectDocument.service.js";
-import { VendorService } from "../modules/ProjectManager/vendorManagement/vendor.service.js";
+import { ClientService } from "../modules/ProjectManager/clientManagement/client.service.js";
 
-import { VendorEmailService } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.service.js";
+import { ClientEmailService } from "../modules/ProjectManager/emailManagement/clientEmail/clientEmail.service.js";
 import { OutlookSyncService } from "../modules/ProjectManager/outlookManagement/outlook/outlookSync.service.js";
 import { LessonLearnService } from "../modules/ProjectManager/leasonLearn/leasonLearn.service.js";
 
@@ -41,13 +41,13 @@ export const initAiSyncCron = () => {
             console.log("Syncing Lesson Learns AI Data...🧠");
             await LessonLearnService.syncAllLessonLearnsFromAi(prisma);
 
-            // 4. Sync Vendors (All vendors)
-            console.log("Syncing Vendors AI Summary...🏪");
-            await VendorService.syncAllVendorsFromAi(prisma);
+            // 4. Sync Clients (All clients)
+            console.log("Syncing Clients AI Summary...🏪");
+            await ClientService.syncAllClientsFromAi(prisma);
 
             // 5. Sync Emails & Outlook (Daily checks)
             console.log("Syncing Gmail & Outlook AI Summaries...📧");
-            await VendorEmailService.syncAllEmailsFromAi(prisma);
+            await ClientEmailService.syncAllEmailsFromAi(prisma);
             await OutlookSyncService.syncAllOutlooksFromAi(prisma);
 
             console.log(`[${new Date().toISOString()}] Bulk AI Sync Cron Job completed successfully.`);
