@@ -1,17 +1,17 @@
-import { VendorService } from "./vendor.service.js";
+import { ClientService } from "./client.service.js";
 import { buildFileUrl } from "../../../utils/buildFileUrl.js";
 
-const createVendorController = async (req, res, next) => {
+const createClientController = async (req, res, next) => {
     try {
-        const vendorData = { ...req.body };
+        const clientData = { ...req.body };
         const files = req.files;
         const user = req.user;
 
         // Handle Photo
         if (files?.photo?.[0]) {
             const filePath = `uploads/${files.photo[0].filename}`;
-            vendorData.photoPath = filePath;
-            vendorData.photoUrl = buildFileUrl(filePath, req);
+            clientData.photoPath = filePath;
+            clientData.photoUrl = buildFileUrl(filePath, req);
         }
 
         // Handle Documents (Array of objects)
@@ -28,7 +28,7 @@ const createVendorController = async (req, res, next) => {
                 });
             });
         }
-        vendorData.documents = documents;
+        clientData.documents = documents;
 
         // Handle SLAs (Array of objects)
         const slas = [];
@@ -44,88 +44,88 @@ const createVendorController = async (req, res, next) => {
                 });
             });
         }
-        vendorData.slas = slas;
+        clientData.slas = slas;
 
         // Parse numeric fields
-        if (vendorData.numberOfProjects) vendorData.numberOfProjects = parseInt(vendorData.numberOfProjects);
-        if (vendorData.contactProjects) vendorData.contactProjects = parseInt(vendorData.contactProjects);
+        if (clientData.numberOfProjects) clientData.numberOfProjects = parseInt(clientData.numberOfProjects);
+        if (clientData.contactProjects) clientData.contactProjects = parseInt(clientData.contactProjects);
 
         // Handle Project IDs (could be string [e.g. from Postman form-data] or actual array)
-        if (vendorData.projectIds && typeof vendorData.projectIds === 'string') {
+        if (clientData.projectIds && typeof clientData.projectIds === 'string') {
             try {
                 // If it's a JSON array string, parse it
-                if (vendorData.projectIds.trim().startsWith('[')) {
-                    vendorData.projectIds = JSON.parse(vendorData.projectIds);
+                if (clientData.projectIds.trim().startsWith('[')) {
+                    clientData.projectIds = JSON.parse(clientData.projectIds);
                 } else {
                     // It's a single ID string, wrap it in an array
-                    vendorData.projectIds = [vendorData.projectIds];
+                    clientData.projectIds = [clientData.projectIds];
                 }
             } catch (e) {
                 // Fallback to single ID if parsing fails
-                vendorData.projectIds = [vendorData.projectIds];
+                clientData.projectIds = [clientData.projectIds];
             }
         }
 
-        const vendor = await VendorService.createVendor(vendorData, user);
+        const client = await ClientService.createClient(clientData, user);
 
         res.status(201).json({
             success: true,
-            message: "Vendor created successfully",
-            data: vendor
+            message: "Client created successfully",
+            data: client
         });
     } catch (error) {
         next(error);
     }
 };
 
-const getAllVendorsController = async (req, res, next) => {
+const getAllClientsController = async (req, res, next) => {
     try {
-        const vendors = await VendorService.getAllVendors(req.query);
+        const clients = await ClientService.getAllClients(req.query);
         res.status(200).json({
             success: true,
-            message: "Vendors retrieved successfully",
-            data: vendors
+            message: "Clients retrieved successfully",
+            data: clients
         });
     } catch (error) {
         next(error);
     }
 };
 
-const getVendorByIdController = async (req, res, next) => {
+const getClientByIdController = async (req, res, next) => {
     try {
-        const vendor = await VendorService.getVendorById(req.params.id);
-        if (!vendor) {
+        const client = await ClientService.getClientById(req.params.id);
+        if (!client) {
             return res.status(404).json({
                 success: false,
-                message: "Vendor not found"
+                message: "Client not found"
             });
         }
         res.status(200).json({
             success: true,
-            message: "Vendor retrieved successfully",
-            data: vendor
+            message: "Client retrieved successfully",
+            data: client
         });
     } catch (error) {
         next(error);
     }
 };
 
-const updateVendorController = async (req, res, next) => {
+const updateClientController = async (req, res, next) => {
     try {
-        const vendorData = { ...req.body };
+        const clientData = { ...req.body };
         const files = req.files;
         const user = req.user;
 
         if (files?.photo?.[0]) {
             const filePath = `uploads/${files.photo[0].filename}`;
-            vendorData.photoPath = filePath;
-            vendorData.photoUrl = buildFileUrl(filePath, req);
+            clientData.photoPath = filePath;
+            clientData.photoUrl = buildFileUrl(filePath, req);
         }
 
         // Logic for merging or replacing documents/slas could be complex.
         // For simplicity, we'll replace them if new ones are uploaded.
         if (files?.documents) {
-            vendorData.documents = files.documents.map(file => {
+            clientData.documents = files.documents.map(file => {
                 const filePath = `uploads/${file.filename}`;
                 return {
                     name: file.originalname,
@@ -138,7 +138,7 @@ const updateVendorController = async (req, res, next) => {
         }
 
         if (files?.slas) {
-            vendorData.slas = files.slas.map(file => {
+            clientData.slas = files.slas.map(file => {
                 const filePath = `uploads/${file.filename}`;
                 return {
                     name: file.originalname,
@@ -150,49 +150,49 @@ const updateVendorController = async (req, res, next) => {
             });
         }
 
-        if (vendorData.numberOfProjects) vendorData.numberOfProjects = parseInt(vendorData.numberOfProjects);
-        if (vendorData.contactProjects) vendorData.contactProjects = parseInt(vendorData.contactProjects);
+        if (clientData.numberOfProjects) clientData.numberOfProjects = parseInt(clientData.numberOfProjects);
+        if (clientData.contactProjects) clientData.contactProjects = parseInt(clientData.contactProjects);
 
-        if (vendorData.projectIds && typeof vendorData.projectIds === 'string') {
+        if (clientData.projectIds && typeof clientData.projectIds === 'string') {
             try {
-                if (vendorData.projectIds.trim().startsWith('[')) {
-                    vendorData.projectIds = JSON.parse(vendorData.projectIds);
+                if (clientData.projectIds.trim().startsWith('[')) {
+                    clientData.projectIds = JSON.parse(clientData.projectIds);
                 } else {
-                    vendorData.projectIds = [vendorData.projectIds];
+                    clientData.projectIds = [clientData.projectIds];
                 }
             } catch (e) {
-                vendorData.projectIds = [vendorData.projectIds];
+                clientData.projectIds = [clientData.projectIds];
             }
         }
 
-        const vendor = await VendorService.updateVendor(req.params.id, vendorData, user);
+        const client = await ClientService.updateClient(req.params.id, clientData, user);
 
         res.status(200).json({
             success: true,
-            message: "Vendor updated successfully",
-            data: vendor
+            message: "Client updated successfully",
+            data: client
         });
     } catch (error) {
         next(error);
     }
 };
 
-const deleteVendorController = async (req, res, next) => {
+const deleteClientController = async (req, res, next) => {
     try {
-        await VendorService.deleteVendor(req.params.id, req.user);
+        await ClientService.deleteClient(req.params.id, req.user);
         res.status(200).json({
             success: true,
-            message: "Vendor deleted successfully"
+            message: "Client deleted successfully"
         });
     } catch (error) {
         next(error);
     }
 };
 
-export const VendorController = {
-    createVendorController,
-    getAllVendorsController,
-    getVendorByIdController,
-    updateVendorController,
-    deleteVendorController
+export const ClientController = {
+    createClientController,
+    getAllClientsController,
+    getClientByIdController,
+    updateClientController,
+    deleteClientController
 };

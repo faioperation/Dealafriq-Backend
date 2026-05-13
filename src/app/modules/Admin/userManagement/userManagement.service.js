@@ -32,8 +32,23 @@ const getAllSystemEmails = async (filters = {}) => {
     const gmailEmails = await prisma.email.findMany({
         where,
         orderBy: { receivedAt: 'desc' },
-        include: {
-            vendor: true,
+        select: {
+            id: true,
+            subject: true,
+            body: true,
+            senderEmail: true,
+            receiverEmail: true,
+            clientEmail: true,
+            source: true,
+            tasks: true,
+            sentiment: true,
+            raiddAnalysis: true,
+            decisions: true,
+            raiddData: true,
+            raiddMessage: true,
+            createdAt: true,
+            updatedAt: true,
+            client:true,
             createdBy: {
                 select: {
                     id: true,
@@ -49,8 +64,23 @@ const getAllSystemEmails = async (filters = {}) => {
     const outlookEmails = await prisma.outlook.findMany({
         where,
         orderBy: { receivedAt: 'desc' },
-        include: {
-            vendor: true,
+        select: {
+            id: true,
+            subject: true,
+            body: true,
+            senderEmail: true,
+            receiverEmail: true,
+            clientEmail: true,
+            source: true,
+            tasks: true,
+            sentiment: true,
+            raiddAnalysis: true,
+            decisions: true,
+            raiddData: true,
+            raiddMessage: true,
+            createdAt: true,
+            updatedAt: true,
+            client: true,
             createdBy: {
                 select: {
                     id: true,
@@ -93,7 +123,7 @@ const getEmailsByUserId = async (userId, filters = {}) => {
         where,
         orderBy: { receivedAt: 'desc' },
         include: {
-            vendor: true
+            client: true
         }
     });
 
@@ -101,7 +131,7 @@ const getEmailsByUserId = async (userId, filters = {}) => {
         where,
         orderBy: { receivedAt: 'desc' },
         include: {
-            vendor: true
+            client: true
         }
     });
 
@@ -149,13 +179,29 @@ const getUserById = async (userId) => {
 };
 
 /**
- * Get all emails with mapped AI detection (Admin only)
+ * Get all AI detections in the system (Admin only)
  */
-
-
+const getAllAiDetections = async () => {
+    return await prisma.aiDetection.findMany({
+        where: { deletedAt: null },
+        select: {
+            id: true,
+            title: true,
+            summary: true,
+            sourceType: true,
+            createdAt: true,
+            updatedAt: true,
+            raiddAnalysis: true,
+            raiddData: true,
+            raiddMessage: true,
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+};
 export const UserManagementService = {
     getAllSystemEmails,
     getEmailsByUserId,
     getAllUsers,
     getUserById,
+    getAllAiDetections,
 };

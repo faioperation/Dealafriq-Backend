@@ -1,12 +1,12 @@
 import express from "express";
 import { checkAuthMiddleware } from "../../../middleware/checkAuthMiddleware.js";
 import { Role } from "../../../utils/role.js";
-import { VendorController } from "./vendor.controller.js";
+import { ClientController } from "./client.controller.js";
 import { fileUpload } from "../../../config/fileUpload.js";
 
 const router = express.Router();
 
-const vendorUploadFields = fileUpload.fields([
+const clientUploadFields = fileUpload.fields([
     { name: "photo", maxCount: 1 },
     { name: "documents", maxCount: 20 },
     { name: "slas", maxCount: 20 },
@@ -15,33 +15,33 @@ const vendorUploadFields = fileUpload.fields([
 router.post(
     "/create",
     checkAuthMiddleware(Role.PROJECT_MANAGER, Role.ADMIN),
-    vendorUploadFields,
-    VendorController.createVendorController
+    clientUploadFields,
+    ClientController.createClientController
 );
 
 router.get(
     "/all",
     checkAuthMiddleware(Role.PROJECT_MANAGER, Role.ADMIN),
-    VendorController.getAllVendorsController
+    ClientController.getAllClientsController
 );
 
 router.get(
     "/:id",
     checkAuthMiddleware(Role.PROJECT_MANAGER, Role.ADMIN),
-    VendorController.getVendorByIdController
+    ClientController.getClientByIdController
 );
 
 router.patch(
     "/:id",
     checkAuthMiddleware(Role.PROJECT_MANAGER, Role.ADMIN),
-    vendorUploadFields,
-    VendorController.updateVendorController
+    clientUploadFields,
+    ClientController.updateClientController
 );
 
 router.delete(
     "/:id",
     checkAuthMiddleware(Role.PROJECT_MANAGER, Role.ADMIN),
-    VendorController.deleteVendorController
+    ClientController.deleteClientController
 );
 
-export const VendorRoutes = router;
+export const ClientRoutes = router;

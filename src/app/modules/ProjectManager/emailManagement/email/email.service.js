@@ -1,12 +1,12 @@
 import { google } from 'googleapis';
 import prisma from '../../../../prisma/client.js';
 import { createOAuth2Client } from './utils/googleEmailOAuth.js';
-import { VendorEmailService } from '../vendorEmail/vendorEmail.service.js';
+import { ClientEmailService } from '../clientEmail/clientEmail.service.js';
 
 const getEmailBody = (payload) => {
     if (!payload) return '';
     let bodyData = '';
-    
+
     const findBodyPart = (parts) => {
         for (const part of parts) {
             if (part.mimeType === 'text/plain' && part.body && part.body.data) {
@@ -35,21 +35,21 @@ const getEmailBody = (payload) => {
         const base64Data = bodyData.replace(/-/g, '+').replace(/_/g, '/');
         const buff = Buffer.from(base64Data, 'base64');
         let decodedText = buff.toString('utf-8');
-        
+
         // CRITICAL FIX: Strip entire style and script blocks before parsing the rest
         decodedText = decodedText.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
         decodedText = decodedText.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-        
+
         // Clean up format: normalize newlines, handle soft wraps
         // Replace literal string "\r\n" and actual \r\n characters with standard \n
         decodedText = decodedText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-        
+
         // Handle escaped literals which occasionally come from stringified JSON representations
         decodedText = decodedText.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n');
-        
+
         // Split text by 2 or more newlines (paragraph boundaries)
         const paragraphs = decodedText.split(/\n{2,}/);
-        
+
         // Clean each paragraph: replace single newlines with spaces, strip HTML tags just in case
         const cleanParagraphs = paragraphs.map(p => {
             // Remove basic HTML tags if any sneaked into text/plain
@@ -57,7 +57,7 @@ const getEmailBody = (payload) => {
             // Replace single newlines with spaces and collapse multiple spaces
             return noHtml.replace(/\n/g, ' ').replace(/\s{2,}/g, ' ').trim();
         });
-        
+
         // Rejoin paragraphs with a space to completely remove \n from the response
         return cleanParagraphs.filter(p => p.length > 0).join(' ');
     } catch (e) {
@@ -126,7 +126,7 @@ const connectEmailAccount = async (userId, tokens) => {
         where: { userId, provider: 'google' }
     });
 
-    const result = await (existingAccount ? 
+    const result = await (existingAccount ?
         prisma.emailAccount.update({
             where: { id: existingAccount.id },
             data: {
@@ -280,7 +280,7 @@ const syncAllConnectedAccounts = async () => {
 
                 // Only sync if it's a personal email
                 if (category === 'personal') {
-                    await VendorEmailService.syncEmail({
+                    await ClientEmailService.syncEmail({
                         gmailMessageId: msg.id,
                         emailRawId: msg.id,
                         subject,
@@ -293,13 +293,13 @@ const syncAllConnectedAccounts = async () => {
                         created_by: account.userId // Audit as synced by this user's account
                     });
                 } else {
-                    console.log(`Skipping non-personal email (${category}) for user: ${account.userId}`);
+                    // console.log(`Skipping non-personal email (${category}) for user: ${account.userId}`);
                 }
             }
             console.log(`Finished syncing account: ${account.userId}`);
         } catch (error) {
             console.error(`Error syncing account ${account.id}:`, error.message);
-            
+
             // Check if it's an invalid grant error (refresh token expired/revoked)
             if (error.message.includes('invalid_grant') || error.message.includes('invalid_grant')) {
                 console.log(`Marking Google account as disconnected for user ${account.userId} due to invalid refresh token`);

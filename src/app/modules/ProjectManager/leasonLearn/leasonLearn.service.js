@@ -44,7 +44,7 @@ export const LessonLearnService = {
         try {
             const apiUrl = `${envVars.AI_CHATBOT_API}/insights/lessons-learned`;
             console.log(`[AI sync] Calling AI API for project ${project.id}: ${apiUrl}`);
-            
+
             const response = await axios.post(apiUrl, {
                 project_id: project.id
             }, {
@@ -109,7 +109,7 @@ export const LessonLearnService = {
             }
         } catch (error) {
             const errorDetail = error.response?.data?.detail;
-            
+
             // Handle the specific error thrown by AI backend when a project lacks sufficient data
             if (errorDetail === 'An error occurred while generating insights.') {
                 console.log(`[AI sync] Skipping AI insights for project ${project.id} - Insufficient data for generation.`);
@@ -250,7 +250,7 @@ export const LessonLearnService = {
                 "LessonLearn record not found or access denied"
             );
         }
-        
+
         let updateData = { ...payload, updated_by: userId };
         if (payload.loggedDate) {
             updateData.loggedDate = new Date(payload.loggedDate);

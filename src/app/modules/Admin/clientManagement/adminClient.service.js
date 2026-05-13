@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
 import prisma from "../../../prisma/client.js";
 
-const getVendorsByProjectManagerId = async (projectManagerId) => {
+const getClientsByProjectManagerId = async (projectManagerId) => {
     // 1. Strictly verify the ID provided is a ProjectManager table ID.
     const pmRecord = await prisma.projectManager.findUnique({
         where: { id: projectManagerId }
@@ -12,8 +12,8 @@ const getVendorsByProjectManagerId = async (projectManagerId) => {
         throw new AppError(StatusCodes.NOT_FOUND, "Project Manager not found or missing user reference");
     }
 
-    // 2. Fetch all vendors created by this Project Manager's actual user
-    const vendors = await prisma.vendor.findMany({
+    // 2. Fetch all clients created by this Project Manager's actual user
+    const clients = await prisma.client.findMany({
         where: {
             created_by: pmRecord.userId,
             deletedAt: null
@@ -23,7 +23,7 @@ const getVendorsByProjectManagerId = async (projectManagerId) => {
                 select: {
                     id: true,
                     name: true,
-                    vendorName: true,
+                    clientName: true,
                 },
             },
             emails: true
@@ -31,24 +31,24 @@ const getVendorsByProjectManagerId = async (projectManagerId) => {
 
     });
 
-    // Further enrich by explicitly finding emails that strictly match the vendor's email address
-    // This catches emails that might not be hard-linked by vendorId
-    const vendorsWithEmails = await Promise.all(vendors.map(async (vendor) => {
+    // Further enrich by explicitly finding emails that strictly match the client's email address
+    // This catches emails that might not be hard-linked by clientId
+    const clientsWithEmails = await Promise.all(clients.map(async (client) => {
         let matchingEmails = [];
-        if (vendor.email) {
+        if (client.email) {
             matchingEmails = await prisma.email.findMany({
                 where: {
                     OR: [
-                        { senderEmail: vendor.email },
-                        { vendorEmail: vendor.email },
-                        { receiverEmail: vendor.email }
+                        { senderEmail: client.email },
+                        { clientEmail: client.email },
+                        { receiverEmail: client.email }
                     ]
                 }
             });
         }
 
         // De-duplicate emails (by ID) ensuring no duplicates between Relation and Email match
-        const uniqueEmails = [...vendor.emails, ...matchingEmails].reduce((acc, current) => {
+        const uniqueEmails = [...client.emails, ...matchingEmails].reduce((acc, current) => {
             if (!acc.some(e => e.id === current.id)) {
                 acc.push(current);
             }
@@ -56,16 +56,16 @@ const getVendorsByProjectManagerId = async (projectManagerId) => {
         }, []);
 
         return {
-            ...vendor,
+            ...client,
             emails: uniqueEmails
         };
     }));
 
-    return vendorsWithEmails;
+    return clientsWithEmails;
 };
 
-const getAllVendors = async () => {
-    const vendors = await prisma.vendor.findMany({
+const getAllClients = async () => {
+    const clients = await prisma.client.findMany({
         where: {
             deletedAt: null
         },
@@ -74,7 +74,7 @@ const getAllVendors = async () => {
                 select: {
                     id: true,
                     name: true,
-                    vendorName: true,
+                    clientName: true,
                 },
             },
             emails: true
@@ -84,22 +84,22 @@ const getAllVendors = async () => {
 
     });
 
-    // Extracting comprehensive emails strictly matching the vendor's email address
-    const vendorsWithEmails = await Promise.all(vendors.map(async (vendor) => {
+    // Extracting comprehensive emails strictly matching the client's email address
+    const clientsWithEmails = await Promise.all(clients.map(async (client) => {
         let matchingEmails = [];
-        if (vendor.email) {
+        if (client.email) {
             matchingEmails = await prisma.email.findMany({
                 where: {
                     OR: [
-                        { senderEmail: vendor.email },
-                        { vendorEmail: vendor.email },
-                        { receiverEmail: vendor.email }
+                        { senderEmail: client.email },
+                        { clientEmail: client.email },
+                        { receiverEmail: client.email }
                     ]
                 }
             });
         }
 
-        const uniqueEmails = [...vendor.emails, ...matchingEmails].reduce((acc, current) => {
+        const uniqueEmails = [...client.emails, ...matchingEmails].reduce((acc, current) => {
             if (!acc.some(e => e.id === current.id)) {
                 acc.push(current);
             }
@@ -107,15 +107,15 @@ const getAllVendors = async () => {
         }, []);
 
         return {
-            ...vendor,
+            ...client,
             emails: uniqueEmails
         };
     }));
 
-    return vendorsWithEmails;
+    return clientsWithEmails;
 };
 
-export const AdminVendorService = {
-    getVendorsByProjectManagerId,
-    getAllVendors
+export const AdminClientService = {
+    getClientsByProjectManagerId,
+    getAllClients
 };

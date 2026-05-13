@@ -83,7 +83,7 @@ export const ProjectTaskService = {
             id: true,
             name: true,
             description: true,
-            vendorName: true,
+            clientName: true,
             managerId: true,
             deletedAt: true,
           },

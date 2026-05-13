@@ -50,6 +50,9 @@ export const AdminProjectService = {
                         },
                     },
                     transcripts: true,
+                    weeklyAiSummaries: {
+                        orderBy: { createdAt: 'desc' }
+                    },
                 },
             }),
             prisma.project.count({ where: buildQuery.where }),
@@ -92,14 +95,26 @@ export const AdminProjectService = {
                         },
                     },
                     assignTeam: true,
-                    vendor: true,
-                    raidd: true,
+                    client: true,
+                    raidd: {
+                        include: {
+                            aiDetection: {
+                                include: {
+                                    email: true,
+                                    outlook: true
+                                }
+                            }
+                        }
+                    },
                     tasks: true,
                     meetings: {
                         include: {
                             keyPoints: true,
                             actionPoints: true,
                         },
+                    },
+                    weeklyAiSummaries: {
+                        orderBy: { createdAt: 'desc' }
                     },
                 },
             }),
@@ -110,7 +125,7 @@ export const AdminProjectService = {
         // Flattening the relation so that each object contains exactly one project and one RAIDD entry
         const flattenedData = result.flatMap((project) => {
             const { raidd, ...projectData } = project;
-            
+
             if (!raidd || raidd.length === 0) {
                 return [{ project: projectData, raidd: null }];
             }
@@ -157,9 +172,7 @@ export const AdminProjectService = {
         const {
             projectAiDetails,
             projectAiSummary,
-            weeklyAiSummary,
-            weeklyMeetingSummary,
-            projectSummary,
+            weeklyAiSummaries,
             ...restProject
         } = project;
 
@@ -177,15 +190,39 @@ export const AdminProjectService = {
             });
         }
 
-        // Remove AI related fields from vendor if it exists
-        if (restProject.vendor) {
-            const { vendorAiResponse, ...restVendor } = restProject.vendor;
-            restProject.vendor = restVendor;
+        // Remove AI related fields from client if it exists
+        if (restProject.client) {
+            const { clientAiResponse, ...restClient } = restProject.client;
+            restProject.client = restClient;
+        }
+
+        // Remove AI related fields from RAIDD and its nested aiDetection if they exist
+        let filteredRaidd = raidd;
+        if (raidd) {
+            const { generatedReply, ...restRaidd } = raidd;
+            filteredRaidd = restRaidd;
+
+            if (filteredRaidd.aiDetection) {
+                const { fullAiResponse, email, outlook, ...restAiDetection } = filteredRaidd.aiDetection;
+                filteredRaidd.aiDetection = restAiDetection;
+
+                // Clean nested email object
+                if (email) {
+                    const { fullAiResponse: eFull, generatedReply: eGen, ...restEmail } = email;
+                    filteredRaidd.aiDetection.email = restEmail;
+                }
+
+                // Clean nested outlook object
+                if (outlook) {
+                    const { fullAiResponse: oFull, generatedReply: oGen, ...restOutlook } = outlook;
+                    filteredRaidd.aiDetection.outlook = restOutlook;
+                }
+            }
         }
 
         return {
             project: restProject,
-            raidd,
+            raidd: filteredRaidd,
         };
     },
 
@@ -205,8 +242,17 @@ export const AdminProjectService = {
                     },
                 },
                 assignTeam: true,
-                vendor: true,
-                raidd: true,
+                client: true,
+                raidd: {
+                    include: {
+                        aiDetection: {
+                            include: {
+                                email: true,
+                                outlook: true
+                            }
+                        }
+                    }
+                },
                 tasks: true,
                 meetings: {
                     include: {
@@ -214,6 +260,14 @@ export const AdminProjectService = {
                         actionPoints: true,
                     },
                 },
+                weeklyAiSummaries: {
+                    orderBy: { createdAt: 'desc' }
+                },
+                risks: true,
+                assumptions: true,
+                issues: true,
+                decisions: true,
+                dependencies: true,
             },
         });
 
@@ -241,7 +295,19 @@ export const AdminProjectService = {
                 id,
                 deletedAt: null
             },
-            include: {
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                clientName: true,
+                startDate: true,
+                endDate: true,
+                status: true,
+
+                createdAt: true,
+                updatedAt: true,
+                projectProgress: true,
+
                 manager: {
                     select: {
                         firstName: true,
@@ -250,17 +316,31 @@ export const AdminProjectService = {
                         role: true,
                     },
                 },
-                assignTeam: true,
-                tasks: true,
-                milestones: true,
-                documents: true,
-                transcripts: true,
-                meetings: {
-                    include: {
-                        keyPoints: true,
-                        actionPoints: true,
-                    },
+                assignTeam: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
                 },
+                tasks: {
+                    select: {
+                        id: true,
+                        title: true,
+                        status: true,
+                        priority: true,
+                        startDate: true,
+                        endDate: true,
+                    }
+                },
+                milestones: {
+                    select: {
+                        id: true,
+                        title: true,
+                        status: true,
+                        milestoneDate: true,
+                    }
+                },
+
             },
         });
 
@@ -302,8 +382,18 @@ export const AdminProjectService = {
                 deletedAt: null,
             },
             orderBy,
-            take: 1,
-            include: {
+            take: 3,
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                clientName: true,
+                startDate: true,
+                endDate: true,
+                status: true,
+                projectProgress: true,
+                cancelledReason: true,
+                projectHealth: true,
                 manager: {
                     select: {
                         id: true,
@@ -318,34 +408,47 @@ export const AdminProjectService = {
                         name: true,
                     },
                 },
-                milestones: true,
-                tasks: true,
-                meetings: {
-                    include: {
-                        keyPoints: true,
-                        actionPoints: true,
+                milestones: {
+                    select: {
+                        title: true,
+                        description: true,
+                        startDate: true,
+                        milestoneDate: true,
+                        status: true,
+                        createdAt: true
+                    }
+                },
+                tasks: {
+                    select: {
+                        title: true,
+                        startDate: true,
+                        endDate: true,
+                        status: true,
+                        createdAt: true,
+                        priority: true,
+                        taskDescription: true,
                     },
                 },
             },
         });
         // Compute task status breakdown for each project
         projects.forEach((project) => {
-          const statusCounts = {
-            PENDING: 0,
-            IN_PROGRESS: 0,
-            REVIEW: 0,
-            COMPLETED: 0,
-            CANCELLED: 0,
-          };
-          if (Array.isArray(project.tasks)) {
-            project.tasks.forEach((t) => {
-              const s = t.status;
-              if (statusCounts.hasOwnProperty(s)) {
-                statusCounts[s]++;
-              }
-            });
-          }
-          project.totalTask = statusCounts;
+            const statusCounts = {
+                PENDING: 0,
+                IN_PROGRESS: 0,
+                REVIEW: 0,
+                COMPLETED: 0,
+                CANCELLED: 0,
+            };
+            if (Array.isArray(project.tasks)) {
+                project.tasks.forEach((t) => {
+                    const s = t.status;
+                    if (statusCounts.hasOwnProperty(s)) {
+                        statusCounts[s]++;
+                    }
+                });
+            }
+            project.totalTask = statusCounts;
         });
         return projects;
     },
@@ -382,9 +485,7 @@ export const AdminProjectService = {
 
         const project = await prisma.project.findFirst({
             where: {
-                ...buildQuery.where,
                 deletedAt: null,
-                isPublic: true, // 🔥 important fix
             },
             orderBy,
             include: {
@@ -405,6 +506,9 @@ export const AdminProjectService = {
                 // ⚡ Keep minimal for performance (add more if needed)
                 milestones: true,
                 tasks: true,
+                weeklyAiSummaries: {
+                    orderBy: { createdAt: 'desc' }
+                },
                 // Compute task status breakdown
                 // Will be added after fetching the project
 
@@ -417,19 +521,19 @@ export const AdminProjectService = {
 
         // Compute status counts
         const statusCounts = {
-          PENDING: 0,
-          IN_PROGRESS: 0,
-          REVIEW: 0,
-          COMPLETED: 0,
-          CANCELLED: 0,
+            PENDING: 0,
+            IN_PROGRESS: 0,
+            REVIEW: 0,
+            COMPLETED: 0,
+            CANCELLED: 0,
         };
         if (project.tasks && Array.isArray(project.tasks)) {
-          project.tasks.forEach((t) => {
-            const s = t.status;
-            if (statusCounts.hasOwnProperty(s)) {
-              statusCounts[s]++;
-            }
-          });
+            project.tasks.forEach((t) => {
+                const s = t.status;
+                if (statusCounts.hasOwnProperty(s)) {
+                    statusCounts[s]++;
+                }
+            });
         }
         // Attach totalTask summary
         project.totalTask = statusCounts;

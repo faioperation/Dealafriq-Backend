@@ -6,7 +6,7 @@ import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 import axios from "axios";
 import { envVars } from "../../../config/env.js";
 import { LessonLearnService } from "../leasonLearn/leasonLearn.service.js";
-import { VendorService } from "../vendorManagement/vendor.service.js";
+import { ClientService } from "../clientManagement/client.service.js";
 import { RaiddService } from "../raiddManagement/raidd.service.js";
 
 export const PMProjectManagementService = {
@@ -26,7 +26,7 @@ export const PMProjectManagementService = {
             data: {
                 name: payload.name,
                 description: payload.description,
-                vendorName: payload.vendorName,
+                clientName: payload.clientName || payload.vendorName,
                 startDate: payload.startDate ? new Date(payload.startDate) : null,
                 endDate: payload.endDate ? new Date(payload.endDate) : null,
                 status: payload.status || "ONGOING",
@@ -36,7 +36,7 @@ export const PMProjectManagementService = {
                 projectOwner: { connect: { id: userId } },
                 projectProgress: payload.projectProgress || "0%",
                 assignTeam: actualAssignTeamId ? { connect: { id: actualAssignTeamId } } : undefined,
-                vendor: payload.vendorId ? { connect: { id: payload.vendorId } } : undefined,
+                client: (payload.clientId || payload.vendorId) ? { connect: { id: payload.clientId || payload.vendorId } } : undefined,
 
 
                 documents: payload.documents ? {
@@ -80,7 +80,7 @@ export const PMProjectManagementService = {
                 }
             }
         });
-        
+
 
         // Create a baseline LessonLearn record immediately on project creation
         await LessonLearnService.createLessonLearn(prisma, {
@@ -98,10 +98,10 @@ export const PMProjectManagementService = {
             console.error("Critical error in background AI sync:", err);
         });
 
-        // Trigger vendor AI sync if a vendor is associated
-        if (payload.vendorId) {
-            VendorService.syncAllVendorsFromAi(prisma).catch(err => {
-                console.error("Error in background vendor AI sync from project creation:", err);
+        // Trigger client AI sync if a client is associated
+        if (payload.clientId || payload.vendorId) {
+            ClientService.syncAllClientsFromAi(prisma).catch(err => {
+                console.error("Error in background client AI sync from project creation:", err);
             });
         }
 
@@ -139,7 +139,23 @@ export const PMProjectManagementService = {
         const [result, total] = await Promise.all([
             prisma.project.findMany({
                 ...buildQuery,
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    clientName: true,
+                    startDate: true,
+                    endDate: true,
+                    status: true,
+                    createdAt: true,
+                    weeklyMeetingSummary: true,
+                    projectAiSummary: true,
+                    projectProgress: true,
+                    projectHealth: true,
+                    discussionPoints: true,
+                    actionPoints: true,
+                    notes: true,
+                    cancelledReason: true,
                     manager: {
                         select: {
                             firstName: true,
@@ -148,11 +164,51 @@ export const PMProjectManagementService = {
                             role: true,
                         },
                     },
-                    assignTeam: true,
-                    tasks: true,
-                    milestones: true,
+                    assignTeam: {
+                        select: {
+                            id: true,
+                            name: true,
+                            createdAt: true,
+
+                        }
+                    },
+                    tasks: {
+                        select: {
+                            id: true,
+                            title: true,
+                            startDate: true,
+                            endDate: true,
+                            priority: true,
+                            status: true,
+                            taskDescription: true,
+                        }
+                    },
+                    milestones: {
+                        select: {
+                            id: true,
+                            title: true,
+                            description: true,
+                            startDate: true,
+                            milestoneDate: true,
+                            createdAt: true,
+                        }
+                    },
                     meetings: {
-                        include: {
+                        select: {
+                            id: true,
+                            title: true,
+                            meetingDate: true,
+                            createdAt: true,
+                            lastMeetingSummary: true,
+                            notes: true,
+                            agenda: true,
+                            transcriptPath: true,
+                            transcriptUrl: true,
+                            aiMeetingSummary: true,
+                            transcriptFileType: true,
+                            transcriptPlayUrl: true,
+                            transcriptStatus: true,
+                            videoPlayUrl: true,
                             keyPoints: true,
                             actionPoints: true,
                         },
@@ -164,20 +220,17 @@ export const PMProjectManagementService = {
                             actionPoints: true,
                         },
                     },
-                    transcripts: true,
+                    weeklyAiSummaries: {
+                        orderBy: { createdAt: 'desc' }
+                    },
                 },
             }),
             prisma.project.count({ where: buildQuery.where }),
         ]);
 
-        const dataWithoutSummaries = result.map(project => {
-            const { projectSummary, weeklyMeetingSummary, ...rest } = project;
-            return rest;
-        });
-
         return {
             meta: queryBuilder.getMeta(total),
-            data: dataWithoutSummaries,
+            data: result,
         };
     },
 
@@ -188,7 +241,23 @@ export const PMProjectManagementService = {
                 managerId: userId,
                 deletedAt: null
             },
-            include: {
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                clientName: true,
+                startDate: true,
+                endDate: true,
+                status: true,
+                createdAt: true,
+                weeklyMeetingSummary: true,
+                projectAiSummary: true,
+                projectProgress: true,
+                projectHealth: true,
+                discussionPoints: true,
+                actionPoints: true,
+                notes: true,
+                cancelledReason: true,
                 manager: {
                     select: {
                         firstName: true,
@@ -197,18 +266,70 @@ export const PMProjectManagementService = {
                         role: true,
                     },
                 },
-                assignTeam: true,
-                tasks: true,
-                milestones: true,
-                documents: true,
+                assignTeam: {
+                    select: {
+                        id: true,
+                        name: true,
+                        createdAt: true,
+                    }
+                },
+                tasks: {
+                    select: {
+                        id: true,
+                        title: true,
+                        startDate: true,
+                        endDate: true,
+                        priority: true,
+                        status: true,
+                        taskDescription: true,
+                    }
+                },
+                milestones: {
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        startDate: true,
+                        milestoneDate: true,
+                        createdAt: true,
+                    }
+                },
+                documents: {
+                    include: {
+                        keyPoints: true,
+                        actionPoints: true,
+                    },
+                },
                 transcripts: true,
                 meetings: {
-                    include: {
+                    select: {
+                        id: true,
+                        title: true,
+                        meetingDate: true,
+                        createdAt: true,
+                        lastMeetingSummary: true,
+                        notes: true,
+                        agenda: true,
+                        transcriptPath: true,
+                        transcriptUrl: true,
+                        aiMeetingSummary: true,
+                        transcriptFileType: true,
+                        transcriptPlayUrl: true,
+                        transcriptStatus: true,
+                        videoPlayUrl: true,
                         keyPoints: true,
                         actionPoints: true,
                     },
                     orderBy: { createdAt: 'desc' }
                 },
+                weeklyAiSummaries: {
+                    orderBy: { createdAt: 'desc' }
+                },
+                risks: true,
+                assumptions: true,
+                issues: true,
+                decisions: true,
+                dependencies: true,
             },
         });
 
@@ -216,8 +337,7 @@ export const PMProjectManagementService = {
             throw new AppError(StatusCodes.NOT_FOUND, "Project not found or you don't have access");
         }
 
-        const { projectSummary, weeklyMeetingSummary, ...rest } = project;
-        return rest;
+        return project;
     },
 
     updateProject: async (prisma, id, payload, userId) => {
@@ -257,11 +377,6 @@ export const PMProjectManagementService = {
             projectId: id,
         });
 
-        // Fire and forget (Background Task) for RAIDD AI Sync on project update
-        RaiddService.syncRaiddsForProjectFromAi(prisma, id, userId).catch(err => {
-            console.error("Critical error in background RAIDD AI sync after project update:", err);
-        });
-
         return updatedProject;
     },
     deleteSingleProject: async (prisma, id, userId) => {
@@ -288,146 +403,38 @@ export const PMProjectManagementService = {
     },
 
     syncProjectAiStatusBackground: async (prisma, id, userId) => {
-        const delays = [15000, 30000, 45000, 60000, 60000]; // 15s, 30s, 45s, 60s, 60s
-        
-        for (let attempt = 0; attempt < delays.length; attempt++) {
-            try {
-                console.log(`[Project AI Sync] Attempt ${attempt + 1} for project ${id} starting in ${delays[attempt] / 1000}s...`);
-                await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+        try {
+            console.log(`[Project AI Sync] Background sync for project ${id} is now handled via AI Push API.`);
+            
+            // Still update project progress as it's an internal calculation
+            const project = await prisma.project.findFirst({
+                where: { id, managerId: userId, deletedAt: null },
+                include: { tasks: true }
+            });
 
-                // Find the project and ensure ownership
-                const project = await prisma.project.findFirst({
-                    where: { id, managerId: userId, deletedAt: null },
-                    include: { tasks: true }
-                });
-
-                if (!project) {
-                    console.log(`[Project AI Sync] Project ${id} not found or access denied. Stopping retries.`);
-                    return;
-                }
-
-                // 1. Calculate project progress
+            if (project) {
                 const totalTasks = project.tasks.length;
                 const completedTasks = project.tasks.filter(task => task.status === "COMPLETED").length;
                 const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
                 const projectProgress = `${progressPercentage}%`;
 
-                // 2. Fetch AI Summary from External AI API
-                // 2. Fetch AI payload from External AI API
-                let fullPayload = {};
-                let aiData = null;
-                try {
-                    const apiUrl = `${envVars.API_AI}/summary/project`;
-                    const response = await axios.post(apiUrl, {}, {
-                        headers: {
-                            'x-backend-service': "PROJECT_AI_BACKEND"
-                        }
-                    });
-                    const projectsData = response.data;
-                    aiData = Array.isArray(projectsData)
-                        ? projectsData.find(p => p.projectId === id)
-                        : projectsData;
-                    fullPayload = aiData || {};
-                } catch (error) {
-                    console.error(`[Project AI Sync] API Call failed on attempt ${attempt + 1}:`, error.message);
-                }
-
-                if (aiData?.summary || aiData?.weeklySummary) {
-                    // 3. Update the Project with summary and raw payload
-                    await prisma.project.update({
-                        where: { id },
-                        data: {
-                            projectProgress,
-                            projectAiSummary: aiData?.summary ? { push: aiData.summary } : undefined,
-                            weeklyAiSummary: aiData?.weeklySummary || aiData?.summary,
-                            weeklySummaryDate: new Date(),
-                            projectAiDetails: fullPayload,
-                            projectHealth: aiData.projectHealth || []
-                        }
-                    });
-
-                    console.log(`[Project AI Sync] Success on attempt ${attempt + 1} for project:`, id);
-                    
-
-                    // 4. Sync Lesson Learn AI data
-                    await LessonLearnService.syncLessonLearnForProject(prisma, project, userId);
-
-                    await ActivityLogService.createLog(prisma, {
-                        type: "project",
-                        crudId: id,
-                        action: "ai-sync-background",
-                        userId,
-                        projectId: id,
-                    });
-
-                    return; // Success, exit retry loop
-                } else {
-                    console.log(`[Project AI Sync] Attempt ${attempt + 1} completed but no summary found for project ${id} yet.`);
-                }
-
-            } catch (error) {
-                console.error(`[Project AI Sync] Critical error in attempt ${attempt + 1} for project ${id}:`, error);
+                await prisma.project.update({
+                    where: { id },
+                    data: { projectProgress }
+                });
             }
-
-            if (attempt === delays.length - 1) {
-                console.warn(`[Project AI Sync] All ${delays.length} attempts failed for project ${id}. AI data might still be processing.`);
-            }
+            return;
+        } catch (error) {
+            console.error(`[Project AI Sync] Error in background task for project ${id}:`, error);
         }
     },
 
     syncAllProjectsFromAi: async (prisma) => {
         try {
-            const apiUrl = `${envVars.API_AI}/summary/project`;
-            const response = await axios.post(apiUrl, {}, {
-                headers: {
-                    'x-backend-service': "PROJECT_AI_BACKEND"
-                }
-            });
-
-            const projectsData = response.data;
-            if (!Array.isArray(projectsData)) {
-                console.error("Invalid AI API response for bulk project sync");
-                return;
-            }
-
-            for (const aiProject of projectsData) {
-                const { projectId, summary, weeklySummary } = aiProject;
-                if (!projectId) continue;
-                if (!summary && !weeklySummary) continue;
-
-                // Check if project exists in database
-                const projectExists = await prisma.project.findUnique({
-                    where: { id: projectId }
-                });
-
-                if (projectExists) {
-                    // Calculate progress based on existing tasks
-                    const tasks = await prisma.projectTask.findMany({
-                        where: { projectId: projectId }
-                    });
-                    const totalTasks = tasks.length;
-                    const completedTasks = tasks.filter(t => t.status === "COMPLETED").length;
-                    const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-                    const projectProgress = `${progressPercentage}%`;
-
-                    await prisma.project.update({
-                        where: { id: projectId },
-                        data: {
-                            projectProgress,
-                            projectAiSummary: summary ? {
-                                push: summary
-                            } : undefined,
-                            weeklyAiSummary: weeklySummary || summary,
-                            weeklySummaryDate: new Date(),
-                            projectHealth: aiProject.projectHealth || []
-                        }
-                    });
-                }
-            }
-            console.log(`Bulk Project AI Sync completed for ${projectsData.length} items`);
-            return projectsData; // Return data for RAIDD sync to reuse
+            console.log("[Project AI Sync] Bulk sync skipped: AI Push API should be used.");
+            return;
         } catch (error) {
-            console.error("Bulk Project AI Sync failed:", error.message);
+            console.error("Bulk project AI Sync failed:", error.message);
         }
     }
 };

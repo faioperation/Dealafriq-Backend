@@ -1,8 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
-import axios from "axios";
-import { envVars } from "../../../config/env.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
@@ -88,11 +86,6 @@ export const ProjectDocumentService = {
 
             return doc;
         }));
-
-        // Fire and forget (Background Task)
-        ProjectDocumentService.syncDocumentAiSummaryBackground(prisma, results.map(doc => doc.id), userId).catch(err => {
-            console.error("Critical error in document background AI sync:", err);
-        });
 
         return results;
     },
@@ -212,112 +205,4 @@ export const ProjectDocumentService = {
         return deletedDoc;
     },
 
-    syncAllDocumentsFromAi: async (prisma) => {
-        try {
-            const apiUrl = `${envVars.API_AI}/summary/document`;
-            const response = await axios.post(apiUrl, {}, {
-                headers: {
-                    'x-backend-service': "PROJECT_AI_BACKEND"
-                }
-            });
-
-            const projectsData = response.data;
-            if (!Array.isArray(projectsData)) {
-                console.error("Invalid AI API response for bulk document sync");
-                return [];
-            }
-
-            const updatedIds = [];
-
-            for (const aiProject of projectsData) {
-                const { documents } = aiProject;
-                if (!Array.isArray(documents)) continue;
-
-                for (const doc of documents) {
-                    const { documentId, summary, actionPoints, discussionPoints } = doc;
-                    if (!documentId) continue;
-
-                    const docExists = await prisma.projectDocumentUpload.findUnique({
-                        where: { id: documentId }
-                    });
-
-                    if (docExists) {
-                        const updateData = {};
-                        if (summary) updateData.aiDocumentSummary = summary;
-
-                        // Handle actionPoints from AI
-                        if (Array.isArray(actionPoints) && actionPoints.length > 0) {
-                            // Delete existing points first (optional, but cleaner for AI sync)
-                            await prisma.documentActionPoint.deleteMany({
-                                where: { documentId }
-                            });
-                            updateData.actionPoints = {
-                                create: actionPoints.map(content => ({
-                                    content,
-                                    status: "PENDING"
-                                }))
-                            };
-                        }
-
-                        // Handle discussionPoints from AI (map to keyPoints)
-                        if (Array.isArray(discussionPoints) && discussionPoints.length > 0) {
-                            await prisma.documentKeyPoint.deleteMany({
-                                where: { documentId }
-                            });
-                            updateData.keyPoints = {
-                                create: discussionPoints.map(content => ({
-                                    content,
-                                    status: "TO_BE_VALIDATED"
-                                }))
-                            };
-                        }
-
-                        await prisma.projectDocumentUpload.update({
-                            where: { id: documentId },
-                            data: updateData
-                        });
-                        updatedIds.push(documentId);
-                    }
-                }
-            }
-            console.log(`Bulk Document AI Sync completed successfully. ${updatedIds.length} documents updated.`);
-            return updatedIds;
-        } catch (error) {
-            console.error("Bulk Document AI Sync failed:", error.message);
-            return [];
-        }
-    },
-
-    syncDocumentAiSummaryBackground: async (prisma, documentIds, userId) => {
-        let remainingIds = [...documentIds];
-        const delays = [15000, 30000, 45000, 60000, 60000]; // 15s, 30s, 45s, 60s, 60s
-
-        for (let attempt = 0; attempt < delays.length; attempt++) {
-            if (remainingIds.length === 0) break;
-
-            try {
-                console.log(`[Document AI Sync] Attempt ${attempt + 1} for ${remainingIds.length} documents starting in ${delays[attempt] / 1000}s...`);
-                await new Promise(resolve => setTimeout(resolve, delays[attempt]));
-
-                const updatedIds = await ProjectDocumentService.syncAllDocumentsFromAi(prisma);
-
-                // Filter out IDs that have been successfully updated
-                remainingIds = remainingIds.filter(id => !updatedIds.includes(id));
-
-                if (remainingIds.length === 0) {
-                    console.log(`[Document AI Sync] All documents updated successfully on attempt ${attempt + 1}.`);
-                    break;
-                } else {
-                    console.log(`[Document AI Sync] Attempt ${attempt + 1} completed. ${remainingIds.length} documents still waiting for AI data.`);
-                }
-            } catch (error) {
-                console.error(`[Document AI Sync] Critical error in attempt ${attempt + 1}:`, error);
-            }
-
-            if (attempt === delays.length - 1 && remainingIds.length > 0) {
-                console.warn(`[Document AI Sync] All ${delays.length} attempts failed for documents: ${remainingIds.join(", ")}`);
-            }
-        }
-    },
-
-};
+}

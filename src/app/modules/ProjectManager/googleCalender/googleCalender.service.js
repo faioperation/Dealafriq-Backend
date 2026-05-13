@@ -272,7 +272,17 @@ export const GoogleCalendarService = {
             }
         });
 
-        // 3. Map and Merge into a single standardized array
+        // 3. Pre-calculate latest available AI summaries per project as fallback
+        const latestProjectSummaries = {};
+        zoomMeetings.forEach(m => {
+            if (m.aiMeetingSummary && Array.isArray(m.aiMeetingSummary) && m.aiMeetingSummary.length > 0) {
+                if (!latestProjectSummaries[m.projectId]) {
+                    latestProjectSummaries[m.projectId] = m.aiMeetingSummary;
+                }
+            }
+        });
+
+        // 4. Map and Merge into a single standardized array
         const standardizedCalendarEvents = calendarEvents.map(event => ({
             id: event.id,
             title: event.summary || '(No Summary)',
@@ -280,7 +290,7 @@ export const GoogleCalendarService = {
             location: event.location || '',
             start: event.start,
             end: event.end,
-            createdAt: event.created_at, // Mapping database creation time
+            createdAt: event.created_at,
             type: 'GOOGLE_CALENDAR_EVENT',
             url: event.htmlLink,
             aiSummary: [],
@@ -288,22 +298,25 @@ export const GoogleCalendarService = {
             projectName: null
         }));
 
-        const standardizedZoomMeetings = zoomMeetings.map(meeting => ({
-            id: meeting.id,
-            title: meeting.title || '(No Title)',
-            description: meeting.notes || '',
-            location: 'Zoom',
-            start: meeting.meetingDate,
-            end: meeting.meetingDate ? new Date(new Date(meeting.meetingDate).getTime() + 60 * 60 * 1000) : null,
-            createdAt: meeting.createdAt, // Mapping database creation time
-            type: 'ZOOM_MEETING',
-            url: meeting.meetingUrl,
-            aiSummary: meeting.aiMeetingSummary || [],
-            projectId: meeting.projectId,
-            projectName: meeting.project?.name || null
-        }));
+        const standardizedZoomMeetings = zoomMeetings.map(meeting => {
+            const hasSummary = meeting.aiMeetingSummary && Array.isArray(meeting.aiMeetingSummary) && meeting.aiMeetingSummary.length > 0;
+            return {
+                id: meeting.id,
+                title: meeting.title || '(No Title)',
+                description: meeting.notes || '',
+                location: 'Zoom',
+                start: meeting.meetingDate,
+                end: meeting.meetingDate ? new Date(new Date(meeting.meetingDate).getTime() + 60 * 60 * 1000) : null,
+                createdAt: meeting.createdAt,
+                type: 'ZOOM_MEETING',
+                url: meeting.meetingUrl,
+                aiSummary: hasSummary ? meeting.aiMeetingSummary : (latestProjectSummaries[meeting.projectId] || []),
+                projectId: meeting.projectId,
+                projectName: meeting.project?.name || null
+            };
+        });
 
-        // 4. Combine and sort by date descending (Newest first)
+        // 5. Combine and sort by date descending (Newest first)
         // We use the 'start' date (when the event happens) as the primary sort key
         // If sorting by record creation time is preferred, change 'start' to 'createdAt'
         const allEvents = [...standardizedCalendarEvents, ...standardizedZoomMeetings].sort((a, b) => {

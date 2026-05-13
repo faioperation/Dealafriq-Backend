@@ -28,6 +28,15 @@ const getAllAiDetections = async (prisma, userId) => {
     return prisma.aiDetection.findMany({
         where,
         orderBy: { createdAt: "desc" },
+        include: {
+            projectRisks: true,
+            projectAssumptions: true,
+            projectIssues: true,
+            projectDecisions: true,
+            projectDependencies: true,
+            email: true,
+            outlook: true
+        }
     });
 };
 
@@ -38,6 +47,15 @@ const getAiDetectionById = async (prisma, id, userId = null) => {
     }
     const aiDetection = await prisma.aiDetection.findFirst({
         where,
+        include: {
+            projectRisks: true,
+            projectAssumptions: true,
+            projectIssues: true,
+            projectDecisions: true,
+            projectDependencies: true,
+            email: true,
+            outlook: true
+        }
     });
 
     if (!aiDetection) {
