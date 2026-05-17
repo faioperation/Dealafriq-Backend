@@ -184,7 +184,7 @@ const syncAllConnectedAccounts = async () => {
         where: { provider: 'outlook' }
     });
 
-    console.log(`Found ${accounts.length} connected Outlook accounts to sync.`);
+    // console.log(`Found ${accounts.length} connected Outlook accounts to sync.`);
 
     for (const account of accounts) {
         try {
@@ -283,7 +283,7 @@ const getUnifiedInbox = async (userId, query) => {
     sliced.forEach(item => {
         const ai = item.fullAiResponse || {};
         const raidd = ai.raiddAnalysis || {};
-        
+
         // Helper to check if a category has any content (array with items or non-empty string)
         const hasContent = (val) => {
             if (!val) return false;
@@ -293,23 +293,23 @@ const getUnifiedInbox = async (userId, query) => {
         };
 
         if (Array.isArray(item.tasks) && item.tasks.length > 0) overallStats.totalTasks += 1;
-        
+
         if (hasContent(ai.issues) || hasContent(ai.issue) || hasContent(ai.totalIssues) || hasContent(raidd.issues) || hasContent(raidd.issue)) {
             overallStats.totalIssues += 1;
         }
-        
+
         if (hasContent(ai.risks) || hasContent(ai.riskPoints) || hasContent(raidd.risks) || hasContent(raidd.riskPoints)) {
             overallStats.totalRisks += 1;
         }
-        
+
         if (hasContent(ai.assumptions) || hasContent(ai.assumptionPoints) || hasContent(raidd.assumptions) || hasContent(raidd.assumptionPoints)) {
             overallStats.totalAssumptions += 1;
         }
-        
+
         if (hasContent(ai.dependencies) || hasContent(ai.dependencyPoints) || hasContent(raidd.dependencies) || hasContent(raidd.dependencyPoints)) {
             overallStats.totalDependencies += 1;
         }
-        
+
         if (hasContent(ai.decisions) || hasContent(ai.decisionPoints) || hasContent(raidd.decisions) || hasContent(raidd.decisionPoints)) {
             overallStats.totalDecisions += 1;
         }
