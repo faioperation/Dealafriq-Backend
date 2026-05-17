@@ -6,13 +6,19 @@ import { envVars } from "../../../config/env.js";
 const createClient = async (data, user) => {
     const {
         meetingLinks,
+        photo,
+        documents,
+        slas,
+        projectIds,
         ...clientData
     } = data;
 
     const client = await prisma.client.create({
         data: {
             ...clientData,
-            meetingLinks: meetingLinks ? JSON.parse(meetingLinks) : [],
+            meetingLinks: meetingLinks ? (typeof meetingLinks === 'string' ? JSON.parse(meetingLinks) : meetingLinks) : [],
+            documents: documents || [],
+            slas: slas || [],
             created_by: user.id,
         },
         include: {
@@ -103,6 +109,10 @@ const getClientById = async (id) => {
 const updateClient = async (id, data, user) => {
     const {
         meetingLinks,
+        photo,
+        documents,
+        slas,
+        projectIds,
         ...clientData
     } = data;
 
@@ -113,6 +123,12 @@ const updateClient = async (id, data, user) => {
 
     if (meetingLinks) {
         updateData.meetingLinks = typeof meetingLinks === 'string' ? JSON.parse(meetingLinks) : meetingLinks;
+    }
+    if (documents) {
+        updateData.documents = documents;
+    }
+    if (slas) {
+        updateData.slas = slas;
     }
 
     const client = await prisma.client.update({
