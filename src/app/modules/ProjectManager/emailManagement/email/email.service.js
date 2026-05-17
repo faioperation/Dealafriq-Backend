@@ -213,7 +213,7 @@ const syncAllConnectedAccounts = async () => {
         where: { provider: 'google' }
     });
 
-    console.log(`Found ${accounts.length} connected email accounts to sync.`);
+    // console.log(`Found ${accounts.length} connected email accounts to sync.`);
 
     for (const account of accounts) {
         try {
