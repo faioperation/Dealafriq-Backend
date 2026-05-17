@@ -15,4 +15,10 @@ router.get(
     AdminClientController.getAllClientsController
 );
 
+// Public route to get a single client by ID
+router.get(
+    "/:clientId",
+    AdminClientController.getClientByIdController
+);
+
 export const AdminClientRoutes = router;

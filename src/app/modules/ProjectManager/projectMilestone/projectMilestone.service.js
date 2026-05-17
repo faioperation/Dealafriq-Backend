@@ -120,6 +120,11 @@ export const ProjectMilestoneService = {
       projectId: milestone.projectId,
     });
 
+    // Trigger AI sync in background on milestone update
+    PMProjectManagementService.syncProjectAiStatusBackground(prisma, milestone.projectId, userId).catch(err => {
+      console.error("[Milestone Update] Error in background AI sync:", err);
+    });
+
     return updatedMilestone;
   },
 
@@ -150,6 +155,11 @@ export const ProjectMilestoneService = {
       action: "delete",
       userId,
       projectId: milestone.projectId,
+    });
+
+    // Trigger AI sync in background on milestone delete
+    PMProjectManagementService.syncProjectAiStatusBackground(prisma, milestone.projectId, userId).catch(err => {
+      console.error("[Milestone Delete] Error in background AI sync:", err);
     });
 
     return deletedMilestone;

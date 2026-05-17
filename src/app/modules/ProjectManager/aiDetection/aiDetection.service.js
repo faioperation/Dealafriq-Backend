@@ -3,11 +3,29 @@ import { AppError } from "../../../errorHelper/appError.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 
 const createAiDetection = async (prisma, payload, userId) => {
+    const { title, sourceType, raiddAnalysis, raiddData, emailId, outlookId } = payload;
     const aiDetection = await prisma.aiDetection.create({
         data: {
-            ...payload,
+            title,
+            sourceType,
+            raiddAnalysis,
+            raiddData,
+            emailId,
+            outlookId,
+            managerId: userId,
             createdBy: userId,
         },
+        select: {
+            id: true,
+            title: true,
+            sourceType: true,
+            raiddAnalysis: true,
+            raiddData: true,
+            createdAt: true,
+            updatedAt: true,
+            emailId: true,
+            outlookId: true
+        }
     });
 
     await ActivityLogService.createLog(prisma, {
@@ -25,19 +43,23 @@ const getAllAiDetections = async (prisma, userId) => {
     if (userId) {
         where.managerId = userId;
     }
-    return prisma.aiDetection.findMany({
+    const detections = await prisma.aiDetection.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        include: {
-            projectRisks: true,
-            projectAssumptions: true,
-            projectIssues: true,
-            projectDecisions: true,
-            projectDependencies: true,
-            email: true,
-            outlook: true
+        select: {
+            id: true,
+            title: true,
+            sourceType: true,
+            raiddAnalysis: true,
+            raiddData: true,
+            createdAt: true,
+            updatedAt: true,
+            emailId: true,
+            outlookId: true
         }
     });
+
+    return detections.filter(d => d.raiddAnalysis && Array.isArray(d.raiddAnalysis) && d.raiddAnalysis.length > 0);
 };
 
 const getAiDetectionById = async (prisma, id, userId = null) => {
@@ -47,14 +69,16 @@ const getAiDetectionById = async (prisma, id, userId = null) => {
     }
     const aiDetection = await prisma.aiDetection.findFirst({
         where,
-        include: {
-            projectRisks: true,
-            projectAssumptions: true,
-            projectIssues: true,
-            projectDecisions: true,
-            projectDependencies: true,
-            email: true,
-            outlook: true
+        select: {
+            id: true,
+            title: true,
+            sourceType: true,
+            raiddAnalysis: true,
+            raiddData: true,
+            createdAt: true,
+            updatedAt: true,
+            emailId: true,
+            outlookId: true
         }
     });
 
@@ -74,12 +98,29 @@ const updateAiDetection = async (prisma, id, payload, userId) => {
         throw new AppError(StatusCodes.NOT_FOUND, "AI Detection record not found or access denied");
     }
 
+    const { title, sourceType, raiddAnalysis, raiddData, emailId, outlookId } = payload;
     const updatedAiDetection = await prisma.aiDetection.update({
         where: { id },
         data: {
-            ...payload,
+            title: title !== undefined ? title : undefined,
+            sourceType: sourceType !== undefined ? sourceType : undefined,
+            raiddAnalysis: raiddAnalysis !== undefined ? raiddAnalysis : undefined,
+            raiddData: raiddData !== undefined ? raiddData : undefined,
+            emailId: emailId !== undefined ? emailId : undefined,
+            outlookId: outlookId !== undefined ? outlookId : undefined,
             updatedBy: userId,
         },
+        select: {
+            id: true,
+            title: true,
+            sourceType: true,
+            raiddAnalysis: true,
+            raiddData: true,
+            createdAt: true,
+            updatedAt: true,
+            emailId: true,
+            outlookId: true
+        }
     });
 
     await ActivityLogService.createLog(prisma, {

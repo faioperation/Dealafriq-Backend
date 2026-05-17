@@ -4,13 +4,13 @@ import { envVars } from '../config/env.js';
 
 const getAiEmailSummary = async (id, body) => {
     try {
-        const response = await axios.post(`${envVars.AI_CHATBOT_API}/summary/email`, {
+        const response = await axios.post(`${envVars.API_AI}/summary/email`, {
             email_id: id,
             body: body
         }, {
             headers: {
                 'Content-Type': 'application/json',
-                "x-backend-service": "PROJECT_AI_BACKEND"
+                "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
             }
         });
         return response.data;
@@ -24,14 +24,14 @@ const getAiEmailSummary = async (id, body) => {
 
 const getGeneratedReply = async (userId, emailId, type) => {
     try {
-        const response = await axios.post(`${envVars.AI_CHATBOT_API}/reply/generate`, {
+        const response = await axios.post(`${envVars.API_AI}/reply/generate`, {
             user_id: userId,
             message_id: emailId,
             type: type
         }, {
             headers: {
                 'Content-Type': 'application/json',
-                "x-backend-service": "PROJECT_AI_BACKEND"
+                "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
             }
         });
         return response.data;

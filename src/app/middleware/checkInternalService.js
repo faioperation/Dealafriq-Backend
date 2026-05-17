@@ -13,7 +13,7 @@ export const checkInternalService = () => {
         // Accept either the internal backend service key or the AI service identifier
         const allowedKeys = [
             envVars.INTERNAL_BACKEND_SERVICE_KEY,
-            // If you later define a dedicated AI secret, you can add it here, e.g., envVars.AI_SERVICE_SECRET
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
         ];
         if (!secretKey || !allowedKeys.includes(secretKey)) {
             throw new AppError(StatusCodes.UNAUTHORIZED, "Unauthorized access. Invalid or missing service key.");

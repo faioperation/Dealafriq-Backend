@@ -8,6 +8,8 @@ import path from "path";
 import { QueryBuilder } from "../../../utils/QueryBuilder.js";
 import { projectMeetingSearchableFields } from "../../../constant.js";
 import { AiDetectionService } from "../aiDetection/aiDetection.service.js";
+import axios from "axios";
+import { envVars } from "../../../config/env.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
@@ -122,6 +124,18 @@ export const ProjectMeetingService = {
             console.error("Background Google Calendar event creation failed:", error.message);
         });
 
+        // Trigger external AI Meeting summary API
+        const liveMeetingSummaryUrl = `${envVars.API_AI}/summary/meeting?id=${meeting.id}`;
+        console.log(`[Meeting AI Sync] Triggering background meeting summary API: ${liveMeetingSummaryUrl}`);
+        axios.post(liveMeetingSummaryUrl, {}, {
+            headers: {
+                'Content-Type': 'application/json',
+                "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+            }
+        }).catch(axiosErr => {
+            console.error(`[Meeting AI Sync] Failed to trigger background AI Meeting summary:`, axiosErr.message);
+        });
+
         // Return the original meeting immediately
         return meeting;
     },
@@ -141,6 +155,7 @@ export const ProjectMeetingService = {
                 notes: true,
                 agenda: true,
                 aiMeetingSummary: true,
+                aiCheck: true,
                 project: {
                     select: {
                         id: true,
@@ -197,6 +212,7 @@ export const ProjectMeetingService = {
                     notes: true,
                     agenda: true,
                     aiMeetingSummary: true,
+                    aiCheck: true,
                     project: {
                         select: {
                             id: true,
@@ -243,6 +259,7 @@ export const ProjectMeetingService = {
                 notes: true,
                 agenda: true,
                 aiMeetingSummary: true,
+                aiCheck: true,
                 project: {
                     select: {
                         id: true,

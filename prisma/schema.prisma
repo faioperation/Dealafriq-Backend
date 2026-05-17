@@ -167,6 +167,7 @@ model Project {
   projectAiSummary     String[]                @default([])
   projectProgress      String?                 @default("0%")
   projectAiDetails     Json?
+  aiCheck              Boolean                 @default(false)
   discussionPoints     String[]                @default([])
   actionPoints         String[]                @default([])
   cancelledReason      String?
@@ -234,6 +235,7 @@ model ProjectMeeting {
   transcriptFileType String?
   transcriptPlayUrl  String?
   transcriptStatus   String?
+  aiCheck            Boolean       @default(false)
   videoPlayUrl       String?
   actionPoints       ActionPoint[]
   keyPoints          KeyPoint[]
@@ -274,6 +276,7 @@ model ProjectDocumentUpload {
   title             String?
   aiDocumentSummary String?
   setDate           DateTime?
+  aiCheck           Boolean               @default(false)
   actionPoints      DocumentActionPoint[]
   keyPoints         DocumentKeyPoint[]
   project           Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -423,6 +426,7 @@ model Email {
   emailRawId          String?
   fullAiResponse      Json?
   generatedReply      Json?
+  aiCheck             Boolean             @default(false)
   approvedBy          User?               @relation("EmailApprovedBy", fields: [approved_by], references: [id])
   createdBy           User?               @relation("EmailCreatedBy", fields: [created_by], references: [id])
   deletedBy           User?               @relation("EmailDeletedBy", fields: [deleted_by], references: [id])
@@ -467,6 +471,7 @@ model Outlook {
   outlookRawId        String?
   fullAiResponse      Json?
   generatedReply      Json?
+  aiCheck             Boolean             @default(false)
   approvedBy          User?               @relation("OutlookApprovedBy", fields: [approved_by], references: [id])
   createdBy           User?               @relation("OutlookCreatedBy", fields: [created_by], references: [id])
   deletedBy           User?               @relation("OutlookDeletedBy", fields: [deleted_by], references: [id])
@@ -772,7 +777,7 @@ model WeeklyAiSummary {
 
 model ProjectRisk {
   id            String       @id @default(uuid())
-  projectId     String
+  projectId     String?
   raiddId       String?
   emailId       String?
   outlookId     String?
@@ -780,7 +785,7 @@ model ProjectRisk {
   data          String
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   raidd         Raidd?       @relation(fields: [raiddId], references: [id], onDelete: Cascade)
   email         Email?       @relation(fields: [emailId], references: [id])
   outlook       Outlook?     @relation(fields: [outlookId], references: [id])
@@ -791,7 +796,7 @@ model ProjectRisk {
 
 model ProjectAssumption {
   id            String       @id @default(uuid())
-  projectId     String
+  projectId     String?
   raiddId       String?
   emailId       String?
   outlookId     String?
@@ -799,7 +804,7 @@ model ProjectAssumption {
   data          String
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   raidd         Raidd?       @relation(fields: [raiddId], references: [id], onDelete: Cascade)
   email         Email?       @relation(fields: [emailId], references: [id])
   outlook       Outlook?     @relation(fields: [outlookId], references: [id])
@@ -810,7 +815,7 @@ model ProjectAssumption {
 
 model ProjectIssue {
   id            String       @id @default(uuid())
-  projectId     String
+  projectId     String?
   raiddId       String?
   emailId       String?
   outlookId     String?
@@ -818,7 +823,7 @@ model ProjectIssue {
   data          String
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   raidd         Raidd?       @relation(fields: [raiddId], references: [id], onDelete: Cascade)
   email         Email?       @relation(fields: [emailId], references: [id])
   outlook       Outlook?     @relation(fields: [outlookId], references: [id])
@@ -829,7 +834,7 @@ model ProjectIssue {
 
 model ProjectDecision {
   id            String       @id @default(uuid())
-  projectId     String
+  projectId     String?
   raiddId       String?
   emailId       String?
   outlookId     String?
@@ -838,7 +843,7 @@ model ProjectDecision {
   decisionOwner String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   raidd         Raidd?       @relation(fields: [raiddId], references: [id], onDelete: Cascade)
   email         Email?       @relation(fields: [emailId], references: [id])
   outlook       Outlook?     @relation(fields: [outlookId], references: [id])
@@ -849,7 +854,7 @@ model ProjectDecision {
 
 model ProjectDependency {
   id            String       @id @default(uuid())
-  projectId     String
+  projectId     String?
   raiddId       String?
   emailId       String?
   outlookId     String?
@@ -857,7 +862,7 @@ model ProjectDependency {
   data          String
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project       Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   raidd         Raidd?       @relation(fields: [raiddId], references: [id], onDelete: Cascade)
   email         Email?       @relation(fields: [emailId], references: [id])
   outlook       Outlook?     @relation(fields: [outlookId], references: [id])

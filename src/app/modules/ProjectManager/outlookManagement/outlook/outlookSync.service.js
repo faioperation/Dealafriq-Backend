@@ -1,6 +1,8 @@
 import prisma from '../../../../prisma/client.js';
 import { AiEmailSummaryUtils } from '../../../../utils/aiEmailSummary.js';
 import { AiDetectionService } from '../../aiDetection/aiDetection.service.js';
+import axios from 'axios';
+import { envVars } from '../../../../config/env.js';
 
 
 /**
@@ -57,6 +59,18 @@ const syncOutlookEmail = async (payload) => {
 
     console.log(`[Outlook Sync] Initial record created for Outlook Message ID: ${outlookMessageId} (ID: ${outlookEmail.id}). AI data will be handled via Push API.`);
 
+    // Trigger external AI Emails summary API
+    const liveEmailsSummaryUrl = `${envVars.API_AI}/summary/emails?id=${outlookEmail.id}`;
+    console.log(`[Email AI Sync] Triggering background Outlook email summary API: ${liveEmailsSummaryUrl}`);
+    axios.post(liveEmailsSummaryUrl, {}, {
+        headers: {
+            'Content-Type': 'application/json',
+            "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+        }
+    }).catch(axiosErr => {
+        console.error(`[Email AI Sync] Failed to trigger background AI Outlook email summary:`, axiosErr.message);
+    });
+
     return outlookEmail;
 };
 
@@ -94,7 +108,8 @@ const getAllOutlooks = async (userId, filters = {}) => {
             projectAssumptions: true,
             projectIssues: true,
             projectDecisions: true,
-            projectDependencies: true
+            projectDependencies: true,
+            aiDetections: true
         }
     });
 };
@@ -114,7 +129,8 @@ const getSingleOutlook = async (id, userId) => {
             projectAssumptions: true,
             projectIssues: true,
             projectDecisions: true,
-            projectDependencies: true
+            projectDependencies: true,
+            aiDetections: true
         }
     });
 };

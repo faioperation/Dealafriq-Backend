@@ -24,32 +24,237 @@ const verifyProjectOwnership = async (prisma, projectId, userId) => {
 
 export const RaiddService = {
     createRaidd: async (prisma, payload, userId) => {
-        const { aiDetectionId, type, ...raiddData } = payload;
+        const { aiDetectionId, type, approveAll, items, ...raiddData } = payload;
         const project = await verifyProjectOwnership(prisma, raiddData.projectId, userId);
 
+        let aiDetection = null;
+        if (aiDetectionId) {
+            aiDetection = await prisma.aiDetection.findUnique({
+                where: { id: aiDetectionId }
+            });
+        }
+
+        // --- 1. HANDLE APPROVE ALL FLOW ---
+        if (approveAll && aiDetectionId) {
+            if (!aiDetection || !aiDetection.raiddData) {
+                throw new AppError(StatusCodes.NOT_FOUND, "AI Detection record not found or has no RAIDD data to approve");
+            }
+            const raiddFlags = aiDetection.raiddData;
+            const createdRaidds = [];
+            
+            const mapping = [
+                { key: "risks", type: "RISK", label: "Risk" },
+                { key: "assumptions", type: "ASSUMPTION", label: "Assumption" },
+                { key: "issues", type: "ISSUE", label: "Issue" },
+                { key: "dependencies", type: "DEPENDENCY", label: "Dependency" },
+                { key: "decisions", type: "DECISION", label: "Decision" }
+            ];
+
+            for (const { key, type: itemType, label } of mapping) {
+                const flagItems = raiddFlags[key];
+                if (Array.isArray(flagItems)) {
+                    for (const rawItem of flagItems) {
+                        const itemText = (typeof rawItem === 'object' && rawItem !== null) ? (rawItem.data || rawItem.description || rawItem.text || "") : rawItem;
+                        if (typeof itemText !== 'string' || itemText.trim() === '') continue;
+                        
+                        const raidd = await prisma.raidd.create({
+                            data: {
+                                projectId: raiddData.projectId,
+                                title: `AI Detected ${label}`,
+                                description: itemText,
+                                type: [itemType],
+                                status: "MEDIUM",
+                                aiDetectionId,
+                                created_by: userId
+                            }
+                        });
+                        createdRaidds.push(raidd);
+                        
+                        await ActivityLogService.createLog(prisma, {
+                            type: "raidd",
+                            crudId: raidd.id,
+                            action: "create",
+                            userId,
+                            projectId: raidd.projectId,
+                        });
+                    }
+                }
+            }
+
+            // Sync all to individual items
+            await RaiddService.syncIndividualItems(prisma, raiddData.projectId, raiddFlags, null, { aiDetectionId });
+
+            // Auto-delete AI Detection after approving all
+            await prisma.aiDetection.delete({
+                where: { id: aiDetectionId }
+            });
+            console.log(`[RAIDD Approve All] Auto-deleted full AI Detection record after approving all: ${aiDetectionId}`);
+
+            return createdRaidds;
+        }
+
+        // --- 2. HANDLE BATCH MULTIPLE SELECT FLOW ---
+        if (Array.isArray(items) && items.length > 0) {
+            const createdRaidds = [];
+            const syncedFlags = {
+                risks: [],
+                assumptions: [],
+                issues: [],
+                dependencies: [],
+                decisions: []
+            };
+
+            for (const item of items) {
+                const itemType = item.type;
+                const rawDescription = item.description;
+                const itemDescription = (typeof rawDescription === 'object' && rawDescription !== null) ? (rawDescription.data || rawDescription.description || rawDescription.text || "") : rawDescription;
+                if (!itemType || !itemDescription) continue;
+
+                let label = "Item";
+                if (itemType === "RISK") { label = "Risk"; syncedFlags.risks.push(itemDescription); }
+                else if (itemType === "ASSUMPTION") { label = "Assumption"; syncedFlags.assumptions.push(itemDescription); }
+                else if (itemType === "ISSUE") { label = "Issue"; syncedFlags.issues.push(itemDescription); }
+                else if (itemType === "DEPENDENCY") { label = "Dependency"; syncedFlags.dependencies.push(itemDescription); }
+                else if (itemType === "DECISION") { label = "Decision"; syncedFlags.decisions.push(itemDescription); }
+
+                const raidd = await prisma.raidd.create({
+                    data: {
+                        projectId: raiddData.projectId,
+                        title: item.title || `AI Detected ${label}`,
+                        description: itemDescription,
+                        type: [itemType],
+                        status: "MEDIUM",
+                        aiDetectionId: aiDetectionId || undefined,
+                        created_by: userId
+                    }
+                });
+                createdRaidds.push(raidd);
+
+                await ActivityLogService.createLog(prisma, {
+                    type: "raidd",
+                    crudId: raidd.id,
+                    action: "create",
+                    userId,
+                    projectId: raidd.projectId,
+                });
+            }
+
+            // Sync these approved items to their respective models
+            await RaiddService.syncIndividualItems(prisma, raiddData.projectId, syncedFlags, null, { aiDetectionId });
+
+            // Clean up the approved items from the AI Detection record
+            if (aiDetectionId && aiDetection && aiDetection.raiddData) {
+                let newRaiddData = { ...aiDetection.raiddData };
+                let newRaiddAnalysis = aiDetection.raiddAnalysis ? [...aiDetection.raiddAnalysis] : [];
+                
+                for (const item of items) {
+                    const itemType = item.type;
+                    const rawDescription = item.description;
+                    const itemDescription = (typeof rawDescription === 'object' && rawDescription !== null) ? (rawDescription.data || rawDescription.description || rawDescription.text || "") : rawDescription;
+                    if (!itemDescription) continue;
+
+                    let raiddKey = "";
+                    let categoryToRemove = "";
+                    switch (itemType) {
+                        case "RISK": raiddKey = "risks"; categoryToRemove = "Risk"; break;
+                        case "ASSUMPTION": raiddKey = "assumptions"; categoryToRemove = "Assumption"; break;
+                        case "ISSUE": raiddKey = "issues"; categoryToRemove = "Issue"; break;
+                        case "DEPENDENCY": raiddKey = "dependencies"; categoryToRemove = "Dependency"; break;
+                        case "DECISION": raiddKey = "decisions"; categoryToRemove = "Decision"; break;
+                    }
+
+                    if (raiddKey && newRaiddData[raiddKey]) {
+                        if (Array.isArray(newRaiddData[raiddKey])) {
+                            newRaiddData[raiddKey] = newRaiddData[raiddKey].filter(raw => {
+                                const desc = (typeof raw === 'object' && raw !== null) ? (raw.data || raw.description || raw.text || "") : raw;
+                                return desc !== itemDescription;
+                            });
+                            if (newRaiddData[raiddKey].length === 0) {
+                                delete newRaiddData[raiddKey];
+                                newRaiddAnalysis = newRaiddAnalysis.filter(cat => cat !== categoryToRemove);
+                            }
+                        }
+                    }
+                }
+
+                // Check if anything is left
+                const hasLeftoverData = Object.keys(newRaiddData).some(key => Array.isArray(newRaiddData[key]) && newRaiddData[key].length > 0);
+
+                if (!hasLeftoverData) {
+                    await prisma.aiDetection.delete({
+                        where: { id: aiDetectionId }
+                    });
+                    console.log(`[RAIDD Batch Creation] Auto-deleted full AI Detection record after all items approved: ${aiDetectionId}`);
+                } else {
+                    await prisma.aiDetection.update({
+                        where: { id: aiDetectionId },
+                        data: {
+                            raiddData: newRaiddData,
+                            raiddAnalysis: newRaiddAnalysis
+                        }
+                    });
+                    console.log(`[RAIDD Batch Creation] Updated AI Detection record: removed selected items for ${aiDetectionId}`);
+                }
+            }
+
+            return createdRaidds;
+        }
+
+        // --- 3. FALLBACK TO LEGACY SINGLE/MULTI-TYPE FLOW ---
         const typesToCreate = Array.isArray(type) ? type : [type];
         let description = raiddData.description;
 
-        // Try to get description from project's saved AI details if not provided in payload
+        // Try to get description from the specific AI Detection record if aiDetectionId is provided
+        if (!description && aiDetection && aiDetection.raiddData && typeof aiDetection.raiddData === 'object') {
+            const raiddFlags = aiDetection.raiddData;
+            if (raiddFlags && typeof raiddFlags === 'object') {
+                let aiItems = [];
+                for (const t of typesToCreate) {
+                    let flagItems = [];
+                    switch (t) {
+                        case "RISK": flagItems = raiddFlags.risks || raiddFlags.Risk || raiddFlags.projectRisks; break;
+                        case "ASSUMPTION": flagItems = raiddFlags.assumptions || raiddFlags.Assumption || raiddFlags.projectAssumptions; break;
+                        case "ISSUE": flagItems = raiddFlags.issues || flagItems.Issue || raiddFlags.projectIssues; break;
+                        case "DEPENDENCY": flagItems = raiddFlags.dependencies || raiddFlags.Dependency || raiddFlags.projectDependencies; break;
+                        case "DECISION": flagItems = raiddFlags.decisions || raiddFlags.Decision || raiddFlags.projectDecisions; break;
+                    }
+                    if (Array.isArray(flagItems)) {
+                        aiItems = [...aiItems, ...flagItems];
+                    }
+                }
+                if (aiItems.length > 0) {
+                    const validItems = aiItems
+                        .map(i => (typeof i === 'object' && i !== null) ? (i.data || i.description || i.text || "") : i)
+                        .filter(i => typeof i === 'string' && i.trim() !== '');
+                    if (validItems.length > 0) {
+                        description = validItems.map(item => `- ${item}`).join('\n');
+                    }
+                }
+            }
+        }
+
+        // Try to get description from project's saved AI details if not provided in payload or AI Detection record
         if (!description && project.projectAiDetails && typeof project.projectAiDetails === 'object') {
             const raiddFlags = project.projectAiDetails.raiddFlags;
             if (raiddFlags && typeof raiddFlags === 'object') {
                 let aiItems = [];
                 for (const t of typesToCreate) {
-                    let items = [];
+                    let flagItems = [];
                     switch (t) {
-                        case "RISK": items = raiddFlags.risks; break;
-                        case "ASSUMPTION": items = raiddFlags.assumptions; break;
-                        case "ISSUE": items = raiddFlags.issues; break;
-                        case "DEPENDENCY": items = raiddFlags.dependencies; break;
-                        case "DECISION": items = raiddFlags.decisions; break;
+                        case "RISK": flagItems = raiddFlags.risks; break;
+                        case "ASSUMPTION": flagItems = raiddFlags.assumptions; break;
+                        case "ISSUE": flagItems = raiddFlags.issues; break;
+                        case "DEPENDENCY": flagItems = raiddFlags.dependencies; break;
+                        case "DECISION": flagItems = raiddFlags.decisions; break;
                     }
-                    if (Array.isArray(items)) {
-                        aiItems = [...aiItems, ...items];
+                    if (Array.isArray(flagItems)) {
+                        aiItems = [...aiItems, ...flagItems];
                     }
                 }
                 if (aiItems.length > 0) {
-                    const validItems = aiItems.filter(i => typeof i === 'string' && i.trim() !== '');
+                    const validItems = aiItems
+                        .map(i => (typeof i === 'object' && i !== null) ? (i.data || i.description || i.text || "") : i)
+                        .filter(i => typeof i === 'string' && i.trim() !== '');
                     if (validItems.length > 0) {
                         description = validItems.map(item => `- ${item}`).join('\n');
                     }
@@ -81,13 +286,6 @@ export const RaiddService = {
         RaiddService.syncSingleRaiddFromAi(prisma, createdRaidd.id, userId).catch(error => {
             console.error("Background AI Sync for RAIDD failed:", error.message);
         });
-
-        let aiDetection = null;
-        if (aiDetectionId) {
-            aiDetection = await prisma.aiDetection.findUnique({
-                where: { id: aiDetectionId }
-            });
-        }
 
         if (aiDetection) {
             try {
@@ -125,7 +323,6 @@ export const RaiddService = {
 
                         // 3. Update fullAiResponse
                         if (newFullAiResponse) {
-                            // Handle raiddAnalysis as object or array in full response
                             if (newFullAiResponse.raiddAnalysis) {
                                 if (typeof newFullAiResponse.raiddAnalysis === 'object' && !Array.isArray(newFullAiResponse.raiddAnalysis)) {
                                     delete newFullAiResponse.raiddAnalysis[raiddKey];
@@ -139,7 +336,6 @@ export const RaiddService = {
                                 }
                             }
                             
-                            // Handle category array
                             if (Array.isArray(newFullAiResponse.category)) {
                                 newFullAiResponse.category = newFullAiResponse.category.filter(item => 
                                     typeof item === 'string' &&
@@ -148,7 +344,6 @@ export const RaiddService = {
                                 );
                             }
 
-                            // Handle top-level keys if they exist (like in some AI responses)
                             if (newFullAiResponse[raiddKey] !== undefined) delete newFullAiResponse[raiddKey];
                         }
                     }
@@ -423,14 +618,32 @@ export const RaiddService = {
                 const items = raiddFlags[key];
 
                 if (Array.isArray(items) && items.length > 0) {
-                    for (const itemData of items) {
+                    for (const rawItem of items) {
+                        const itemData = (typeof rawItem === 'object' && rawItem !== null) ? (rawItem.data || rawItem.description || rawItem.text || "") : rawItem;
                         if (typeof itemData !== 'string' || itemData.trim() === '') continue;
 
                         // Check for duplicate in the context of this project and data
-                        const exists = await prisma[model].findFirst({ where: { projectId, data: itemData } });
+                        let exists = await prisma[model].findFirst({ where: { projectId, data: itemData } });
+
+                        // If not found, check if there is an unassociated email/outlook record with the same data
+                        if (!exists) {
+                            exists = await prisma[model].findFirst({
+                                where: {
+                                    data: itemData,
+                                    projectId: null,
+                                    OR: [
+                                        emailId ? { emailId } : undefined,
+                                        outlookId ? { outlookId } : undefined,
+                                        aiDetectionId ? { aiDetectionId } : undefined
+                                    ].filter(Boolean)
+                                }
+                            });
+                        }
+
                         if (exists) {
                             // Update links if they are missing
                             const updateData = {};
+                            if (projectId && !exists.projectId) updateData.projectId = projectId;
                             if (raiddId && !exists.raiddId) updateData.raiddId = raiddId;
                             if (emailId && !exists.emailId) updateData.emailId = emailId;
                             if (outlookId && !exists.outlookId) updateData.outlookId = outlookId;

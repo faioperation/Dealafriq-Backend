@@ -88,6 +88,18 @@ const syncWeeklyAiSummary = catchAsync(async (req, res) => {
     });
 });
 
+const syncClientData = catchAsync(async (req, res) => {
+    const { clientId } = req.params;
+    const result = await AiPushService.syncClientData(clientId, req.body, req.user?.id);
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: "Client AI data synced successfully",
+        data: result
+    });
+});
+
 export const AiPushController = {
     syncProjectData,
     syncRaiddData,
@@ -95,5 +107,6 @@ export const AiPushController = {
     syncOutlookData,
     syncMeetingAiData,
     syncDocumentAiData,
-    syncWeeklyAiSummary
+    syncWeeklyAiSummary,
+    syncClientData
 };
