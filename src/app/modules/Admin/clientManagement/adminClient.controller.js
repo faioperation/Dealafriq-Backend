@@ -29,7 +29,23 @@ const getAllClientsController = async (req, res, next) => {
     }
 };
 
+const getClientByIdController = async (req, res, next) => {
+    try {
+        const { clientId } = req.params;
+        const client = await AdminClientService.getClientById(clientId);
+        
+        res.status(200).json({
+            success: true,
+            message: "Client retrieved successfully",
+            data: client
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const AdminClientController = {
     getClientsByProjectManagerIdController,
-    getAllClientsController
+    getAllClientsController,
+    getClientByIdController
 };

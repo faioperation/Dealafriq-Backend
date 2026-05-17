@@ -1,6 +1,8 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
+import axios from "axios";
+import { envVars } from "../../../config/env.js";
 
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
@@ -82,6 +84,18 @@ export const ProjectDocumentService = {
                 action: "create",
                 userId,
                 projectId: doc.projectId,
+            });
+
+            // Trigger external AI Document summary API
+            const liveDocumentSummaryUrl = `${envVars.API_AI}/summary/document?id=${doc.id}`;
+            console.log(`[Document AI Sync] Triggering background document summary API: ${liveDocumentSummaryUrl}`);
+            axios.post(liveDocumentSummaryUrl, {}, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+                }
+            }).catch(axiosErr => {
+                console.error(`[Document AI Sync] Failed to trigger background AI Document summary:`, axiosErr.message);
             });
 
             return doc;

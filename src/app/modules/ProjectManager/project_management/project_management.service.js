@@ -156,6 +156,7 @@ export const PMProjectManagementService = {
                     actionPoints: true,
                     notes: true,
                     cancelledReason: true,
+                    aiCheck: true,
                     manager: {
                         select: {
                             firstName: true,
@@ -209,6 +210,7 @@ export const PMProjectManagementService = {
                             transcriptPlayUrl: true,
                             transcriptStatus: true,
                             videoPlayUrl: true,
+                            aiCheck: true,
                             keyPoints: true,
                             actionPoints: true,
                         },
@@ -220,9 +222,7 @@ export const PMProjectManagementService = {
                             actionPoints: true,
                         },
                     },
-                    weeklyAiSummaries: {
-                        orderBy: { createdAt: 'desc' }
-                    },
+
                 },
             }),
             prisma.project.count({ where: buildQuery.where }),
@@ -258,6 +258,7 @@ export const PMProjectManagementService = {
                 actionPoints: true,
                 notes: true,
                 cancelledReason: true,
+                aiCheck: true,
                 manager: {
                     select: {
                         firstName: true,
@@ -317,14 +318,13 @@ export const PMProjectManagementService = {
                         transcriptPlayUrl: true,
                         transcriptStatus: true,
                         videoPlayUrl: true,
+                        aiCheck: true,
                         keyPoints: true,
                         actionPoints: true,
                     },
                     orderBy: { createdAt: 'desc' }
                 },
-                weeklyAiSummaries: {
-                    orderBy: { createdAt: 'desc' }
-                },
+
                 risks: true,
                 assumptions: true,
                 issues: true,
@@ -377,6 +377,11 @@ export const PMProjectManagementService = {
             projectId: id,
         });
 
+        // Trigger AI sync in background on project update
+        PMProjectManagementService.syncProjectAiStatusBackground(prisma, id, userId).catch(err => {
+            console.error("[Project Update] Error in background AI sync:", err);
+        });
+
         return updatedProject;
     },
     deleteSingleProject: async (prisma, id, userId) => {
@@ -405,7 +410,7 @@ export const PMProjectManagementService = {
     syncProjectAiStatusBackground: async (prisma, id, userId) => {
         try {
             console.log(`[Project AI Sync] Background sync for project ${id} is now handled via AI Push API.`);
-            
+
             // Still update project progress as it's an internal calculation
             const project = await prisma.project.findFirst({
                 where: { id, managerId: userId, deletedAt: null },
@@ -421,6 +426,18 @@ export const PMProjectManagementService = {
                 await prisma.project.update({
                     where: { id },
                     data: { projectProgress }
+                });
+
+                // Trigger external AI Project summary endpoint
+                const liveProjectSummaryUrl = `${envVars.API_AI}/summary/project?id=${id}`;
+                console.log(`[Project AI Sync] Triggering background project summary API: ${liveProjectSummaryUrl}`);
+                axios.post(liveProjectSummaryUrl, {}, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+                    }
+                }).catch(axiosErr => {
+                    console.error(`[Project AI Sync] Failed to trigger background AI Project summary:`, axiosErr.message);
                 });
             }
             return;

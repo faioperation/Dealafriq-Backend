@@ -31,39 +31,45 @@ const createClient = async (data, user) => {
                 },
             },
         }
-
     });
 
-    // Trigger AI sync in the background with retry logic
-    const syncWithRetry = async () => {
-        const delays = [15000, 30000, 45000, 60000, 60000]; // 15s, 30s, 45s, 60s, 60s
-        for (let attempt = 0; attempt < delays.length; attempt++) {
-            try {
-                console.log(`[Client AI Sync] Attempt ${attempt + 1} for client ${client.id} starting in ${delays[attempt] / 1000}s...`);
-                await new Promise(resolve => setTimeout(resolve, delays[attempt]));
-                
-                const result = await syncAllClientsFromAi(prisma, client.id);
-                if (result && result.targetIdUpdated) {
-                    console.log(`[Client AI Sync] Success on attempt ${attempt + 1} for client ${client.id}`);
-                    break;
-                } else {
-                    console.log(`[Client AI Sync] Attempt ${attempt + 1} completed but target client ${client.id} was not in AI response yet.`);
-                }
-            } catch (error) {
-                console.error(`[Client AI Sync] Attempt ${attempt + 1} failed for client ${client.id}:`, error.message);
-            }
-            
-            if (attempt === delays.length - 1) {
-                console.warn(`[Client AI Sync] All ${delays.length} attempts failed for client ${client.id}. AI data might still be processing.`);
-            }
+    // Parse and link projectIds to the newly created client
+    let parsedProjectIds = projectIds;
+    if (typeof projectIds === 'string') {
+        try {
+            parsedProjectIds = JSON.parse(projectIds);
+        } catch (e) {
+            parsedProjectIds = [projectIds];
         }
-    };
+    }
 
-    syncWithRetry().catch(err => {
-        console.error("Critical error in background client AI sync loop:", err);
+    if (parsedProjectIds && Array.isArray(parsedProjectIds) && parsedProjectIds.length > 0) {
+        await prisma.project.updateMany({
+            where: {
+                id: { in: parsedProjectIds }
+            },
+            data: {
+                clientId: client.id,
+                clientName: client.name
+            }
+        });
+    }
+
+    // Trigger external AI Client summary API in the background
+    const liveClientSummaryUrl = `${envVars.API_AI}/summary/clients?id=${client.id}`;
+    console.log(`[Client AI Sync] Triggering background client summary API: ${liveClientSummaryUrl}`);
+    axios.post(liveClientSummaryUrl, {}, {
+        headers: {
+            "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+        }
+    }).then(response => {
+        console.log(`[Client AI Sync] Background client summary sync triggered successfully:`, response.data);
+    }).catch(err => {
+        console.error(`[Client AI Sync] Failed to trigger background client summary sync:`, err.message);
     });
 
-    return client;
+    // Return the enriched client
+    return await getClientById(client.id);
 };
 
 
@@ -85,7 +91,23 @@ const getAllClients = async (query) => {
         orderBy: { createdAt: 'desc' }
 
     });
-    return clients;
+    
+    return clients.map(client => {
+        const aiResponse = client.clientAiResponse || {};
+        delete client.clientAiResponse;
+        
+        return {
+            ...client,
+            clientId: client.id,
+            clientName: client.name,
+            aiSummary: aiResponse.aiSummary || null,
+            lessonsLearned: aiResponse.lessonsLearned || [],
+            discussionPoints: aiResponse.discussionPoints || [],
+            actionPoints: aiResponse.actionPoints || [],
+            notes: aiResponse.notes || null,
+            raiddData: aiResponse.raiddData || null,
+        };
+    });
 };
 
 const getClientById = async (id) => {
@@ -103,7 +125,25 @@ const getClientById = async (id) => {
         }
 
     });
-    return client;
+
+    if (!client || client.deletedAt !== null) {
+        return null;
+    }
+
+    const aiResponse = client.clientAiResponse || {};
+    delete client.clientAiResponse;
+    
+    return {
+        ...client,
+        clientId: client.id,
+        clientName: client.name,
+        aiSummary: aiResponse.aiSummary || null,
+        lessonsLearned: aiResponse.lessonsLearned || [],
+        discussionPoints: aiResponse.discussionPoints || [],
+        actionPoints: aiResponse.actionPoints || [],
+        notes: aiResponse.notes || null,
+        raiddData: aiResponse.raiddData || null,
+    };
 };
 
 const updateClient = async (id, data, user) => {
@@ -144,10 +184,47 @@ const updateClient = async (id, data, user) => {
                 },
             },
         }
-
     });
 
-    return client;
+    // Parse and update linked projects
+    let parsedProjectIds = projectIds;
+    if (typeof projectIds === 'string') {
+        try {
+            parsedProjectIds = JSON.parse(projectIds);
+        } catch (e) {
+            parsedProjectIds = [projectIds];
+        }
+    }
+
+    if (parsedProjectIds && Array.isArray(parsedProjectIds)) {
+        // 1. Unlink projects that were previously linked but not in the new list
+        await prisma.project.updateMany({
+            where: {
+                clientId: client.id,
+                id: { notIn: parsedProjectIds }
+            },
+            data: {
+                clientId: null,
+                clientName: null
+            }
+        });
+
+        // 2. Link the new projects
+        if (parsedProjectIds.length > 0) {
+            await prisma.project.updateMany({
+                where: {
+                    id: { in: parsedProjectIds }
+                },
+                data: {
+                    clientId: client.id,
+                    clientName: client.name
+                }
+            });
+        }
+    }
+
+    // Return the enriched client
+    return await getClientById(client.id);
 };
 
 const deleteClient = async (id, user) => {

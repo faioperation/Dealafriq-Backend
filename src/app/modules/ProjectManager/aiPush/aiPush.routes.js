@@ -16,5 +16,6 @@ router.post("/outlook-sync/:outlookId", AiPushController.syncOutlookData);
 router.post("/meeting-sync/:meetingId", AiPushController.syncMeetingAiData);
 router.post("/document-sync/:documentId", AiPushController.syncDocumentAiData);
 router.post("/weekly-summary/:projectId", AiPushController.syncWeeklyAiSummary);
+router.post("/client-sync/:clientId", AiPushController.syncClientData);
 
 export const AiPushRoutes = router;

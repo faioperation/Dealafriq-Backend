@@ -48,7 +48,7 @@ const createMessage = catchAsync(async (req, res) => {
     if (projectId) {
         try {
             // Send request to AI endpoint
-            const aiEndpoint = `${envVars.AI_CHATBOT_API || "https://ai2.pmify.cloud/api/v1"}/chat/`;
+            const aiEndpoint = `${envVars.API_AI || "https://ai2.pmify.cloud/api/v1"}/chat/`;
            const aiResponse = await axios.post(
   aiEndpoint,
   {
@@ -60,7 +60,7 @@ const createMessage = catchAsync(async (req, res) => {
   },
   {
     headers: {
-      "x-backend-service": "PROJECT_AI_BACKEND"
+      "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
     }
   }
 );
