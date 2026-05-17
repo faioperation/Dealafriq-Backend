@@ -23,7 +23,8 @@ export const ProjectMilestoneService = {
     const milestone = await prisma.projectMilestone.create({
       data: {
         ...payload,
-        milestoneDate: new Date(payload.milestoneDate),
+        startDate: payload.startDate ? new Date(payload.startDate) : null,
+        milestoneDate: payload.milestoneDate ? new Date(payload.milestoneDate) : new Date(),
       },
     });
 
@@ -61,7 +62,7 @@ export const ProjectMilestoneService = {
             id: true,
             description: true,
             name: true,
-            vendorName: true,
+            clientName: true,
             managerId: true,
             deletedAt: true,
           },
@@ -101,6 +102,8 @@ export const ProjectMilestoneService = {
     }
 
     const updateData = { ...payload };
+    if (payload.startDate)
+      updateData.startDate = new Date(payload.startDate);
     if (payload.milestoneDate)
       updateData.milestoneDate = new Date(payload.milestoneDate);
 
@@ -115,6 +118,11 @@ export const ProjectMilestoneService = {
       action: "update",
       userId,
       projectId: milestone.projectId,
+    });
+
+    // Trigger AI sync in background on milestone update
+    PMProjectManagementService.syncProjectAiStatusBackground(prisma, milestone.projectId, userId).catch(err => {
+      console.error("[Milestone Update] Error in background AI sync:", err);
     });
 
     return updatedMilestone;
@@ -147,6 +155,11 @@ export const ProjectMilestoneService = {
       action: "delete",
       userId,
       projectId: milestone.projectId,
+    });
+
+    // Trigger AI sync in background on milestone delete
+    PMProjectManagementService.syncProjectAiStatusBackground(prisma, milestone.projectId, userId).catch(err => {
+      console.error("[Milestone Delete] Error in background AI sync:", err);
     });
 
     return deletedMilestone;

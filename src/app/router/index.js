@@ -5,8 +5,9 @@ import { ProjectManagerRoutes } from "../modules/Admin/project_manager/project_m
 import { AdminProjectRoutes } from "../modules/Admin/project/project.route.js";
 import { UserManagementRoutes } from "../modules/Admin/userManagement/userManagement.route.js";
 import { DashboardRoutes } from "../modules/Admin/dashboard/dashboard.route.js";
-import { AdminVendorRoutes } from "../modules/Admin/vendorManagement/adminVendor.route.js";
+import { AdminClientRoutes } from "../modules/Admin/clientManagement/adminClient.route.js";
 import { AdminMeetingRoutes } from "../modules/Admin/MeetingManagement/meeting.route.js";
+import { AdminDocumentRoutes } from "../modules/Admin/DocumentManagement/document.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
@@ -22,16 +23,17 @@ import { ProjectTaskRoutes } from "../modules/ProjectManager/projectTask/project
 import { RaiddRoutes } from "../modules/ProjectManager/raiddManagement/raidd.route.js";
 import { TeamRoutes } from "../modules/ProjectManager/team/team.route.js";
 import { TranscriptRoutes } from "../modules/ProjectManager/transcriptManagement/transcript.route.js";
-import { VendorRoutes } from "../modules/ProjectManager/vendorManagement/vendor.route.js";
+import { ClientRoutes } from "../modules/ProjectManager/clientManagement/client.route.js";
 import { ZoomRoutes } from "../modules/ProjectManager/zoomManagement/zoom.route.js";
 import { ProjectChatbotRoutes } from "../modules/ProjectManager/projectChatbot/projectChatbot.route.js";
-import { VendorEmailRoutes } from "../modules/ProjectManager/emailManagement/vendorEmail/vendorEmail.route.js";
+import { ClientEmailRoutes } from "../modules/ProjectManager/emailManagement/clientEmail/clientEmail.route.js";
 import { PMDashboardRoutes } from "../modules/ProjectManager/dashboard/pm_dashboard.route.js";
 import { UserRoutes } from "../modules/user/user.route.js";
 import { LessonLearnRoutes } from "../modules/ProjectManager/leasonLearn/leasonLearn.route.js";
 import { GoogleCalendarRoutes } from "../modules/ProjectManager/googleCalender/googleCalender.route.js";
 import { NotificationRoutes } from "../modules/ProjectManager/notification/notification.route.js";
 import { DraftMailRoutes } from "../modules/ProjectManager/draftMail/draftMail.route.js";
+import { AiPushRoutes } from "../modules/ProjectManager/aiPush/aiPush.routes.js";
 
 
 
@@ -65,16 +67,20 @@ const moduleRoutes = [
     route: UserManagementRoutes,
   },
   {
-    path: "/admin/project",
+    path: "/project",
     route: AdminProjectRoutes,
   },
   {
-    path: "/admin/vendor-management",
-    route: AdminVendorRoutes,
+    path: "/admin/client-management",
+    route: AdminClientRoutes,
   },
   {
-    path: "/admin/meeting-management",
+    path: "/meeting-management",
     route: AdminMeetingRoutes,
+  },
+  {
+    path: "/document-management",
+    route: AdminDocumentRoutes,
   },
   // Admin Routes ends here
   // Project Manager Routes starts here
@@ -131,12 +137,12 @@ const moduleRoutes = [
     route: ZoomRoutes,
   },
   {
-    path: "/project-manager/vendor-management",
-    route: VendorRoutes,
+    path: "/project-manager/client-management",
+    route: ClientRoutes,
   },
   {
-    path: "/project-manager/vendor-email",
-    route: VendorEmailRoutes,
+    path: "/project-manager/client-email",
+    route: ClientEmailRoutes,
   },
 
   {
@@ -178,6 +184,10 @@ const moduleRoutes = [
   {
     path: "/project-manager/draft-mail",
     route: DraftMailRoutes,
+  },
+  {
+    path: "/ai-push",
+    route: AiPushRoutes,
   },
   // Project Manager Routes ends here
 ];

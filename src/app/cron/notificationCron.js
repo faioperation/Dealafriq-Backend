@@ -8,7 +8,7 @@ import { NotificationService } from "../modules/ProjectManager/notification/noti
  */
 export const initNotificationCron = () => {
     cron.schedule("* * * * *", async () => {
-        console.log(`[${new Date().toISOString()}] Checking for upcoming notifications...`);
+        // console.log(`[${new Date().toISOString()}] Checking for upcoming notifications...`);
         try {
             const now = new Date();
             const futureLimit = new Date(now.getTime() + 30 * 60 * 1000);
@@ -18,7 +18,7 @@ export const initNotificationCron = () => {
                 where: {
                     start: {
                         gte: now,
-                        lte: futureLimit,                       
+                        lte: futureLimit,
                     },
                     deleted_at: null,
                 },

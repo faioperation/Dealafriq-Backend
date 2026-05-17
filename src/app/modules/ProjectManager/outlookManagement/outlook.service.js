@@ -184,7 +184,7 @@ const syncAllConnectedAccounts = async () => {
         where: { provider: 'outlook' }
     });
 
-    console.log(`Found ${accounts.length} connected Outlook accounts to sync.`);
+    // console.log(`Found ${accounts.length} connected Outlook accounts to sync.`);
 
     for (const account of accounts) {
         try {
@@ -236,26 +236,49 @@ const syncAllConnectedAccounts = async () => {
 const getUnifiedInbox = async (userId, query) => {
     const queryBuilder = new QueryBuilder(query).filter().build();
 
-    // Base where clause for both Gmail and Outlook
-    const baseWhere = {
-        ...queryBuilder.where,
+    const { category, ...whereWithoutCategory } = queryBuilder.where;
+
+    // Gmail emails (no category filter needed)
+    const gmailWhere = {
+        ...whereWithoutCategory,
         created_by: userId,
         deletedAt: null,
     };
 
-    // Gmail emails (no category filter needed)
     const gmailEmails = await prisma.email.findMany({
-        where: baseWhere,
-        include: { vendor: true },
+        where: gmailWhere,
+        include: {
+            client: true,
+            projectRisks: true,
+            projectAssumptions: true,
+            projectIssues: true,
+            projectDecisions: true,
+            projectDependencies: true,
+            aiDetections: true
+        },
         orderBy: { receivedAt: 'desc' },
         take: 20,
     });
 
-    // Outlook emails filtered to 'personal' category only
-    const outlookWhere = { ...baseWhere, category: 'personal' };
+    // Outlook emails filtered to the specified category or fallback to 'personal'
+    const outlookWhere = {
+        ...whereWithoutCategory,
+        created_by: userId,
+        deletedAt: null,
+        category: category || 'personal'
+    };
+
     const outlookEmails = await prisma.outlook.findMany({
         where: outlookWhere,
-        include: { vendor: true },
+        include: {
+            client: true,
+            projectRisks: true,
+            projectAssumptions: true,
+            projectIssues: true,
+            projectDecisions: true,
+            projectDependencies: true,
+            aiDetections: true
+        },
         orderBy: { receivedAt: 'desc' },
         take: 20,
     });
@@ -268,6 +291,18 @@ const getUnifiedInbox = async (userId, query) => {
 
     const sliced = unified.slice(0, 20);
 
+    const safeParse = (val) => {
+        if (!val) return val;
+        if (typeof val === 'string') {
+            try {
+                return JSON.parse(val);
+            } catch (e) {
+                return val;
+            }
+        }
+        return val;
+    };
+
     // Initialize overall stats counters
     const overallStats = {
         totalTasks: 0,
@@ -279,12 +314,15 @@ const getUnifiedInbox = async (userId, query) => {
         totalAiPossessed: 0,
     };
 
-    // Compute overall stats while iterating through sliced
-    sliced.forEach(item => {
-        const ai = item.fullAiResponse || {};
-        const raidd = ai.raiddAnalysis || {};
-        
-        // Helper to check if a category has any content (array with items or non-empty string)
+    // Compute overall stats while iterating through sliced and parse JSON fields
+    const parsedSliced = sliced.map(item => {
+        const fullAiResponse = safeParse(item.fullAiResponse) || {};
+        const generatedReply = safeParse(item.generatedReply);
+        const decisions = safeParse(item.decisions);
+        const tasks = safeParse(item.tasks);
+        const raiddData = safeParse(item.raiddData);
+        const raiddAnalysis = safeParse(item.raiddAnalysis) || {};
+
         const hasContent = (val) => {
             if (!val) return false;
             if (Array.isArray(val)) return val.length > 0;
@@ -292,54 +330,136 @@ const getUnifiedInbox = async (userId, query) => {
             return true; // Any other non-null truthy value
         };
 
-        if (Array.isArray(item.tasks) && item.tasks.length > 0) overallStats.totalTasks += 1;
-        
-        if (hasContent(ai.issues) || hasContent(ai.issue) || hasContent(ai.totalIssues) || hasContent(raidd.issues) || hasContent(raidd.issue)) {
+        if (Array.isArray(tasks) && tasks.length > 0) overallStats.totalTasks += 1;
+
+        if (
+            hasContent(fullAiResponse.projectIssues) || 
+            hasContent(fullAiResponse.issues) || 
+            hasContent(fullAiResponse.issue) || 
+            hasContent(fullAiResponse.totalIssues) || 
+            hasContent(raiddAnalysis.issues) || 
+            hasContent(raiddAnalysis.issue)
+        ) {
             overallStats.totalIssues += 1;
         }
-        
-        if (hasContent(ai.risks) || hasContent(ai.riskPoints) || hasContent(raidd.risks) || hasContent(raidd.riskPoints)) {
+
+        if (
+            hasContent(fullAiResponse.projectRisks) || 
+            hasContent(fullAiResponse.risks) || 
+            hasContent(fullAiResponse.riskPoints) || 
+            hasContent(raiddAnalysis.risks) || 
+            hasContent(raiddAnalysis.riskPoints)
+        ) {
             overallStats.totalRisks += 1;
         }
-        
-        if (hasContent(ai.assumptions) || hasContent(ai.assumptionPoints) || hasContent(raidd.assumptions) || hasContent(raidd.assumptionPoints)) {
+
+        if (
+            hasContent(fullAiResponse.projectAssumptions) || 
+            hasContent(fullAiResponse.assumptions) || 
+            hasContent(fullAiResponse.assumptionPoints) || 
+            hasContent(raiddAnalysis.assumptions) || 
+            hasContent(raiddAnalysis.assumptionPoints)
+        ) {
             overallStats.totalAssumptions += 1;
         }
-        
-        if (hasContent(ai.dependencies) || hasContent(ai.dependencyPoints) || hasContent(raidd.dependencies) || hasContent(raidd.dependencyPoints)) {
+
+        if (
+            hasContent(fullAiResponse.projectDependencies) || 
+            hasContent(fullAiResponse.dependencies) || 
+            hasContent(fullAiResponse.dependencyPoints) || 
+            hasContent(raiddAnalysis.dependencies) || 
+            hasContent(raiddAnalysis.dependencyPoints)
+        ) {
             overallStats.totalDependencies += 1;
         }
-        
-        if (hasContent(ai.decisions) || hasContent(ai.decisionPoints) || hasContent(raidd.decisions) || hasContent(raidd.decisionPoints)) {
+
+        if (
+            hasContent(fullAiResponse.projectDecisions) || 
+            hasContent(fullAiResponse.decisions) || 
+            hasContent(fullAiResponse.decisionPoints) || 
+            hasContent(raiddAnalysis.decisions) || 
+            hasContent(raiddAnalysis.decisionPoints)
+        ) {
             overallStats.totalDecisions += 1;
         }
 
         if (item.fullAiResponse) overallStats.totalAiPossessed += 1;
+
+        return {
+            ...item,
+            fullAiResponse: Object.keys(fullAiResponse).length > 0 ? fullAiResponse : null,
+            generatedReply,
+            decisions,
+            tasks,
+            raiddData,
+            raiddAnalysis: Object.keys(raiddAnalysis).length > 0 ? raiddAnalysis : null
+        };
     });
 
     // Return only the data array and overall stats
-    return { data: sliced, overallStats };
+    return { data: parsedSliced, overallStats };
 };
 
 const getSingleUnifiedMessage = async (id, userId) => {
+    const safeParse = (val) => {
+        if (!val) return val;
+        if (typeof val === 'string') {
+            try {
+                return JSON.parse(val);
+            } catch (e) {
+                return val;
+            }
+        }
+        return val;
+    };
+
+    const formatMessage = (msg) => {
+        if (!msg) return msg;
+        return {
+            ...msg,
+            fullAiResponse: safeParse(msg.fullAiResponse),
+            generatedReply: safeParse(msg.generatedReply),
+            decisions: safeParse(msg.decisions),
+            tasks: safeParse(msg.tasks),
+            raiddData: safeParse(msg.raiddData),
+            raiddAnalysis: safeParse(msg.raiddAnalysis)
+        };
+    };
+
     // Try searching in Gmail emails first
     const gmailEmail = await prisma.email.findFirst({
         where: { id, created_by: userId },
-        include: { vendor: true }
+        include: {
+            client: true,
+            projectRisks: true,
+            projectAssumptions: true,
+            projectIssues: true,
+            projectDecisions: true,
+            projectDependencies: true,
+            aiDetections: true
+        }
     });
 
     if (gmailEmail) {
-        return { ...gmailEmail, type: 'gmail' };
+        return { ...formatMessage(gmailEmail), type: 'gmail' };
     }
 
     // Try searching in Outlook emails
     const outlookEmail = await prisma.outlook.findFirst({
         where: { id, created_by: userId },
-        include: { vendor: true }
+        include: {
+            client: true,
+            projectRisks: true,
+            projectAssumptions: true,
+            projectIssues: true,
+            projectDecisions: true,
+            projectDependencies: true,
+            aiDetections: true
+        }
     });
 
     if (outlookEmail) {
-        return { ...outlookEmail, type: 'outlook' };
+        return { ...formatMessage(outlookEmail), type: 'outlook' };
     }
 
     return null;

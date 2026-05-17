@@ -83,7 +83,7 @@ export const ProjectTaskService = {
             id: true,
             name: true,
             description: true,
-            vendorName: true,
+            clientName: true,
             managerId: true,
             deletedAt: true,
           },
@@ -141,6 +141,11 @@ export const ProjectTaskService = {
 
     await updateProjectProgress(prisma, task.projectId);
 
+    // Trigger AI sync in background on task update
+    PMProjectManagementService.syncProjectAiStatusBackground(prisma, task.projectId, userId).catch(err => {
+      console.error("[Task Update] Error in background AI sync:", err);
+    });
+
     return updatedTask;
   },
 
@@ -174,6 +179,11 @@ export const ProjectTaskService = {
     });
 
     await updateProjectProgress(prisma, task.projectId);
+
+    // Trigger AI sync in background on task delete
+    PMProjectManagementService.syncProjectAiStatusBackground(prisma, task.projectId, userId).catch(err => {
+      console.error("[Task Delete] Error in background AI sync:", err);
+    });
 
     return deletedTask;
   },

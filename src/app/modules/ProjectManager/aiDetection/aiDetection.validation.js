@@ -10,6 +10,8 @@ const createAiDetectionSchema = z.object({
         raiddData: z.any().optional(),
         raiddMessage: z.string().optional(),
         fullAiResponse: z.any().optional(),
+        emailId: z.string().uuid().optional(),
+        outlookId: z.string().uuid().optional(),
     }),
 });
 
@@ -23,6 +25,8 @@ const updateAiDetectionSchema = z.object({
         raiddData: z.any().optional(),
         raiddMessage: z.string().optional(),
         fullAiResponse: z.any().optional(),
+        emailId: z.string().uuid().optional(),
+        outlookId: z.string().uuid().optional(),
     }),
 });
 

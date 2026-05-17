@@ -80,7 +80,7 @@ export const AdminProjectController = {
         sendResponse(res, {
             statusCode: StatusCodes.OK,
             success: true,
-            message: "Top 3 latest projects retrieved successfully",
+            message: "projects retrieved successfully",
             data: result,
         });
     }),

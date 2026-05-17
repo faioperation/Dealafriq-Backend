@@ -42,15 +42,15 @@ export const LessonLearnService = {
 
     syncLessonLearnForProject: async (prisma, project, userId) => {
         try {
-            const apiUrl = `${envVars.AI_CHATBOT_API}/insights/lessons-learned`;
+            const apiUrl = `${envVars.API_AI}/insights/lessons-learned`;
             console.log(`[AI sync] Calling AI API for project ${project.id}: ${apiUrl}`);
-            
+
             const response = await axios.post(apiUrl, {
                 project_id: project.id
             }, {
                 headers: {
                     'Content-Type': 'application/json',
-                    "x-backend-service": "PROJECT_AI_BACKEND"
+                    "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
                 },
                 timeout: 60000 // 1 minute timeout
             });
@@ -109,7 +109,7 @@ export const LessonLearnService = {
             }
         } catch (error) {
             const errorDetail = error.response?.data?.detail;
-            
+
             // Handle the specific error thrown by AI backend when a project lacks sufficient data
             if (errorDetail === 'An error occurred while generating insights.') {
                 console.log(`[AI sync] Skipping AI insights for project ${project.id} - Insufficient data for generation.`);
@@ -156,7 +156,7 @@ export const LessonLearnService = {
                     where: { deleted_at: null },
                     orderBy: { created_at: 'desc' }
                 },
-                vendor: {
+                client: {
                     select: { name: true, email: true }
                 },
                 projectOwner: {
@@ -184,7 +184,7 @@ export const LessonLearnService = {
                         id: project.id,
                         name: project.name,
                         managerId: project.managerId,
-                        vendor: project.vendor ? { name: project.vendor.name, email: project.vendor.email } : null
+                        client: project.client ? { name: project.client.name, email: project.client.email } : null
                     }
                 });
             }
@@ -208,8 +208,11 @@ export const LessonLearnService = {
                         id: true,
                         managerId: true,
                         deletedAt: true,
-                        vendor: {
+                        client: {
                             select: { name: true, email: true }
+                        },
+                        projectOwner: {
+                            select: { firstName: true, lastName: true }
                         }
                     },
                 },
@@ -230,7 +233,8 @@ export const LessonLearnService = {
 
         const { current_situation_summary, aiResponse, ...lessonLearnWithoutExcluded } = lessonLearn;
         const ownerName = lessonLearn.project.projectOwner ? `${lessonLearn.project.projectOwner.firstName} ${lessonLearn.project.projectOwner.lastName}` : null;
-        return { ...lessonLearnWithoutExcluded, vendor: lessonLearn.project.vendor ? { name: lessonLearn.project.vendor.name, email: lessonLearn.project.vendor.email } : null, ownerName };
+        const clientData = lessonLearn.project.client ? { name: lessonLearn.project.client.name, email: lessonLearn.project.client.email } : null;
+        return { ...lessonLearnWithoutExcluded, client: clientData, ownerName };
     },
 
     updateLessonLearn: async (prisma, id, payload, userId) => {
@@ -250,7 +254,7 @@ export const LessonLearnService = {
                 "LessonLearn record not found or access denied"
             );
         }
-        
+
         let updateData = { ...payload, updated_by: userId };
         if (payload.loggedDate) {
             updateData.loggedDate = new Date(payload.loggedDate);
