@@ -62,6 +62,7 @@ const createMessage = catchAsync(async (req, res) => {
                 project_id: projectId || "",
                 role: "USER",
                 document_url: payload.documentUrl,
+                knowledge_file: payload.documentUrl,
             },
             {
                 headers: {

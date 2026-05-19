@@ -35,4 +35,16 @@ router.delete(
     ClientEmailController.deleteEmail
 );
 
+router.post(
+    "/regenerate-ai",
+    checkAuthMiddleware(Role.PROJECT_MANAGER, Role.ADMIN),
+    ClientEmailController.regenerateEmailAi
+);
+
+router.post(
+    "/regenerate-ai/:id",
+    checkAuthMiddleware(Role.PROJECT_MANAGER, Role.ADMIN),
+    ClientEmailController.regenerateEmailAi
+);
+
 export const ClientEmailRoutes = router;

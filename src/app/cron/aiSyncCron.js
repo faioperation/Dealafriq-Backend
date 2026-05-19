@@ -1,61 +1,115 @@
 import cron from "node-cron";
 import prisma from "../prisma/client.js";
-import { PMProjectManagementService } from "../modules/ProjectManager/project_management/project_management.service.js";
-import { ProjectMeetingService } from "../modules/ProjectManager/projectMeeting/projectMeeting.service.js";
-import { RaiddService } from "../modules/ProjectManager/raiddManagement/raidd.service.js";
-import { ProjectDocumentService } from "../modules/ProjectManager/projectDocument/projectDocument.service.js";
-import { ClientService } from "../modules/ProjectManager/clientManagement/client.service.js";
-
-import { ClientEmailService } from "../modules/ProjectManager/emailManagement/clientEmail/clientEmail.service.js";
-import { OutlookSyncService } from "../modules/ProjectManager/outlookManagement/outlook/outlookSync.service.js";
+import axios from "axios";
+import { envVars } from "../config/env.js";
 import { LessonLearnService } from "../modules/ProjectManager/leasonLearn/leasonLearn.service.js";
 
-/**
- * Initialize AI sync cron job
- * Runs every 15 minutes
- */
+const HEADER_CONFIG = {
+    headers: {
+        'Content-Type': 'application/json',
+        "x-backend-service": envVars.INTERNAL_BACKEND_SERVICE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+    }
+};
+
+// Initialize AI sync cron job
+// Runs every 30 minutes: "*/30 * * * *"
 export const initAiSyncCron = () => {
-    // Schedule task to run every 15 minutes
-    // Cron expression: minute, hour, day of month, month, day of week
-    cron.schedule("0 0 * * 0", async () => {
-        console.log("-----------------start ai sync------------------------");
-        console.log(`[${new Date().toISOString()}] Starting Bulk AI Sync Cron Job...`);
+    // Schedule task to run every 30 minutes
+    cron.schedule("*/30 * * * *", async () => {
+        console.log("-----------------start 30m ai sync------------------------");
+        console.log(`[${new Date().toISOString()}] Starting 30-Minute Active AI Sync Cron Job...`);
+        
         try {
-            // 1. Sync Meetings (All projects)
-            console.log("Syncing Meetings AI Summary...🍊");
-            await ProjectMeetingService.syncAiMeetingSummary(prisma, null);
+            // 1. Sync active Projects & Lesson Learns
+            const activeProjects = await prisma.project.findMany({
+                where: { deletedAt: null }
+            });
+            console.log(`[12h AI Sync] Found ${activeProjects.length} active projects for sync.`);
+            for (const project of activeProjects) {
+                const url = `${envVars.API_AI}/summary/project?id=${project.id}`;
+                axios.post(url, {}, HEADER_CONFIG).catch(err => {
+                    console.error(`[12h AI Sync] Project summary trigger failed for ${project.id}:`, err.message);
+                });
+                
+                // Lesson Learn sync
+                LessonLearnService.syncLessonLearnForProject(prisma, project, project.managerId).catch(err => {
+                    console.error(`[12h AI Sync] Lesson Learn trigger failed for project ${project.id}:`, err.message);
+                });
+                
+                await new Promise(r => setTimeout(r, 1000)); // Delay to prevent overloading
+            }
 
-            // 2. Sync Projects (All projects)
-            console.log("Syncing Projects AI Summary & Progress...🛑");
-            const projectsData = await PMProjectManagementService.syncAllProjectsFromAi(prisma);
+            // 2. Sync active ProjectMeetings
+            const activeMeetings = await prisma.projectMeeting.findMany({
+                where: { deletedAt: null }
+            });
+            console.log(`[12h AI Sync] Found ${activeMeetings.length} active meetings for sync.`);
+            for (const meeting of activeMeetings) {
+                const url = `${envVars.API_AI}/summary/meeting?id=${meeting.id}`;
+                axios.post(url, {}, HEADER_CONFIG).catch(err => {
+                    console.error(`[12h AI Sync] Meeting summary trigger failed for ${meeting.id}:`, err.message);
+                });
+                await new Promise(r => setTimeout(r, 1000));
+            }
 
-            // 2.5 Sync Documents (All documents)
-            console.log("Syncing Documents AI Summary...📄");
-            await ProjectDocumentService.syncAllDocumentsFromAi(prisma);
+            // 3. Sync active ProjectDocuments
+            const activeDocuments = await prisma.projectDocument.findMany({
+                where: { deletedAt: null }
+            });
+            console.log(`[12h AI Sync] Found ${activeDocuments.length} active documents for sync.`);
+            for (const doc of activeDocuments) {
+                const url = `${envVars.API_AI}/summary/document?id=${doc.id}`;
+                axios.post(url, {}, HEADER_CONFIG).catch(err => {
+                    console.error(`[12h AI Sync] Document summary trigger failed for ${doc.id}:`, err.message);
+                });
+                await new Promise(r => setTimeout(r, 1000));
+            }
 
-            // 3. Sync RAIDD (All projects) - reusing project data if available
-            // console.log("Syncing RAIDD AI Data...🚄");
-            // await RaiddService.syncAllRaiddFromAi(prisma, projectsData);
+            // 4. Sync active Clients
+            const activeClients = await prisma.client.findMany({
+                where: { deletedAt: null }
+            });
+            console.log(`[12h AI Sync] Found ${activeClients.length} active clients for sync.`);
+            for (const client of activeClients) {
+                const url = `${envVars.API_AI}/summary/clients?id=${client.id}`;
+                axios.post(url, {}, HEADER_CONFIG).catch(err => {
+                    console.error(`[12h AI Sync] Client summary trigger failed for ${client.id}:`, err.message);
+                });
+                await new Promise(r => setTimeout(r, 1000));
+            }
 
-            // 3.5 Sync Lesson Learns (All active projects)
-            console.log("Syncing Lesson Learns AI Data...🧠");
-            await LessonLearnService.syncAllLessonLearnsFromAi(prisma);
+            // 5. Sync active Emails
+            const activeEmails = await prisma.email.findMany({
+                where: { deletedAt: null }
+            });
+            console.log(`[12h AI Sync] Found ${activeEmails.length} active emails for sync.`);
+            for (const email of activeEmails) {
+                const url = `${envVars.API_AI}/summary/emails?id=${email.id}`;
+                axios.post(url, {}, HEADER_CONFIG).catch(err => {
+                    console.error(`[12h AI Sync] Email summary trigger failed for ${email.id}:`, err.message);
+                });
+                await new Promise(r => setTimeout(r, 1000));
+            }
 
-            // 4. Sync Clients (All clients)
-            console.log("Syncing Clients AI Summary...🏪");
-            await ClientService.syncAllClientsFromAi(prisma);
+            // 6. Sync active Outlooks
+            const activeOutlooks = await prisma.outlook.findMany({
+                where: { deletedAt: null }
+            });
+            console.log(`[12h AI Sync] Found ${activeOutlooks.length} active outlook records for sync.`);
+            for (const outlook of activeOutlooks) {
+                const url = `${envVars.API_AI}/summary/emails?id=${outlook.id}`;
+                axios.post(url, {}, HEADER_CONFIG).catch(err => {
+                    console.error(`[12h AI Sync] Outlook summary trigger failed for ${outlook.id}:`, err.message);
+                });
+                await new Promise(r => setTimeout(r, 1000));
+            }
 
-            // 5. Sync Emails & Outlook (Daily checks)
-            console.log("Syncing Gmail & Outlook AI Summaries...📧");
-            await ClientEmailService.syncAllEmailsFromAi(prisma);
-            await OutlookSyncService.syncAllOutlooksFromAi(prisma);
-
-            console.log(`[${new Date().toISOString()}] Bulk AI Sync Cron Job completed successfully.`);
+            console.log(`[${new Date().toISOString()}] 30-Minute AI Sync Cron Job trigger batch submitted.`);
         } catch (error) {
-            console.error(`[${new Date().toISOString()}] Bulk AI Sync Cron Job failed:`, error.message);
+            console.error(`[${new Date().toISOString()}] 30-Minute AI Sync Cron Job failed:`, error.message);
         }
-        console.log("----------------end ai sync-------------------------");
+        console.log("----------------end 30m ai sync-------------------------");
     });
 
-  console.log("✅ AI Sync Cron Job scheduled successfully (runs every 7 days at 12:00 AM)");
+    console.log("✅ 30-Minute AI Sync Cron Job scheduled successfully (runs every 30 minutes)");
 };

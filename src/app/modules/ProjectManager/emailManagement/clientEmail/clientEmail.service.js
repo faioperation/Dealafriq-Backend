@@ -3,6 +3,8 @@ import prisma from '../../../../prisma/client.js';
 import axios from 'axios';
 import { AiEmailSummaryUtils } from '../../../../utils/aiEmailSummary.js';
 import { AiDetectionService } from '../../aiDetection/aiDetection.service.js';
+import { AppError } from '../../../../errorHelper/appError.js';
+import { StatusCodes } from 'http-status-codes';
 
 
 /**
@@ -216,6 +218,67 @@ const syncAllEmailsFromAi = async (prisma) => {
     console.log("[AI Bulk Sync] Bulk Gmail sync is now handled via AI Push API.");
 };
 
+const regenerateEmailAi = async (payload, userId) => {
+    const id = payload.emailId || payload.id;
+    const type = payload.type; // 'email' or 'outlook'
+
+    if (!id) {
+        throw new AppError(StatusCodes.BAD_REQUEST, "Email ID is required");
+    }
+
+    let email = null;
+    let isOutlook = false;
+
+    if (type === 'outlook') {
+        email = await prisma.outlook.findUnique({
+            where: { id }
+        });
+        isOutlook = true;
+    } else if (type === 'email') {
+        email = await prisma.email.findUnique({
+            where: { id }
+        });
+    } else {
+        // Fallback: try finding in Email first, then Outlook
+        email = await prisma.email.findUnique({
+            where: { id }
+        });
+        if (!email) {
+            email = await prisma.outlook.findUnique({
+                where: { id }
+            });
+            isOutlook = true;
+        }
+    }
+
+    if (!email) {
+        throw new AppError(StatusCodes.NOT_FOUND, "Email record not found");
+    }
+
+    // 2. Trigger the external AI Emails summary API (axios.post)
+    const liveEmailsSummaryUrl = `${envVars.API_AI}/summary/emails?id=${id}`;
+    console.log(`[Email AI Regenerate] Triggering background email summary API: ${liveEmailsSummaryUrl}`);
+    
+    try {
+        const response = await axios.post(liveEmailsSummaryUrl, {}, {
+            headers: {
+                'Content-Type': 'application/json',
+                "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+            }
+        });
+        
+        console.log(`[Email AI Regenerate] Triggered successfully. AI Response:`, response.data);
+        return {
+            success: true,
+            message: "Email regeneration triggered successfully",
+            isOutlook
+        };
+    } catch (axiosErr) {
+        console.error(`[Email AI Regenerate] Failed to trigger AI Email summary:`, axiosErr.message);
+        throw new AppError(StatusCodes.BAD_GATEWAY, `Failed to trigger AI Email summary: ${axiosErr.message}`);
+    }
+};
+
 export const ClientEmailService = {
     createEmail,
     getAllEmails,
@@ -223,5 +286,6 @@ export const ClientEmailService = {
     updateEmail,
     deleteEmail,
     syncEmail,
-    syncAllEmailsFromAi
+    syncAllEmailsFromAi,
+    regenerateEmailAi
 };

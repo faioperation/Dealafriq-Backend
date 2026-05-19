@@ -79,10 +79,28 @@ const deleteEmail = catchAsync(async (req, res) => {
     });
 });
 
+const regenerateEmailAi = catchAsync(async (req, res) => {
+    const payload = {
+        emailId: req.body.emailId || req.params.id || req.query.emailId,
+        type: req.body.type || req.query.type
+    };
+    const userId = req.user ? req.user.id : null;
+
+    const result = await ClientEmailService.regenerateEmailAi(payload, userId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Email AI insights regeneration triggered successfully",
+        data: result,
+    });
+});
+
 export const ClientEmailController = {
     createEmail,
     getAllEmails,
     getSingleEmail,
     updateEmail,
-    deleteEmail
+    deleteEmail,
+    regenerateEmailAi
 };
