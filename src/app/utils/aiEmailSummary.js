@@ -24,16 +24,17 @@ const getAiEmailSummary = async (id, body) => {
 
 const getGeneratedReply = async (userId, emailId, type) => {
     try {
-        const response = await axios.post(`${envVars.API_AI}/reply/generate`, {
-            user_id: userId,
-            message_id: emailId,
-            type: type
-        }, {
+        const response = await axios.post(`${envVars.API_AI}/summary/emails?id=${emailId}`, {}, {
             headers: {
                 'Content-Type': 'application/json',
                 "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
             }
         });
+        if (response.data) {
+            console.log(`[Email Reply Generate] Capturing direct API response. Syncing to database...`);
+            const { AiPushService } = await import('../modules/ProjectManager/aiPush/aiPush.service.js');
+            await AiPushService.syncUnifiedEmailData(emailId, response.data, userId);
+        }
         return response.data;
     } catch (error) {
         console.error(`AI Reply Generation API Error for ${type} ${emailId}:`, error.message);

@@ -500,6 +500,7 @@ const syncMeetingAiData = async (meetingId, payload, userId) => {
             aiMeetingSummary: aiMeetingSummaryValue,
             lastMeetingSummary: latestSummaryString || undefined,
             aiCheck: true,
+            rawAiResponse: payload,
             ...nestedOps
         }
     });
