@@ -162,6 +162,7 @@ export const ProjectMeetingService = {
                 agenda: true,
                 aiMeetingSummary: true,
                 aiCheck: true,
+                rawAiResponse: true,
                 project: {
                     select: {
                         id: true,
@@ -219,6 +220,7 @@ export const ProjectMeetingService = {
                     agenda: true,
                     aiMeetingSummary: true,
                     aiCheck: true,
+                    rawAiResponse: true,
                     project: {
                         select: {
                             id: true,
@@ -266,6 +268,7 @@ export const ProjectMeetingService = {
                 agenda: true,
                 aiMeetingSummary: true,
                 aiCheck: true,
+                rawAiResponse: true,
                 project: {
                     select: {
                         id: true,

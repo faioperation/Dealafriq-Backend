@@ -239,6 +239,7 @@ model ProjectMeeting {
   transcriptStatus   String?
   aiCheck            Boolean       @default(false)
   videoPlayUrl       String?
+  rawAiResponse      Json?
   actionPoints       ActionPoint[]
   keyPoints          KeyPoint[]
   project            Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
