@@ -150,6 +150,12 @@ export const PMProjectManagementService = {
                     createdAt: true,
                     weeklyMeetingSummary: true,
                     projectAiSummary: true,
+                    weeklyAiSummaries: {
+                        orderBy: {
+                            createdAt: 'desc'
+                        },
+                        take: 1
+                    },
                     projectProgress: true,
                     projectHealth: true,
                     discussionPoints: true,
@@ -252,6 +258,12 @@ export const PMProjectManagementService = {
                 createdAt: true,
                 weeklyMeetingSummary: true,
                 projectAiSummary: true,
+                weeklyAiSummaries: {
+                    orderBy: {
+                        createdAt: 'desc'
+                    },
+                    take: 1
+                },
                 projectProgress: true,
                 projectHealth: true,
                 discussionPoints: true,
@@ -426,6 +438,12 @@ export const PMProjectManagementService = {
                 await prisma.project.update({
                     where: { id },
                     data: { projectProgress }
+                });
+
+                // Trigger background project lessons-learned sync
+                console.log(`[Project AI Sync] Triggering background lessons-learned sync for project ${id}`);
+                LessonLearnService.syncLessonLearnForProject(prisma, project, userId).catch(err => {
+                    console.error(`[Project AI Sync] Failed to trigger background AI lessons-learned:`, err.message);
                 });
 
                 // Trigger external AI Project summary endpoint

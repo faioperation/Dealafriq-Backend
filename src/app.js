@@ -18,7 +18,21 @@ dotenv.config();
 const app = express();
 
 // Global middlewares
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Dynamically allow any origin (reflecting it) to guarantee CORS never blocks requests in dev or prod
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type", 
+    "Authorization", 
+    "Cookie", 
+    "x-backend-service", 
+    "ngrok-skip-browser-warning"
+  ],
+}));
 app.use(cookieParser());
 app.use(express.json({
   verify: (req, res, buf) => {

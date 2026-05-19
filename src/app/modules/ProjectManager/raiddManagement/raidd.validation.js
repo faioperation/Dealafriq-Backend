@@ -18,6 +18,19 @@ const createRaiddSchema = z.object({
         decisionDueDate: z.string().datetime().optional(),
         decisionOwner: z.string().optional(),
         aiDetectionId: z.string().uuid("Invalid AI Detection ID").optional(),
+        approveAll: z.boolean().optional(),
+        items: z.array(
+            z.object({
+                id: z.string(),
+                type: z.enum(["RISK", "ASSUMPTION", "ISSUE", "DEPENDENCY", "DECISION"]),
+                description: z.any().optional(),
+                title: z.string().optional(),
+                decisionOwner: z.string().optional(),
+                decisionDueDate: z.string().datetime().optional(),
+                assumptionValidationDueDate: z.string().datetime().optional()
+            })
+        ).optional(),
+        raiddIds: z.array(z.string()).optional(),
     }),
 });
 

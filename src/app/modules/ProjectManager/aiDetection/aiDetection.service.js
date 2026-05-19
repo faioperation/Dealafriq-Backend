@@ -1,6 +1,34 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
+import { randomUUID } from "crypto";
+
+const ensureIdsInRaiddData = (raiddData) => {
+    if (!raiddData || typeof raiddData !== "object" || Array.isArray(raiddData)) {
+        return raiddData;
+    }
+
+    const keys = ["risks", "assumptions", "issues", "decisions", "dependencies", "projectRisks", "projectAssumptions", "projectIssues", "projectDecisions", "projectDependencies"];
+    const updatedRaiddData = { ...raiddData };
+
+    keys.forEach(key => {
+        if (Array.isArray(updatedRaiddData[key])) {
+            updatedRaiddData[key] = updatedRaiddData[key].map((item, index) => {
+                if (item && typeof item === "object") {
+                    if (!item.id) {
+                        return {
+                            id: randomUUID(),
+                            ...item
+                        };
+                    }
+                }
+                return item;
+            });
+        }
+    });
+
+    return updatedRaiddData;
+};
 
 const createAiDetection = async (prisma, payload, userId) => {
     const { title, sourceType, raiddAnalysis, raiddData, emailId, outlookId } = payload;
@@ -35,7 +63,10 @@ const createAiDetection = async (prisma, payload, userId) => {
         userId,
     });
 
-    return aiDetection;
+    return {
+        ...aiDetection,
+        raiddData: ensureIdsInRaiddData(aiDetection.raiddData)
+    };
 };
 
 const getAllAiDetections = async (prisma, userId) => {
@@ -59,7 +90,11 @@ const getAllAiDetections = async (prisma, userId) => {
         }
     });
 
-    return detections.filter(d => d.raiddAnalysis && Array.isArray(d.raiddAnalysis) && d.raiddAnalysis.length > 0);
+    const filtered = detections.filter(d => d.raiddAnalysis && Array.isArray(d.raiddAnalysis) && d.raiddAnalysis.length > 0);
+    return filtered.map(d => ({
+        ...d,
+        raiddData: ensureIdsInRaiddData(d.raiddData)
+    }));
 };
 
 const getAiDetectionById = async (prisma, id, userId = null) => {
@@ -86,7 +121,10 @@ const getAiDetectionById = async (prisma, id, userId = null) => {
         throw new AppError(StatusCodes.NOT_FOUND, "AI Detection record not found or access denied");
     }
 
-    return aiDetection;
+    return {
+        ...aiDetection,
+        raiddData: ensureIdsInRaiddData(aiDetection.raiddData)
+    };
 };
 
 const updateAiDetection = async (prisma, id, payload, userId) => {
@@ -130,7 +168,10 @@ const updateAiDetection = async (prisma, id, payload, userId) => {
         userId,
     });
 
-    return updatedAiDetection;
+    return {
+        ...updatedAiDetection,
+        raiddData: ensureIdsInRaiddData(updatedAiDetection.raiddData)
+    };
 };
 
 const deleteAiDetection = async (prisma, id, userId) => {
