@@ -3,6 +3,7 @@ import prisma from "../prisma/client.js";
 import axios from "axios";
 import { envVars } from "../config/env.js";
 import { LessonLearnService } from "../modules/ProjectManager/leasonLearn/leasonLearn.service.js";
+import { AiPushService } from "../modules/ProjectManager/aiPush/aiPush.service.js";
 
 const HEADER_CONFIG = {
     headers: {
@@ -46,8 +47,12 @@ export const initAiSyncCron = () => {
             console.log(`[12h AI Sync] Found ${activeMeetings.length} active meetings for sync.`);
             for (const meeting of activeMeetings) {
                 const url = `${envVars.API_AI}/summary/meeting?id=${meeting.id}`;
-                axios.post(url, {}, HEADER_CONFIG).catch(err => {
-                    console.error(`[12h AI Sync] Meeting summary trigger failed for ${meeting.id}:`, err.message);
+                axios.post(url, {}, HEADER_CONFIG).then(async (response) => {
+                    if (response.data) {
+                        await AiPushService.syncMeetingAiData(meeting.id, response.data, "system");
+                    }
+                }).catch(err => {
+                    console.error(`[30m AI Sync] Meeting summary trigger failed for ${meeting.id}:`, err.message);
                 });
                 await new Promise(r => setTimeout(r, 1000));
             }
