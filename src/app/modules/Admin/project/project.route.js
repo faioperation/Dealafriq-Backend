@@ -49,14 +49,14 @@ router.get(
 
 router.get(
     "/all/with-raidd/chatbot",
-    // checkInternalService(),
+    checkInternalService(),
     AdminProjectController.getAllProjectsWithRaiddForChatbot
 );
 
 
 router.get(
     "/with-raidd/chatbot/:id",
-    // checkInternalService(),
+    checkInternalService(),
     AdminProjectController.getProjectWithRaiddByIdForChatbot
 );
 

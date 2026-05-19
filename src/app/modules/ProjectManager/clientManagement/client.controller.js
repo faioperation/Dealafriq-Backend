@@ -3,7 +3,10 @@ import { buildFileUrl } from "../../../utils/buildFileUrl.js";
 
 const createClientController = async (req, res, next) => {
     try {
-        const clientData = { ...req.body };
+        const clientData = {};
+        for (const [key, value] of Object.entries(req.body || {})) {
+            clientData[key.trim()] = value;
+        }
         const files = req.files;
         const user = req.user;
 
@@ -49,6 +52,12 @@ const createClientController = async (req, res, next) => {
         // Parse numeric fields
         if (clientData.numberOfProjects) clientData.numberOfProjects = parseInt(clientData.numberOfProjects);
         if (clientData.contactProjects) clientData.contactProjects = parseInt(clientData.contactProjects);
+
+        // Map phoneNumber to phone to match Prisma schema
+        if (clientData.phoneNumber) {
+            clientData.phone = clientData.phoneNumber;
+            delete clientData.phoneNumber;
+        }
 
         // Handle Project IDs (could be string [e.g. from Postman form-data] or actual array)
         if (clientData.projectIds && typeof clientData.projectIds === 'string') {
@@ -112,7 +121,10 @@ const getClientByIdController = async (req, res, next) => {
 
 const updateClientController = async (req, res, next) => {
     try {
-        const clientData = { ...req.body };
+        const clientData = {};
+        for (const [key, value] of Object.entries(req.body || {})) {
+            clientData[key.trim()] = value;
+        }
         const files = req.files;
         const user = req.user;
 
@@ -152,6 +164,12 @@ const updateClientController = async (req, res, next) => {
 
         if (clientData.numberOfProjects) clientData.numberOfProjects = parseInt(clientData.numberOfProjects);
         if (clientData.contactProjects) clientData.contactProjects = parseInt(clientData.contactProjects);
+
+        // Map phoneNumber to phone to match Prisma schema
+        if (clientData.phoneNumber) {
+            clientData.phone = clientData.phoneNumber;
+            delete clientData.phoneNumber;
+        }
 
         if (clientData.projectIds && typeof clientData.projectIds === 'string') {
             try {

@@ -45,6 +45,7 @@ const loadEnvVars = () => {
 
     "API_AI",
     "AI_CHATBOT_API",
+    "UPDATE_CHATBOT_AI_BASE_URL",
     "INTERNAL_BACKEND_SERVICE_KEY",
   ];
 
@@ -111,6 +112,7 @@ const loadEnvVars = () => {
     // AI API 
     API_AI: process.env.API_AI,
     AI_CHATBOT_API: process.env.AI_CHATBOT_API,
+    UPDATE_CHATBOT_AI_BASE_URL: process.env.UPDATE_CHATBOT_AI_BASE_URL,
 
     // headers secreat
     INTERNAL_BACKEND_SERVICE_KEY: process.env.INTERNAL_BACKEND_SERVICE_KEY,

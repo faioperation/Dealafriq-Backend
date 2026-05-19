@@ -48,7 +48,6 @@ const getClientsByProjectManagerId = async (projectManagerId) => {
                     weeklyMeetingSummary: true,
                     clientId: true,
                     
-                    projectAiSummary: true,
                     projectProgress: true,
                   
                     discussionPoints: true,
@@ -200,7 +199,6 @@ const getAllClients = async () => {
                     weeklyMeetingSummary: true,
                     clientId: true,
                  
-                    projectAiSummary: true,
                     projectProgress: true,
                   
                     discussionPoints: true,
@@ -373,7 +371,6 @@ const getClientById = async (id) => {
                     clientId: true,
                     assignTeamId: true,
                     projectOwnerId: true,
-                    projectAiSummary: true,
                     projectProgress: true,
                     aiCheck: true,
                     discussionPoints: true,

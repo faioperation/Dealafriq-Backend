@@ -191,6 +191,8 @@ model Project {
   projectOwner         User?                   @relation("ProjectOwner", fields: [projectOwnerId], references: [id])
   assignedTo           User?                   @relation("AssignedProject", fields: [userId], references: [id])
   client               Client?                 @relation(fields: [clientId], references: [id])
+  vendorId             String?
+  vendor               Vendor?                 @relation(fields: [vendorId], references: [id])
   raidd                Raidd[]
   risks                ProjectRisk[]
   assumptions          ProjectAssumption[]
@@ -869,4 +871,53 @@ model ProjectDependency {
   aiDetection   AiDetection? @relation(fields: [aiDetectionId], references: [id])
 
   @@map("project_dependencies")
+}
+
+model Vendor {
+  id                String         @id @default(cuid())
+
+  // Basic Info
+  name              String
+  designation       String?
+
+  email             String?
+  phoneNumber       String?
+
+  photoPath         String?
+  photoUrl          String?
+
+  numberOfProjects  Int?           @default(0)
+
+  // Key Contact Person
+  contactPerson     String?
+  contactRole       String?
+  contactEmail      String?
+  contactPhone      String?
+  contactDesignation String?
+
+  // Extra Files & Links
+  slaPath           String?
+  slaUrl            String?
+
+  documentPath      String?
+  documentUrl       String?
+
+  meetingLink       String?
+
+  // Status
+  status            VendorStatus   @default(ACTIVE)
+
+  // Relation
+  projects          Project[]
+
+  // Audit
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@map("vendors")
+}
+
+enum VendorStatus {
+  ACTIVE
+  INACTIVE
 }

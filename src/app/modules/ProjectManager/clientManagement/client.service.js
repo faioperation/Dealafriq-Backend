@@ -13,9 +13,22 @@ const createClient = async (data, user) => {
         ...clientData
     } = data;
 
+    // Parse and link projectIds to the newly created client
+    let parsedProjectIds = projectIds;
+    if (typeof projectIds === 'string') {
+        try {
+            parsedProjectIds = JSON.parse(projectIds);
+        } catch (e) {
+            parsedProjectIds = [projectIds];
+        }
+    }
+
+    const numberOfProjects = parsedProjectIds && Array.isArray(parsedProjectIds) ? parsedProjectIds.length : 0;
+
     const client = await prisma.client.create({
         data: {
             ...clientData,
+            numberOfProjects,
             meetingLinks: meetingLinks ? (typeof meetingLinks === 'string' ? JSON.parse(meetingLinks) : meetingLinks) : [],
             documents: documents || [],
             slas: slas || [],
@@ -27,21 +40,10 @@ const createClient = async (data, user) => {
                     id: true,
                     name: true,
                     clientName: true,
-                    projectAiSummary: true,
                 },
             },
         }
     });
-
-    // Parse and link projectIds to the newly created client
-    let parsedProjectIds = projectIds;
-    if (typeof projectIds === 'string') {
-        try {
-            parsedProjectIds = JSON.parse(projectIds);
-        } catch (e) {
-            parsedProjectIds = [projectIds];
-        }
-    }
 
     if (parsedProjectIds && Array.isArray(parsedProjectIds) && parsedProjectIds.length > 0) {
         await prisma.project.updateMany({
@@ -55,7 +57,7 @@ const createClient = async (data, user) => {
         });
     }
 
-    // Trigger external AI Client summary API in the background
+    // Trigger external AI Client summary API in the background (non-blocking)
     const liveClientSummaryUrl = `${envVars.API_AI}/summary/clients?id=${client.id}`;
     console.log(`[Client AI Sync] Triggering background client summary API: ${liveClientSummaryUrl}`);
     axios.post(liveClientSummaryUrl, {}, {
@@ -84,7 +86,6 @@ const getAllClients = async (query) => {
                     id: true,
                     name: true,
                     clientName: true,
-                    projectAiSummary: true,
                 },
             },
         },
@@ -119,7 +120,6 @@ const getClientById = async (id) => {
                     id: true,
                     name: true,
                     clientName: true,
-                    projectAiSummary: true,
                 },
             },
         }
@@ -156,10 +156,24 @@ const updateClient = async (id, data, user) => {
         ...clientData
     } = data;
 
+    // Parse project IDs first to get the correct count
+    let parsedProjectIds = projectIds;
+    if (typeof projectIds === 'string') {
+        try {
+            parsedProjectIds = JSON.parse(projectIds);
+        } catch (e) {
+            parsedProjectIds = [projectIds];
+        }
+    }
+
     const updateData = {
         ...clientData,
         updated_by: user.id
     };
+
+    if (parsedProjectIds && Array.isArray(parsedProjectIds)) {
+        updateData.numberOfProjects = parsedProjectIds.length;
+    }
 
     if (meetingLinks) {
         updateData.meetingLinks = typeof meetingLinks === 'string' ? JSON.parse(meetingLinks) : meetingLinks;
@@ -180,21 +194,10 @@ const updateClient = async (id, data, user) => {
                     id: true,
                     name: true,
                     clientName: true,
-                    projectAiSummary: true,
                 },
             },
         }
     });
-
-    // Parse and update linked projects
-    let parsedProjectIds = projectIds;
-    if (typeof projectIds === 'string') {
-        try {
-            parsedProjectIds = JSON.parse(projectIds);
-        } catch (e) {
-            parsedProjectIds = [projectIds];
-        }
-    }
 
     if (parsedProjectIds && Array.isArray(parsedProjectIds)) {
         // 1. Unlink projects that were previously linked but not in the new list
@@ -222,6 +225,19 @@ const updateClient = async (id, data, user) => {
             });
         }
     }
+
+    // Trigger external AI Client summary API on update in the background (non-blocking)
+    const liveClientSummaryUrl = `${envVars.API_AI}/summary/clients?id=${client.id}`;
+    console.log(`[Client AI Sync] Triggering background client summary API on update: ${liveClientSummaryUrl}`);
+    axios.post(liveClientSummaryUrl, {}, {
+        headers: {
+            "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+        }
+    }).then(response => {
+        console.log(`[Client AI Sync] Background client summary sync triggered successfully on update:`, response.data);
+    }).catch(err => {
+        console.error(`[Client AI Sync] Failed to trigger background client summary sync on update:`, err.message);
+    });
 
     // Return the enriched client
     return await getClientById(client.id);

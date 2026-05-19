@@ -42,7 +42,9 @@ export const LessonLearnService = {
 
     syncLessonLearnForProject: async (prisma, project, userId) => {
         try {
-            const apiUrl = `${envVars.API_AI}/insights/lessons-learned`;
+            const aiBaseUrl = envVars.UPDATE_CHATBOT_AI_BASE_URL || envVars.API_AI || "https://vision-untreated-nacho.ngrok-free.dev/api/v1";
+            const normalizedBase = aiBaseUrl.endsWith('/') ? aiBaseUrl.slice(0, -1) : aiBaseUrl;
+            const apiUrl = `${normalizedBase}/insights/lessons-learned`;
             console.log(`[AI sync] Calling AI API for project ${project.id}: ${apiUrl}`);
 
             const response = await axios.post(apiUrl, {
