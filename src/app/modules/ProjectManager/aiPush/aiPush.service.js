@@ -6,19 +6,19 @@ import { RaiddService } from "../raiddManagement/raidd.service.js";
 
 const saveEmailOrOutlookRaiddItems = async (prisma, sourceKey, sourceId, payload) => {
     const models = [
-        { key: "projectRisks", model: "projectRisk", responseKey: "risks" },
-        { key: "projectAssumptions", model: "projectAssumption", responseKey: "assumptions" },
-        { key: "projectIssues", model: "projectIssue", responseKey: "issues" },
-        { key: "projectDecisions", model: "projectDecision", responseKey: "decisions" },
-        { key: "projectDependencies", model: "projectDependency", responseKey: "dependencies" }
+        { key: "projectRisks", model: "projectRisk", responseKey: "projectRisks" },
+        { key: "projectAssumptions", model: "projectAssumption", responseKey: "projectAssumptions" },
+        { key: "projectIssues", model: "projectIssue", responseKey: "projectIssues" },
+        { key: "projectDecisions", model: "projectDecision", responseKey: "projectDecisions" },
+        { key: "projectDependencies", model: "projectDependency", responseKey: "projectDependencies" }
     ];
 
     const result = {
-        risks: [],
-        assumptions: [],
-        issues: [],
-        decisions: [],
-        dependencies: []
+        projectRisks: [],
+        projectAssumptions: [],
+        projectIssues: [],
+        projectDecisions: [],
+        projectDependencies: []
     };
 
     let fullAiRes = {};
@@ -245,7 +245,7 @@ const syncEmailData = async (emailId, payload, userId) => {
             tasks: tasks || undefined,
             raiddAnalysis: finalCategories.length > 0 ? finalCategories : undefined,
             raiddData: finalRaiddData || undefined,
-            decisions: savedRaiddItems.decisions.length > 0 ? savedRaiddItems.decisions : (payload.decisions || fullAiRes.decisions || undefined),
+            decisions: savedRaiddItems.projectDecisions.length > 0 ? savedRaiddItems.projectDecisions : (payload.decisions || fullAiRes.decisions || undefined),
             sentiment: sentiment || undefined,
             generatedReply: generatedReply || undefined,
             raiddMessage: raiddMessage || undefined,
@@ -375,7 +375,7 @@ const syncOutlookData = async (outlookId, payload, userId) => {
             tasks: tasks || undefined,
             raiddAnalysis: finalCategories.length > 0 ? finalCategories : undefined,
             raiddData: finalRaiddData || undefined,
-            decisions: savedRaiddItems.decisions.length > 0 ? savedRaiddItems.decisions : (payload.decisions || fullAiRes.decisions || undefined),
+            decisions: savedRaiddItems.projectDecisions.length > 0 ? savedRaiddItems.projectDecisions : (payload.decisions || fullAiRes.decisions || undefined),
             sentiment: sentiment || undefined,
             generatedReply: generatedReply || undefined,
             raiddMessage: raiddMessage || undefined,

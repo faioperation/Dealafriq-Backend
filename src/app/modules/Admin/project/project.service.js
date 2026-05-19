@@ -145,28 +145,120 @@ export const AdminProjectService = {
     },
 
     getAllProjectsWithRaiddForChatbot: async (prisma, query) => {
-        const result = await AdminProjectService.getAllProjectsWithRaidd(prisma, query);
+        const queryBuilder = new QueryBuilder(query).filter().sort("-createdAt").paginate();
 
-        // Filter out "raw ai response" and other sensitive/unnecessary AI fields for chatbot
-        const filteredData = result.data.map((item) => AdminProjectService.filterProjectDataForChatbot(item));
+        const buildQuery = queryBuilder.build();
+
+        buildQuery.where = {
+            ...buildQuery.where,
+            deletedAt: null
+        };
+
+        const [result, total] = await Promise.all([
+            prisma.project.findMany({
+                ...buildQuery,
+                include: {
+                    manager: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            id: true,
+                            role: true,
+                        },
+                    },
+                    assignTeam: true,
+                    client: true,
+                    raidd: {
+                        include: {
+                            aiDetection: {
+                                include: {
+                                    email: true,
+                                    outlook: true
+                                }
+                            }
+                        }
+                    },
+                    tasks: true,
+                    meetings: {
+                        include: {
+                            keyPoints: true,
+                            actionPoints: true,
+                        },
+                    },
+                    weeklyAiSummaries: {
+                        orderBy: { createdAt: 'desc' }
+                    },
+                },
+            }),
+            prisma.project.count({ where: buildQuery.where }),
+        ]);
+
+        const filteredData = result.map((project) =>
+            AdminProjectService.filterProjectForChatbot(project)
+        );
 
         return {
-            ...result,
+            meta: queryBuilder.getMeta(total),
             data: filteredData,
         };
     },
 
     getProjectWithRaiddByIdForChatbot: async (prisma, id) => {
-        const result = await AdminProjectService.getProjectWithRaiddById(prisma, id);
+        const project = await prisma.project.findFirst({
+            where: {
+                id,
+                deletedAt: null,
+            },
+            include: {
+                manager: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        id: true,
+                        role: true,
+                    },
+                },
+                assignTeam: true,
+                client: true,
+                raidd: {
+                    include: {
+                        aiDetection: {
+                            include: {
+                                email: true,
+                                outlook: true
+                            }
+                        }
+                    }
+                },
+                tasks: true,
+                meetings: {
+                    include: {
+                        keyPoints: true,
+                        actionPoints: true,
+                    },
+                },
+                weeklyAiSummaries: {
+                    orderBy: { createdAt: 'desc' }
+                },
+                risks: true,
+                assumptions: true,
+                issues: true,
+                decisions: true,
+                dependencies: true,
+            },
+        });
 
-        // Filter out "raw ai response" and other sensitive/unnecessary AI fields for chatbot
-        const filteredData = result.map((item) => AdminProjectService.filterProjectDataForChatbot(item));
+        if (!project) {
+            const { AppError } = await import("../../../errorHelper/appError.js");
+            const { StatusCodes } = await import("http-status-codes");
+            throw new AppError(StatusCodes.NOT_FOUND, "Project not found");
+        }
 
-        return filteredData;
+        return AdminProjectService.filterProjectForChatbot(project);
     },
 
-    filterProjectDataForChatbot: (item) => {
-        const { project, raidd } = item;
+    filterProjectForChatbot: (project) => {
+        if (!project) return project;
 
         // Remove AI related fields from project
         const {
@@ -184,6 +276,7 @@ export const AdminProjectService = {
                     transcriptData,
                     transcriptPath,
                     transcriptUrl,
+                    transcriptMessage,
                     ...restMeeting
                 } = meeting;
                 return restMeeting;
@@ -196,34 +289,32 @@ export const AdminProjectService = {
             restProject.client = restClient;
         }
 
-        // Remove AI related fields from RAIDD and its nested aiDetection if they exist
-        let filteredRaidd = raidd;
-        if (raidd) {
-            const { generatedReply, ...restRaidd } = raidd;
-            filteredRaidd = restRaidd;
+        // Remove AI related fields from RAIDD array and its nested aiDetection if they exist
+        if (restProject.raidd && Array.isArray(restProject.raidd)) {
+            restProject.raidd = restProject.raidd.map((r) => {
+                const { generatedReply, ...restRaidd } = r;
 
-            if (filteredRaidd.aiDetection) {
-                const { fullAiResponse, email, outlook, ...restAiDetection } = filteredRaidd.aiDetection;
-                filteredRaidd.aiDetection = restAiDetection;
+                if (restRaidd.aiDetection) {
+                    const { fullAiResponse, email, outlook, ...restAiDetection } = restRaidd.aiDetection;
+                    restRaidd.aiDetection = restAiDetection;
 
-                // Clean nested email object
-                if (email) {
-                    const { fullAiResponse: eFull, generatedReply: eGen, ...restEmail } = email;
-                    filteredRaidd.aiDetection.email = restEmail;
+                    // Clean nested email object
+                    if (email) {
+                        const { fullAiResponse: eFull, generatedReply: eGen, ...restEmail } = email;
+                        restRaidd.aiDetection.email = restEmail;
+                    }
+
+                    // Clean nested outlook object
+                    if (outlook) {
+                        const { fullAiResponse: oFull, generatedReply: oGen, ...restOutlook } = outlook;
+                        restRaidd.aiDetection.outlook = restOutlook;
+                    }
                 }
-
-                // Clean nested outlook object
-                if (outlook) {
-                    const { fullAiResponse: oFull, generatedReply: oGen, ...restOutlook } = outlook;
-                    filteredRaidd.aiDetection.outlook = restOutlook;
-                }
-            }
+                return restRaidd;
+            });
         }
 
-        return {
-            project: restProject,
-            raidd: filteredRaidd,
-        };
+        return restProject;
     },
 
     getProjectWithRaiddById: async (prisma, id) => {

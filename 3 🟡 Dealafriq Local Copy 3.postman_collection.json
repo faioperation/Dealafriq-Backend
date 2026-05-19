@@ -888,8 +888,8 @@
                       "uuid": "579b7eae-f7f0-483f-856f-d32b5ed6d1e7"
                     },
                     {
-                      "key": "meetingLinks",
-                      "value": "[{\"title\": \"Initial Discussion\", \"link\": \"https://zoom.us/j/123\"}]",
+                      "key": "meetingLink",
+                      "value": "https://zoom.us/j/123",
                       "type": "text",
                       "uuid": "e86c60ae-4ca8-49c9-8f42-e50d2901f8ed"
                     },
@@ -900,19 +900,19 @@
                       "src": "/C:/Users/Evening Shift/Downloads/banor.jpg"
                     },
                     {
-                      "key": "phone",
+                      "key": "phoneNumber",
                       "value": "+88343243",
                       "type": "text",
                       "uuid": "f2577e7c-c985-4732-8eb1-08ebba6ecfcc"
                     },
                     {
-                      "key": "documents",
+                      "key": "document",
                       "type": "file",
                       "uuid": "b14d932d-34b6-444f-8a98-ef7c2cf849d9",
                       "src": "/C:/Users/Evening Shift/Downloads/SPARTACUS BUBBLE AI AGENT (2).pdf"
                     },
                     {
-                      "key": "slas",
+                      "key": "sla",
                       "type": "file",
                       "uuid": "e38ca327-a9ec-4e16-8007-610f763314d7",
                       "src": "/C:/Users/Evening Shift/Downloads/SPARTACUS BUBBLE AI AGENT (2).pdf"
@@ -948,16 +948,16 @@
                       "uuid": "421c2dc3-e0f5-4a27-bef2-3cf5ade2dd46"
                     },
                     {
-                      "key": "contactProjects",
-                      "value": "2",
-                      "type": "text",
-                      "uuid": "d2947972-7a8f-4ce7-9336-c18866e822c8"
-                    },
-                    {
                       "key": "contactDesignation",
                       "value": "Full Stack Developer",
                       "type": "text",
                       "uuid": "7211e154-077f-4e13-a105-76bd5ce04e67"
+                    },
+                    {
+                      "key": "projectIds",
+                      "value": "[\"d2247f69-f100-4cbb-b4f0-8bdc849c6de6\"]",
+                      "type": "text",
+                      "uuid": "d2947972-7a8f-4ce7-9336-c18866e822ca"
                     }
                   ]
                 },
@@ -1027,14 +1027,14 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/project-manager/vendor-management/:vendorId",
+                  "raw": "{{baseUrl}}/project-manager/vendor-management/:id",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "project-manager",
                     "vendor-management",
-                    ":vendorId"
+                    ":id"
                   ],
                   "query": [
                     {
@@ -1045,7 +1045,7 @@
                   ],
                   "variable": [
                     {
-                      "key": "vendorId",
+                      "key": "id",
                       "value": "4f4c407a-f406-45f2-9b4c-e23d8d8b9d8b"
                     }
                   ]
@@ -1099,8 +1099,8 @@
                       "uuid": "75f3cbeb-e5b7-4a87-ac6a-b46831e0a4ad"
                     },
                     {
-                      "key": "meetingLinks",
-                      "value": "[{\"title\": \"Initial Discussion\", \"link\": \"https://zoom.us/j/123\"}]",
+                      "key": "meetingLink",
+                      "value": "https://zoom.us/j/123",
                       "type": "text",
                       "uuid": "e86c60ae-4ca8-49c9-8f42-e50d2901f8ed",
                       "disabled": true
@@ -1113,21 +1113,21 @@
                       "disabled": true
                     },
                     {
-                      "key": "phone",
+                      "key": "phoneNumber",
                       "value": "+88343243",
                       "type": "text",
                       "uuid": "f2577e7c-c985-4732-8eb1-08ebba6ecfcc",
                       "disabled": true
                     },
                     {
-                      "key": "documents",
+                      "key": "document",
                       "type": "file",
                       "uuid": "b14d932d-34b6-444f-8a98-ef7c2cf849d9",
                       "src": "/C:/Users/Ahanaf Mubasshir/Downloads/hack.pdf",
                       "disabled": true
                     },
                     {
-                      "key": "slas",
+                      "key": "sla",
                       "type": "file",
                       "uuid": "e38ca327-a9ec-4e16-8007-610f763314d7",
                       "src": "/C:/Users/Ahanaf Mubasshir/Downloads/hack.pdf",
@@ -1169,13 +1169,6 @@
                       "disabled": true
                     },
                     {
-                      "key": "contactProjects",
-                      "value": "2",
-                      "type": "text",
-                      "uuid": "d2947972-7a8f-4ce7-9336-c18866e822c8",
-                      "disabled": true
-                    },
-                    {
                       "key": "contactDesignation",
                       "value": "Full Stack Developer",
                       "type": "text",
@@ -1185,18 +1178,18 @@
                   ]
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/project-manager/vendor-management/:vendorId",
+                  "raw": "{{baseUrl}}/project-manager/vendor-management/:id",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "project-manager",
                     "vendor-management",
-                    ":vendorId"
+                    ":id"
                   ],
                   "variable": [
                     {
-                      "key": "vendorId",
+                      "key": "id",
                       "value": "260846b8-f13c-4b16-a304-acdb1258c9ae"
                     }
                   ]
@@ -1220,14 +1213,14 @@
                 "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/project-manager/vendor-management/:vendorId",
+                  "raw": "{{baseUrl}}/project-manager/vendor-management/:id",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "project-manager",
                     "vendor-management",
-                    ":vendorId"
+                    ":id"
                   ],
                   "query": [
                     {
@@ -1238,8 +1231,387 @@
                   ],
                   "variable": [
                     {
-                      "key": "vendorId",
+                      "key": "id",
                       "value": "da854af1-1fe9-4b1a-a41a-0cf8f2134125"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Client Management [DONE]",
+          "item": [
+            {
+              "name": "Create Client",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{project_manager_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Global Corp",
+                      "type": "text",
+                      "uuid": "8e9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "designation",
+                      "value": "Enterprise Client",
+                      "type": "text",
+                      "uuid": "9e9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "email",
+                      "value": "client@globalcorp.com",
+                      "type": "text",
+                      "uuid": "ae9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "phoneNumber",
+                      "value": "+123456789",
+                      "type": "text",
+                      "uuid": "be9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "numberOfProjects",
+                      "value": "1",
+                      "type": "text",
+                      "uuid": "ce9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "meetingLink",
+                      "value": "https://zoom.us/j/456",
+                      "type": "text",
+                      "uuid": "de9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "photo",
+                      "type": "file",
+                      "uuid": "ee9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "documents",
+                      "type": "file",
+                      "uuid": "fe9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "slas",
+                      "type": "file",
+                      "uuid": "0f9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "contactPerson",
+                      "value": "John Doe",
+                      "type": "text",
+                      "uuid": "1f9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "contactRole",
+                      "value": "Director of IT",
+                      "type": "text",
+                      "uuid": "2f9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "contactEmail",
+                      "value": "john.doe@globalcorp.com",
+                      "type": "text",
+                      "uuid": "3f9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "contactPhone",
+                      "value": "+198765432",
+                      "type": "text",
+                      "uuid": "4f9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "contactDesignation",
+                      "value": "Executive",
+                      "type": "text",
+                      "uuid": "5f9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "contactProjects",
+                      "value": "1",
+                      "type": "text",
+                      "uuid": "6f9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    },
+                    {
+                      "key": "projectIds",
+                      "value": "[\"d2247f69-f100-4cbb-b4f0-8bdc849c6de6\"]",
+                      "type": "text",
+                      "uuid": "7f9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/project-manager/client-management/create",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "project-manager",
+                    "client-management",
+                    "create"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Clients",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{project_manager_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/project-manager/client-management/all",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "project-manager",
+                    "client-management",
+                    "all"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Single Client",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{project_manager_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/project-manager/client-management/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "project-manager",
+                    "client-management",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "4f4c407a-f406-45f2-9b4c-e23d8d8b9d8b"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Client",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{project_manager_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Global Corp Updated",
+                      "type": "text",
+                      "uuid": "8e9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "designation",
+                      "value": "Enterprise Client",
+                      "type": "text",
+                      "uuid": "9e9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "email",
+                      "value": "client@globalcorp.com",
+                      "type": "text",
+                      "uuid": "ae9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "phoneNumber",
+                      "value": "+123456789",
+                      "type": "text",
+                      "uuid": "be9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "numberOfProjects",
+                      "value": "2",
+                      "type": "text",
+                      "uuid": "ce9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "meetingLink",
+                      "value": "https://zoom.us/j/456",
+                      "type": "text",
+                      "uuid": "de9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "photo",
+                      "type": "file",
+                      "uuid": "ee9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "documents",
+                      "type": "file",
+                      "uuid": "fe9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "slas",
+                      "type": "file",
+                      "uuid": "0f9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "contactPerson",
+                      "value": "John Doe",
+                      "type": "text",
+                      "uuid": "1f9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "contactRole",
+                      "value": "Director of IT",
+                      "type": "text",
+                      "uuid": "2f9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "contactEmail",
+                      "value": "john.doe@globalcorp.com",
+                      "type": "text",
+                      "uuid": "3f9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "contactPhone",
+                      "value": "+198765432",
+                      "type": "text",
+                      "uuid": "4f9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "contactDesignation",
+                      "value": "Executive",
+                      "type": "text",
+                      "uuid": "5f9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "contactProjects",
+                      "value": "2",
+                      "type": "text",
+                      "uuid": "6f9c60ae-4ca8-49c9-8f42-e50d2901f8ed",
+                      "disabled": true
+                    },
+                    {
+                      "key": "projectIds",
+                      "value": "[\"d2247f69-f100-4cbb-b4f0-8bdc849c6de6\"]",
+                      "type": "text",
+                      "uuid": "7f9c60ae-4ca8-49c9-8f42-e50d2901f8ed"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/project-manager/client-management/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "project-manager",
+                    "client-management",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "4f4c407a-f406-45f2-9b4c-e23d8d8b9d8b"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Client",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{project_manager_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/project-manager/client-management/:id",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "project-manager",
+                    "client-management",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "4f4c407a-f406-45f2-9b4c-e23d8d8b9d8b"
                     }
                   ]
                 }

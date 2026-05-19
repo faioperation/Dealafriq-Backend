@@ -233,6 +233,22 @@ const syncAllConnectedAccounts = async () => {
     }
 };
 
+const cleanMetadata = (obj) => {
+    if (!obj) return obj;
+    const {
+        updatedAt,
+        deletedAt,
+        created_by,
+        updated_by,
+        approved_by,
+        deleted_by,
+        ...rest
+    } = obj;
+    return rest;
+};
+
+
+
 const getUnifiedInbox = async (userId, query) => {
     const queryBuilder = new QueryBuilder(query).filter().build();
 
@@ -320,7 +336,6 @@ const getUnifiedInbox = async (userId, query) => {
         const generatedReply = safeParse(item.generatedReply);
         const decisions = safeParse(item.decisions);
         const tasks = safeParse(item.tasks);
-        const raiddData = safeParse(item.raiddData);
         const raiddAnalysis = safeParse(item.raiddAnalysis) || {};
 
         const hasContent = (val) => {
@@ -385,19 +400,71 @@ const getUnifiedInbox = async (userId, query) => {
 
         if (item.fullAiResponse) overallStats.totalAiPossessed += 1;
 
+        // Exclude fullAiResponse, aiDetections, raiddData and metadata fields from the returned item, but KEEP RAIDD relations
+        const { 
+            fullAiResponse: _, 
+            aiDetections: _ai, 
+            raiddData: _raidd,
+            projectRisks, 
+            projectAssumptions, 
+            projectIssues, 
+            projectDecisions, 
+            projectDependencies, 
+            ...restItem 
+        } = item;
+        const cleanedItem = cleanMetadata(restItem);
+
+        // Only include id, name, and numberOfProjects in the client object if it exists
+        if (cleanedItem.client) {
+            const { id, name, numberOfProjects } = cleanedItem.client;
+            cleanedItem.client = { id, name, numberOfProjects };
+        }
+
+        const cleanedRisks = Array.isArray(projectRisks) ? projectRisks.map(cleanMetadata) : [];
+        const cleanedAssumptions = Array.isArray(projectAssumptions) ? projectAssumptions.map(cleanMetadata) : [];
+        const cleanedIssues = Array.isArray(projectIssues) ? projectIssues.map(cleanMetadata) : [];
+        const cleanedDecisions = Array.isArray(projectDecisions) ? projectDecisions.map(cleanMetadata) : [];
+        const cleanedDependencies = Array.isArray(projectDependencies) ? projectDependencies.map(cleanMetadata) : [];
+
         return {
-            ...item,
-            fullAiResponse: Object.keys(fullAiResponse).length > 0 ? fullAiResponse : null,
+            ...cleanedItem,
             generatedReply,
             decisions,
             tasks,
-            raiddData,
-            raiddAnalysis: Object.keys(raiddAnalysis).length > 0 ? raiddAnalysis : null
+            raiddAnalysis: Object.keys(raiddAnalysis).length > 0 ? raiddAnalysis : null,
+            raiddDatas: {
+                projectRisks: cleanedRisks,
+                projectAssumptions: cleanedAssumptions,
+                projectIssues: cleanedIssues,
+                projectDecisions: cleanedDecisions,
+                projectDependencies: cleanedDependencies
+            }
         };
     });
 
+    // Apply specific fields filtering if requested in the query
+    let finalData = parsedSliced;
+    if (query && query.fields && typeof query.fields === 'string') {
+        const fieldKeys = query.fields.split(',').map(f => f.trim()).filter(Boolean);
+        if (fieldKeys.length > 0) {
+            finalData = parsedSliced.map(item => {
+                const filteredItem = {};
+                fieldKeys.forEach(key => {
+                    if (key in item) {
+                        filteredItem[key] = item[key];
+                    }
+                });
+                // Always ensure 'type' is included to distinguish between gmail and outlook
+                if (item.type !== undefined) {
+                    filteredItem.type = item.type;
+                }
+                return filteredItem;
+            });
+        }
+    }
+
     // Return only the data array and overall stats
-    return { data: parsedSliced, overallStats };
+    return { data: finalData, overallStats };
 };
 
 const getSingleUnifiedMessage = async (id, userId) => {
@@ -415,14 +482,46 @@ const getSingleUnifiedMessage = async (id, userId) => {
 
     const formatMessage = (msg) => {
         if (!msg) return msg;
+
+        // Exclude fullAiResponse, aiDetections, raiddData and metadata fields from the message, but KEEP RAIDD relations
+        const { 
+            fullAiResponse, 
+            aiDetections, 
+            raiddData,
+            projectRisks, 
+            projectAssumptions, 
+            projectIssues, 
+            projectDecisions, 
+            projectDependencies, 
+            ...restMsg 
+        } = msg;
+        const cleanedMsg = cleanMetadata(restMsg);
+
+        // Only include id, name, and numberOfProjects in the client object if it exists
+        if (cleanedMsg.client) {
+            const { id, name, numberOfProjects } = cleanedMsg.client;
+            cleanedMsg.client = { id, name, numberOfProjects };
+        }
+
+        const cleanedRisks = Array.isArray(projectRisks) ? projectRisks.map(cleanMetadata) : [];
+        const cleanedAssumptions = Array.isArray(projectAssumptions) ? projectAssumptions.map(cleanMetadata) : [];
+        const cleanedIssues = Array.isArray(projectIssues) ? projectIssues.map(cleanMetadata) : [];
+        const cleanedDecisions = Array.isArray(projectDecisions) ? projectDecisions.map(cleanMetadata) : [];
+        const cleanedDependencies = Array.isArray(projectDependencies) ? projectDependencies.map(cleanMetadata) : [];
+
         return {
-            ...msg,
-            fullAiResponse: safeParse(msg.fullAiResponse),
+            ...cleanedMsg,
             generatedReply: safeParse(msg.generatedReply),
             decisions: safeParse(msg.decisions),
             tasks: safeParse(msg.tasks),
-            raiddData: safeParse(msg.raiddData),
-            raiddAnalysis: safeParse(msg.raiddAnalysis)
+            raiddAnalysis: safeParse(msg.raiddAnalysis),
+            raiddDatas: {
+                projectRisks: cleanedRisks,
+                projectAssumptions: cleanedAssumptions,
+                projectIssues: cleanedIssues,
+                projectDecisions: cleanedDecisions,
+                projectDependencies: cleanedDependencies
+            }
         };
     };
 

@@ -9,6 +9,7 @@ import { envVars } from "../config/env.js";
 export const checkInternalService = () => {
     return (req, res, next) => {
         const secretKey = req.headers["x-backend-service"];
+        console.log(`[Internal Access Check] Route: ${req.method} ${req.originalUrl} | Received x-backend-service key: "${secretKey}"`);
 
         // Accept either the internal backend service key or the AI service identifier
         const allowedKeys = [
@@ -16,6 +17,7 @@ export const checkInternalService = () => {
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
         ];
         if (!secretKey || !allowedKeys.includes(secretKey)) {
+            console.error(`[Internal Access Check] Unauthorized attempt: key "${secretKey}" does not match allowed keys.`);
             throw new AppError(StatusCodes.UNAUTHORIZED, "Unauthorized access. Invalid or missing service key.");
         }
         next();

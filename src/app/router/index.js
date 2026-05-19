@@ -34,6 +34,7 @@ import { GoogleCalendarRoutes } from "../modules/ProjectManager/googleCalender/g
 import { NotificationRoutes } from "../modules/ProjectManager/notification/notification.route.js";
 import { DraftMailRoutes } from "../modules/ProjectManager/draftMail/draftMail.route.js";
 import { AiPushRoutes } from "../modules/ProjectManager/aiPush/aiPush.routes.js";
+import { VendorRoutes } from "../modules/ProjectManager/vendorManagement/vendorManagement.route.js";
 
 
 
@@ -188,6 +189,10 @@ const moduleRoutes = [
   {
     path: "/ai-push",
     route: AiPushRoutes,
+  },
+  {
+    path: "/project-manager/vendor-management",
+    route: VendorRoutes,
   },
   // Project Manager Routes ends here
 ];

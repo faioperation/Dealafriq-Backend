@@ -11,10 +11,14 @@ import { envVars } from "../../../config/env.js";
 const createMessage = catchAsync(async (req, res) => {
     let { content, sender, agentName, sessionId, projectId, documentUrl } = req.body;
 
-    // If projectId is provided and sessionId is empty, try to reuse existing session or generate a new one
-    if (projectId && !sessionId) {
+    // If sessionId is empty, try to reuse existing session or generate a new one
+    if (!sessionId) {
         const existingMessage = await prisma.message.findFirst({
-            where: { projectId: projectId, userId: req.user.id, sessionId: { not: null } },
+            where: { 
+                userId: req.user.id, 
+                sessionId: { not: null },
+                projectId: projectId ? projectId : null
+            },
             orderBy: { createdAt: "desc" }
         });
 
@@ -45,41 +49,41 @@ const createMessage = catchAsync(async (req, res) => {
 
     let aiMessageResult = null;
 
-    if (projectId) {
-        try {
-            // Send request to AI endpoint
-            const aiEndpoint = `${envVars.API_AI || "https://ai2.pmify.cloud/api/v1"}/chat/`;
-           const aiResponse = await axios.post(
-  aiEndpoint,
-  {
-    message: content,
-    session_id: sessionId || req.user.id,
-    project_id: projectId,
-    role: "USER",
-    document_url: payload.documentUrl,
-  },
-  {
-    headers: {
-      "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
-    }
-  }
-);
-
-            // If the AI returns a message string/response, save it as a new message from AGENT
-            const aiReplyContent = aiResponse?.data?.reply;
-            if (aiReplyContent) {
-                const aiPayload = {
-                    content: aiReplyContent,
-                    sender: "AGENT",
-                    agentName: "AI Assistant",
-                    sessionId: sessionId ?? null,
-                    projectId: projectId ?? null,
-                };
-                aiMessageResult = await ProjectChatbotService.createMessage(prisma, aiPayload, req.user.id);
+    try {
+        // Send request to AI endpoint
+        const aiBaseUrl = envVars.UPDATE_CHATBOT_AI_BASE_URL || "https://vision-untreated-nacho.ngrok-free.dev/api/v1";
+        const aiEndpoint = projectId ? `${aiBaseUrl}/chat/project/${projectId}` : `${aiBaseUrl}/chat`;
+        
+        const aiResponse = await axios.post(
+            aiEndpoint,
+            {
+                question: content,
+                session_id: sessionId || req.user.id,
+                project_id: projectId || "",
+                role: "USER",
+                document_url: payload.documentUrl,
+            },
+            {
+                headers: {
+                    "x-backend-service": envVars.INTERNAL_BACKEND_SERVICE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+                }
             }
-        } catch (error) {
-            console.error("Error communicating with AI Chatbot:", error?.response?.data || error.message);
+        );
+
+        // If the AI returns a message string/response, save it as a new message from AGENT
+        const aiReplyContent = aiResponse?.data?.reply || aiResponse?.data?.answer || (typeof aiResponse?.data === 'string' ? aiResponse?.data : null);
+        if (aiReplyContent) {
+            const aiPayload = {
+                content: aiReplyContent,
+                sender: "AGENT",
+                agentName: "AI Assistant",
+                sessionId: sessionId ?? null,
+                projectId: projectId ?? null,
+            };
+            aiMessageResult = await ProjectChatbotService.createMessage(prisma, aiPayload, req.user.id);
         }
+    } catch (error) {
+        console.error("Error communicating with AI Chatbot:", error?.response?.data || error.message);
     }
 
     sendResponse(res, {
