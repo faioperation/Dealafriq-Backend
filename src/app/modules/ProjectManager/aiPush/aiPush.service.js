@@ -458,20 +458,22 @@ const syncMeetingAiData = async (meetingId, payload, userId) => {
     if (keyPoints && Array.isArray(keyPoints)) {
         nestedOps.keyPoints = {
             deleteMany: {},
-            create: keyPoints.flat().filter(kp => kp && kp.content).map(kp => ({
-                content: kp.content,
-                status: kp.status || "TO_BE_VALIDATED"
-            }))
+            create: keyPoints.flat().filter(kp => kp).map(kp => {
+                const content = typeof kp === 'string' ? kp : kp.content;
+                const status = typeof kp === 'string' ? "TO_BE_VALIDATED" : (kp.status || "TO_BE_VALIDATED");
+                return { content, status };
+            }).filter(item => item.content && item.content.trim() !== '')
         };
     }
 
     if (actionPoints && Array.isArray(actionPoints)) {
         nestedOps.actionPoints = {
             deleteMany: {},
-            create: actionPoints.flat().filter(ap => ap && ap.content).map(ap => ({
-                content: ap.content,
-                status: ap.status || "PENDING"
-            }))
+            create: actionPoints.flat().filter(ap => ap).map(ap => {
+                const content = typeof ap === 'string' ? ap : ap.content;
+                const status = typeof ap === 'string' ? "PENDING" : (ap.status || "PENDING");
+                return { content, status };
+            }).filter(item => item.content && item.content.trim() !== '')
         };
     }
 
@@ -609,20 +611,22 @@ const syncDocumentAiData = async (documentId, payload, userId) => {
     if (keyPoints && Array.isArray(keyPoints)) {
         nestedOps.keyPoints = {
             deleteMany: {},
-            create: keyPoints.flat().filter(kp => kp && kp.content).map(kp => ({
-                content: kp.content,
-                status: kp.status || "TO_BE_VALIDATED"
-            }))
+            create: keyPoints.flat().filter(kp => kp).map(kp => {
+                const content = typeof kp === 'string' ? kp : kp.content;
+                const status = typeof kp === 'string' ? "TO_BE_VALIDATED" : (kp.status || "TO_BE_VALIDATED");
+                return { content, status };
+            }).filter(item => item.content && item.content.trim() !== '')
         };
     }
 
     if (actionPoints && Array.isArray(actionPoints)) {
         nestedOps.actionPoints = {
             deleteMany: {},
-            create: actionPoints.flat().filter(ap => ap && ap.content).map(ap => ({
-                content: ap.content,
-                status: ap.status || "PENDING"
-            }))
+            create: actionPoints.flat().filter(ap => ap).map(ap => {
+                const content = typeof ap === 'string' ? ap : ap.content;
+                const status = typeof ap === 'string' ? "PENDING" : (ap.status || "PENDING");
+                return { content, status };
+            }).filter(item => item.content && item.content.trim() !== '')
         };
     }
 
