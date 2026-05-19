@@ -511,16 +511,16 @@ const syncMeetingAiData = async (meetingId, payload, userId) => {
     const managerId = project ? project.managerId : userId;
     const createdBy = project ? project.createdById : (userId || "system");
 
-    let raiddFlags = dataPayload.raiddFlags || 
-                      dataPayload.raidFlags || 
-                      dataPayload.raidd_flags || 
-                      dataPayload.raid_flags || 
-                      dataPayload.raiddData || 
-                      dataPayload.raidData || 
-                      dataPayload.raidd_data || 
-                      dataPayload.raid_data ||
-                      dataPayload.raiddAnalysis ||
-                      dataPayload.raidd_analysis;
+    let raiddFlags = dataPayload.raiddFlags ||
+        dataPayload.raidFlags ||
+        dataPayload.raidd_flags ||
+        dataPayload.raid_flags ||
+        dataPayload.raiddData ||
+        dataPayload.raidData ||
+        dataPayload.raidd_data ||
+        dataPayload.raid_data ||
+        dataPayload.raiddAnalysis ||
+        dataPayload.raidd_analysis;
 
     if (raiddFlags && typeof raiddFlags === 'string') {
         try {
@@ -541,7 +541,7 @@ const syncMeetingAiData = async (meetingId, payload, userId) => {
                 else if (lowerKey === 'issues' || lowerKey === 'issue') categoryName = 'Issue';
                 else if (lowerKey === 'decisions' || lowerKey === 'decision') categoryName = 'Decision';
                 else if (lowerKey === 'dependencies' || lowerKey === 'dependency') categoryName = 'Dependency';
-                
+
                 finalCategories.push(categoryName);
             }
         }
@@ -711,7 +711,7 @@ const syncClientData = async (clientId, payload, userId) => {
     console.log(`[AI Push Client Sync] Received AI Data for Client ID: ${clientId} (${client.name})`);
     console.log(`[AI Push Client Sync] Payload:`, JSON.stringify(payload, null, 2));
 
-    const { 
+    const {
         aiSummary,
         lessonsLearned,
         discussionPoints,

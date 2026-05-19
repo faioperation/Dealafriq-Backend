@@ -132,6 +132,12 @@ export const ProjectMeetingService = {
                 'Content-Type': 'application/json',
                 "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
             }
+        }).then(async (response) => {
+            if (response.data) {
+                console.log(`[Meeting AI Sync] Received response data directly. Saving now...`);
+                const { AiPushService } = await import("../aiPush/aiPush.service.js");
+                await AiPushService.syncMeetingAiData(meeting.id, response.data, userId);
+            }
         }).catch(axiosErr => {
             console.error(`[Meeting AI Sync] Failed to trigger background AI Meeting summary:`, axiosErr.message);
         });
