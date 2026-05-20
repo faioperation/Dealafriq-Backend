@@ -178,14 +178,17 @@ export const LessonLearnService = {
         const syncedLessonLearns = [];
 
         for (const project of projects) {
-            let lessonLearn = project.lessonLearns[0];
+            let lessons = project.lessonLearns;
 
-            // 2. If no lesson learn record exists, sync with AI API
-            if (!lessonLearn) {
-                lessonLearn = await LessonLearnService.syncLessonLearnForProject(prisma, project, userId);
+            // 2. If no lesson learn record exists, sync with AI API to create a baseline record
+            if (lessons.length === 0) {
+                const synced = await LessonLearnService.syncLessonLearnForProject(prisma, project, userId);
+                if (synced) {
+                    lessons = [synced];
+                }
             }
 
-            if (lessonLearn) {
+            for (const lessonLearn of lessons) {
                 const { current_situation_summary, aiResponse, ...lessonLearnWithoutExcluded } = lessonLearn;
                 syncedLessonLearns.push({
                     ...lessonLearnWithoutExcluded,
