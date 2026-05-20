@@ -3,7 +3,7 @@ import { z } from "zod";
 const createLessonLearnSchema = z.object({
     body: z.object({
         projectId: z.string().uuid("Invalid project ID"),
-        projectName: z.string().min(1, "Project name is required"),
+        projectName: z.string().optional(),
         clientName: z.string().optional(),
         title: z.string().optional(),
         description: z.string().optional(),
