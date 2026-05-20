@@ -663,7 +663,17 @@ const syncDocumentAiData = async (documentId, payload, userId) => {
         throw new AppError(StatusCodes.NOT_FOUND, "Document record not found");
     }
 
-    const { aiDocumentSummary, keyPoints, actionPoints } = payload;
+    console.log(`[AI Push Document Sync] Received AI Data for Document ID: ${documentId}`);
+    console.log(`[AI Push Document Sync] Payload:`, JSON.stringify(payload, null, 2));
+
+    // Handle payload if passed as an array of objects (like returned by the summary API)
+    const dataPayload = Array.isArray(payload) ? (payload[0] || {}) : payload;
+
+    const { aiDocumentSummary, keyPoints, actionPoints } = dataPayload;
+
+    console.log(`[AI Push Document Sync] Extracted aiDocumentSummary:`, aiDocumentSummary);
+    console.log(`[AI Push Document Sync] Extracted keyPoints:`, JSON.stringify(keyPoints, null, 2));
+    console.log(`[AI Push Document Sync] Extracted actionPoints:`, JSON.stringify(actionPoints, null, 2));
 
     const nestedOps = {};
 
@@ -698,6 +708,7 @@ const syncDocumentAiData = async (documentId, payload, userId) => {
         }
     });
 
+    console.log(`[AI Push Document Sync] Document ${documentId} updated successfully in database.`);
     return updatedDocument;
 };
 
