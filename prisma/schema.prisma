@@ -280,6 +280,7 @@ model ProjectDocumentUpload {
   aiDocumentSummary String?
   setDate           DateTime?
   aiCheck           Boolean               @default(false)
+  rawAiResponse     Json?
   actionPoints      DocumentActionPoint[]
   keyPoints         DocumentKeyPoint[]
   project           Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
