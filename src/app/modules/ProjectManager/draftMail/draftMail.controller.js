@@ -8,15 +8,15 @@ const generateAiReply = catchAsync(async (req, res) => {
     const userId = req.user.id;
     const targetId = emailId || id;
 
-    if (!targetId || !type) {
+    if (!targetId) {
         return sendResponse(res, {
             statusCode: httpStatus.BAD_REQUEST,
             success: false,
-            message: 'Both emailId (or id) and type are required'
+            message: 'emailId or id is required'
         });
     }
 
-    if (type !== 'email' && type !== 'outlook') {
+    if (type && type !== 'email' && type !== 'outlook') {
         return sendResponse(res, {
             statusCode: httpStatus.BAD_REQUEST,
             success: false,
@@ -24,12 +24,33 @@ const generateAiReply = catchAsync(async (req, res) => {
         });
     }
 
-    const result = await DraftMailService.generateAiReply(targetId, userId, type);
+    // Determine type automatically if not provided
+    let detectedType = type;
+    if (!detectedType) {
+        const { default: prisma } = await import('../../../prisma/client.js');
+        const email = await prisma.email.findUnique({ where: { id: targetId } });
+        if (email) {
+            detectedType = 'email';
+        } else {
+            const outlook = await prisma.outlook.findUnique({ where: { id: targetId } });
+            if (outlook) {
+                detectedType = 'outlook';
+            } else {
+                return sendResponse(res, {
+                    statusCode: httpStatus.NOT_FOUND,
+                    success: false,
+                    message: 'Record not found in either Email or Outlook tables'
+                });
+            }
+        }
+    }
+
+    const result = await DraftMailService.generateAiReply(targetId, userId, detectedType);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: `AI reply generated successfully for ${type}`,
+        message: `AI reply generated successfully for ${detectedType}`,
         data: result
     });
 });
