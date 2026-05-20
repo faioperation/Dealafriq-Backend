@@ -189,6 +189,35 @@ const syncEmailData = async (emailId, payload, userId) => {
     console.log(`[AI Push Email Sync] Received AI Data for Email ID: ${emailId}`);
     console.log(`[AI Push Email Sync] Payload:`, JSON.stringify(payload, null, 2));
 
+    // If AI data was already processed/synced once, ONLY update the generatedReply field if provided
+    if (email.aiCheck) {
+        let fullAiRes = {};
+        if (payload.fullAiResponse) {
+            if (typeof payload.fullAiResponse === 'string') {
+                try {
+                    fullAiRes = JSON.parse(payload.fullAiResponse);
+                } catch (e) {
+                    console.error("Failed to parse fullAiResponse in syncEmailData (aiCheck bypass):", e);
+                }
+            } else if (typeof payload.fullAiResponse === 'object') {
+                fullAiRes = payload.fullAiResponse;
+            }
+        }
+        const generatedReply = payload.generatedReply || fullAiRes.generatedReply;
+        if (generatedReply !== undefined) {
+            const updatedEmail = await prisma.email.update({
+                where: { id: emailId },
+                data: {
+                    generatedReply: generatedReply
+                }
+            });
+            console.log(`[AI Push Email Sync] email.aiCheck is true. Only updated generatedReply for Email ID: ${emailId}`);
+            return updatedEmail;
+        }
+        console.log(`[AI Push Email Sync] email.aiCheck is true but no new generatedReply in payload.`);
+        return email;
+    }
+
     // 1. Save individual unlinked RAIDD items from the email
     const savedRaiddItems = await saveEmailOrOutlookRaiddItems(prisma, "emailId", emailId, payload);
 
@@ -318,6 +347,35 @@ const syncOutlookData = async (outlookId, payload, userId) => {
 
     console.log(`[AI Push Outlook Sync] Received AI Data for Outlook ID: ${outlookId}`);
     console.log(`[AI Push Outlook Sync] Payload:`, JSON.stringify(payload, null, 2));
+
+    // If AI data was already processed/synced once, ONLY update the generatedReply field if provided
+    if (outlook.aiCheck) {
+        let fullAiRes = {};
+        if (payload.fullAiResponse) {
+            if (typeof payload.fullAiResponse === 'string') {
+                try {
+                    fullAiRes = JSON.parse(payload.fullAiResponse);
+                } catch (e) {
+                    console.error("Failed to parse fullAiResponse in syncOutlookData (aiCheck bypass):", e);
+                }
+            } else if (typeof payload.fullAiResponse === 'object') {
+                fullAiRes = payload.fullAiResponse;
+            }
+        }
+        const generatedReply = payload.generatedReply || fullAiRes.generatedReply;
+        if (generatedReply !== undefined) {
+            const updatedOutlook = await prisma.outlook.update({
+                where: { id: outlookId },
+                data: {
+                    generatedReply: generatedReply
+                }
+            });
+            console.log(`[AI Push Outlook Sync] outlook.aiCheck is true. Only updated generatedReply for Outlook ID: ${outlookId}`);
+            return updatedOutlook;
+        }
+        console.log(`[AI Push Outlook Sync] outlook.aiCheck is true but no new generatedReply in payload.`);
+        return outlook;
+    }
 
     // 1. Save individual unlinked RAIDD items from the outlook record
     const savedRaiddItems = await saveEmailOrOutlookRaiddItems(prisma, "outlookId", outlookId, payload);
