@@ -328,6 +328,7 @@ model ProjectMilestone {
   title         String
   description   String?
   startDate     DateTime?
+  endDate       DateTime?
   milestoneDate DateTime
   status        MilestoneStatus
   createdAt     DateTime        @default(now())

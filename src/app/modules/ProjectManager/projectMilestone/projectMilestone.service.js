@@ -24,6 +24,7 @@ export const ProjectMilestoneService = {
       data: {
         ...payload,
         startDate: payload.startDate ? new Date(payload.startDate) : null,
+        endDate: payload.endDate ? new Date(payload.endDate) : null,
         milestoneDate: payload.milestoneDate ? new Date(payload.milestoneDate) : new Date(),
       },
     });
@@ -104,6 +105,8 @@ export const ProjectMilestoneService = {
     const updateData = { ...payload };
     if (payload.startDate)
       updateData.startDate = new Date(payload.startDate);
+    if (payload.endDate)
+      updateData.endDate = new Date(payload.endDate);
     if (payload.milestoneDate)
       updateData.milestoneDate = new Date(payload.milestoneDate);
 
