@@ -19,7 +19,7 @@ export const initAiSyncCron = () => {
     cron.schedule("*/30 * * * *", async () => {
         console.log("-----------------start 30m ai sync------------------------");
         console.log(`[${new Date().toISOString()}] Starting 30-Minute Active AI Sync Cron Job...`);
-        
+
         try {
             // 1. Sync active Projects & Lesson Learns
             const activeProjects = await prisma.project.findMany({
@@ -31,18 +31,22 @@ export const initAiSyncCron = () => {
                 axios.post(url, {}, HEADER_CONFIG).catch(err => {
                     console.error(`[12h AI Sync] Project summary trigger failed for ${project.id}:`, err.message);
                 });
-                
+
                 // Lesson Learn sync
                 LessonLearnService.syncLessonLearnForProject(prisma, project, project.managerId).catch(err => {
                     console.error(`[12h AI Sync] Lesson Learn trigger failed for project ${project.id}:`, err.message);
                 });
-                
+
                 await new Promise(r => setTimeout(r, 1000)); // Delay to prevent overloading
             }
 
             // 2. Sync active ProjectMeetings
             const activeMeetings = await prisma.projectMeeting.findMany({
-                where: { deletedAt: null }
+                where: {
+                    project: {
+                        deletedAt: null
+                    }
+                }
             });
             console.log(`[12h AI Sync] Found ${activeMeetings.length} active meetings for sync.`);
             for (const meeting of activeMeetings) {
@@ -58,8 +62,12 @@ export const initAiSyncCron = () => {
             }
 
             // 3. Sync active ProjectDocuments
-            const activeDocuments = await prisma.projectDocument.findMany({
-                where: { deletedAt: null }
+            const activeDocuments = await prisma.projectDocumentUpload.findMany({
+                where: {
+                    project: {
+                        deletedAt: null
+                    }
+                }
             });
             console.log(`[12h AI Sync] Found ${activeDocuments.length} active documents for sync.`);
             for (const doc of activeDocuments) {
