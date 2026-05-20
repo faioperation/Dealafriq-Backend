@@ -7,6 +7,11 @@ import { envVars } from "../../../config/env.js";
 const verifyProjectOwnership = async (prisma, projectId, userId) => {
     const project = await prisma.project.findFirst({
         where: { id: projectId, managerId: userId, deletedAt: null },
+        include: {
+            client: {
+                select: { name: true }
+            }
+        }
     });
     if (!project) {
         throw new AppError(
@@ -19,11 +24,13 @@ const verifyProjectOwnership = async (prisma, projectId, userId) => {
 
 export const LessonLearnService = {
     createLessonLearn: async (prisma, payload, userId) => {
-        await verifyProjectOwnership(prisma, payload.projectId, userId);
+        const project = await verifyProjectOwnership(prisma, payload.projectId, userId);
 
         const lessonLearn = await prisma.lessonLearn.create({
             data: {
                 ...payload,
+                projectName: project.name,
+                clientName: project.client?.name || project.clientName || null,
                 loggedDate: payload.loggedDate ? new Date(payload.loggedDate) : new Date(),
                 created_by: userId,
             },
