@@ -704,6 +704,7 @@ const syncDocumentAiData = async (documentId, payload, userId) => {
         data: {
             aiDocumentSummary: aiDocumentSummary || undefined,
             aiCheck: true,
+            rawAiResponse: payload,
             ...nestedOps
         }
     });
