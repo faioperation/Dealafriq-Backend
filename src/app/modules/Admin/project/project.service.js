@@ -126,6 +126,11 @@ export const AdminProjectService = {
         const flattenedData = result.flatMap((project) => {
             const { raidd, ...projectData } = project;
 
+            const totalTasks = projectData.tasks?.length || 0;
+            const completedTasks = projectData.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+            const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            projectData.projectProgress = `${progressPercentage}%`;
+
             if (!raidd || raidd.length === 0) {
                 return [{ project: projectData, raidd: null }];
             }
@@ -193,9 +198,13 @@ export const AdminProjectService = {
             prisma.project.count({ where: buildQuery.where }),
         ]);
 
-        const filteredData = result.map((project) =>
-            AdminProjectService.filterProjectForChatbot(project)
-        );
+        const filteredData = result.map((project) => {
+            const totalTasks = project.tasks?.length || 0;
+            const completedTasks = project.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+            const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            project.projectProgress = `${progressPercentage}%`;
+            return AdminProjectService.filterProjectForChatbot(project);
+        });
 
         return {
             meta: queryBuilder.getMeta(total),
@@ -253,6 +262,11 @@ export const AdminProjectService = {
             const { StatusCodes } = await import("http-status-codes");
             throw new AppError(StatusCodes.NOT_FOUND, "Project not found");
         }
+
+        const totalTasks = project.tasks?.length || 0;
+        const completedTasks = project.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        project.projectProgress = `${progressPercentage}%`;
 
         return AdminProjectService.filterProjectForChatbot(project);
     },
@@ -370,6 +384,11 @@ export const AdminProjectService = {
 
         const { raidd, ...projectData } = project;
 
+        const totalTasks = projectData.tasks?.length || 0;
+        const completedTasks = projectData.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        projectData.projectProgress = `${progressPercentage}%`;
+
         if (!raidd || raidd.length === 0) {
             return [{ project: projectData, raidd: null }];
         }
@@ -440,6 +459,11 @@ export const AdminProjectService = {
             const { StatusCodes } = await import("http-status-codes");
             throw new AppError(StatusCodes.NOT_FOUND, "Project not found");
         }
+
+        const totalTasks = project.tasks?.length || 0;
+        const completedTasks = project.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        project.projectProgress = `${progressPercentage}%`;
 
         return project;
     },
@@ -540,6 +564,11 @@ export const AdminProjectService = {
                 });
             }
             project.totalTask = statusCounts;
+
+            const totalTasks = project.tasks?.length || 0;
+            const completedTasks = project.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+            const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            project.projectProgress = `${progressPercentage}%`;
         });
         return projects;
     },
@@ -628,6 +657,11 @@ export const AdminProjectService = {
         }
         // Attach totalTask summary
         project.totalTask = statusCounts;
+
+        const totalTasks = project.tasks?.length || 0;
+        const completedTasks = project.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        project.projectProgress = `${progressPercentage}%`;
         return project;
 
     }

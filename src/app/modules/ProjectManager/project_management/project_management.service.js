@@ -234,9 +234,19 @@ export const PMProjectManagementService = {
             prisma.project.count({ where: buildQuery.where }),
         ]);
 
+        const processedProjects = result.map(p => {
+            const totalTasks = p.tasks?.length || 0;
+            const completedTasks = p.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+            const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            return {
+                ...p,
+                projectProgress: `${progressPercentage}%`
+            };
+        });
+
         return {
             meta: queryBuilder.getMeta(total),
-            data: result,
+            data: processedProjects,
         };
     },
 
@@ -348,6 +358,11 @@ export const PMProjectManagementService = {
         if (!project) {
             throw new AppError(StatusCodes.NOT_FOUND, "Project not found or you don't have access");
         }
+
+        const totalTasks = project.tasks?.length || 0;
+        const completedTasks = project.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        project.projectProgress = `${progressPercentage}%`;
 
         return project;
     },
