@@ -193,6 +193,7 @@ export const AdminProjectService = {
                     weeklyAiSummaries: {
                         orderBy: { createdAt: 'desc' }
                     },
+                    vendor: true,
                 },
             }),
             prisma.project.count({ where: buildQuery.where }),
@@ -254,6 +255,7 @@ export const AdminProjectService = {
                 issues: true,
                 decisions: true,
                 dependencies: true,
+                vendor: true,
             },
         });
 
@@ -326,6 +328,13 @@ export const AdminProjectService = {
                 }
                 return restRaidd;
             });
+        }
+
+        // Format vendor as an array under 'vendor' key for chatbot response
+        const vendorArr = restProject.vendor ? [restProject.vendor] : [];
+        restProject.vendor = vendorArr;
+        if ('vendors' in restProject) {
+            delete restProject.vendors;
         }
 
         return restProject;
