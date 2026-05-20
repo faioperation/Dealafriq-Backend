@@ -56,7 +56,7 @@ const deleteOutlook = catchAsync(async (req, res) => {
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: 'Outlook email deleted successfully',
+        message: 'Message deleted successfully',
     });
 });
 

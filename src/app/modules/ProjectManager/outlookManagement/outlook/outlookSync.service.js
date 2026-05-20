@@ -3,6 +3,8 @@ import { AiEmailSummaryUtils } from '../../../../utils/aiEmailSummary.js';
 import { AiDetectionService } from '../../aiDetection/aiDetection.service.js';
 import axios from 'axios';
 import { envVars } from '../../../../config/env.js';
+import { StatusCodes } from 'http-status-codes';
+import { AppError } from '../../../../errorHelper/appError.js';
 
 
 /**
@@ -136,19 +138,38 @@ const getSingleOutlook = async (id, userId) => {
 };
 
 /**
- * Delete outlook email (soft delete)
+ * Delete outlook or email (soft delete)
  */
 const deleteOutlook = async (id, userId) => {
-    return await prisma.outlook.update({
-        where: {
-            id,
-            created_by: userId
-        },
-        data: {
-            deletedAt: new Date(),
-            deleted_by: userId
-        }
+    const outlook = await prisma.outlook.findFirst({
+        where: { id, created_by: userId }
     });
+
+    if (outlook) {
+        return await prisma.outlook.update({
+            where: { id },
+            data: {
+                deletedAt: new Date(),
+                deleted_by: userId
+            }
+        });
+    }
+
+    const email = await prisma.email.findFirst({
+        where: { id, created_by: userId }
+    });
+
+    if (email) {
+        return await prisma.email.update({
+            where: { id },
+            data: {
+                deletedAt: new Date(),
+                deleted_by: userId
+            }
+        });
+    }
+
+    throw new AppError(StatusCodes.NOT_FOUND, "Message record not found in either Email or Outlook tables");
 };
 
 /**
