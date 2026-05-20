@@ -345,57 +345,28 @@ const getUnifiedInbox = async (userId, query) => {
             return true; // Any other non-null truthy value
         };
 
-        if (Array.isArray(tasks) && tasks.length > 0) overallStats.totalTasks += 1;
-
-        if (
-            hasContent(fullAiResponse.projectIssues) || 
-            hasContent(fullAiResponse.issues) || 
-            hasContent(fullAiResponse.issue) || 
-            hasContent(fullAiResponse.totalIssues) || 
-            hasContent(raiddAnalysis.issues) || 
-            hasContent(raiddAnalysis.issue)
-        ) {
-            overallStats.totalIssues += 1;
+        if (Array.isArray(tasks)) {
+            overallStats.totalTasks += tasks.length;
         }
 
-        if (
-            hasContent(fullAiResponse.projectRisks) || 
-            hasContent(fullAiResponse.risks) || 
-            hasContent(fullAiResponse.riskPoints) || 
-            hasContent(raiddAnalysis.risks) || 
-            hasContent(raiddAnalysis.riskPoints)
-        ) {
-            overallStats.totalRisks += 1;
+        if (Array.isArray(item.projectIssues)) {
+            overallStats.totalIssues += item.projectIssues.length;
         }
 
-        if (
-            hasContent(fullAiResponse.projectAssumptions) || 
-            hasContent(fullAiResponse.assumptions) || 
-            hasContent(fullAiResponse.assumptionPoints) || 
-            hasContent(raiddAnalysis.assumptions) || 
-            hasContent(raiddAnalysis.assumptionPoints)
-        ) {
-            overallStats.totalAssumptions += 1;
+        if (Array.isArray(item.projectRisks)) {
+            overallStats.totalRisks += item.projectRisks.length;
         }
 
-        if (
-            hasContent(fullAiResponse.projectDependencies) || 
-            hasContent(fullAiResponse.dependencies) || 
-            hasContent(fullAiResponse.dependencyPoints) || 
-            hasContent(raiddAnalysis.dependencies) || 
-            hasContent(raiddAnalysis.dependencyPoints)
-        ) {
-            overallStats.totalDependencies += 1;
+        if (Array.isArray(item.projectAssumptions)) {
+            overallStats.totalAssumptions += item.projectAssumptions.length;
         }
 
-        if (
-            hasContent(fullAiResponse.projectDecisions) || 
-            hasContent(fullAiResponse.decisions) || 
-            hasContent(fullAiResponse.decisionPoints) || 
-            hasContent(raiddAnalysis.decisions) || 
-            hasContent(raiddAnalysis.decisionPoints)
-        ) {
-            overallStats.totalDecisions += 1;
+        if (Array.isArray(item.projectDependencies)) {
+            overallStats.totalDependencies += item.projectDependencies.length;
+        }
+
+        if (Array.isArray(item.projectDecisions)) {
+            overallStats.totalDecisions += item.projectDecisions.length;
         }
 
         if (item.fullAiResponse) overallStats.totalAiPossessed += 1;
