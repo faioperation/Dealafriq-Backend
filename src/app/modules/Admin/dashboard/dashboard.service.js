@@ -36,13 +36,15 @@ const getDashboardStats = async (prisma, query = {}) => {
             deletedAt: null,
             ...(year && { createdAt: dateFilter })
         },
-        select: { projectProgress: true }
+        select: { tasks: { select: { status: true } } }
     });
 
     let overallHealth = 0;
     if (allProjectsForHealth.length > 0) {
         const totalProgress = allProjectsForHealth.reduce((acc, p) => {
-            const progressNum = parseInt(p.projectProgress?.replace('%', '') || "0", 10);
+            const totalTasks = p.tasks?.length || 0;
+            const completedTasks = p.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+            const progressNum = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             return acc + progressNum;
         }, 0);
         overallHealth = Math.round(totalProgress / allProjectsForHealth.length);
@@ -118,20 +120,26 @@ const getDashboardStats = async (prisma, query = {}) => {
             include: {
                 manager: {
                     select: { firstName: true, lastName: true }
-                }
+                },
+                tasks: { select: { status: true } }
             },
         }),
         prisma.project.count({ where: buildQuery.where })
     ]);
 
-    const projectList = projectsRaw.map(p => ({
-        projectId: p.id,
-        projectName: p.name,
-        owner: `${p.manager.firstName} ${p.manager.lastName || ""}`.trim(),
-        status: p.status,
-        progress: parseInt(p.projectProgress?.replace('%', '') || "0", 10),
-        deadline: p.endDate ? p.endDate.toISOString().split('T')[0] : "N/A",
-    }));
+    const projectList = projectsRaw.map(p => {
+        const totalTasks = p.tasks?.length || 0;
+        const completedTasks = p.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        return {
+            projectId: p.id,
+            projectName: p.name,
+            owner: `${p.manager.firstName} ${p.manager.lastName || ""}`.trim(),
+            status: p.status,
+            progress: progressPercentage,
+            deadline: p.endDate ? p.endDate.toISOString().split('T')[0] : "N/A",
+        };
+    });
 
     // 6. Project Managers List with Assigned Project Counts
     const projectManagers = await prisma.user.findMany({

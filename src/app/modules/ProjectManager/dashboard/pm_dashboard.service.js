@@ -37,14 +37,16 @@ const getPMDashboardData = async (prisma, pmId, query = {}) => {
             ...(year && { createdAt: dateFilter })
         },
         select: {
-            projectProgress: true
+            tasks: { select: { status: true } }
         }
     });
 
     let overallHealth = 0;
     if (projectsForHealth.length > 0) {
         const totalProgress = projectsForHealth.reduce((acc, p) => {
-            const progressNum = parseInt(p.projectProgress?.replace('%', '') || "0", 10);
+            const totalTasks = p.tasks?.length || 0;
+            const completedTasks = p.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+            const progressNum = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             return acc + progressNum;
         }, 0);
         overallHealth = Math.round(totalProgress / projectsForHealth.length);
@@ -128,20 +130,26 @@ const getPMDashboardData = async (prisma, pmId, query = {}) => {
             include: {
                 manager: {
                     select: { firstName: true, lastName: true }
-                }
+                },
+                tasks: { select: { status: true } }
             },
         }),
         prisma.project.count({ where: buildQuery.where })
     ]);
 
-    const projectList = projects.map(p => ({
-        projectId: p.id,
-        projectName: p.name,
-        owner: `${p.manager.firstName} ${p.manager.lastName || ""}`.trim(),
-        status: p.status,
-        progress: parseInt(p.projectProgress?.replace('%', '') || "0", 10),
-        deadline: p.endDate ? p.endDate.toISOString().split('T')[0] : "N/A",
-    }));
+    const projectList = projects.map(p => {
+        const totalTasks = p.tasks?.length || 0;
+        const completedTasks = p.tasks?.filter(t => t.status === "COMPLETED").length || 0;
+        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        return {
+            projectId: p.id,
+            projectName: p.name,
+            owner: `${p.manager.firstName} ${p.manager.lastName || ""}`.trim(),
+            status: p.status,
+            progress: progressPercentage,
+            deadline: p.endDate ? p.endDate.toISOString().split('T')[0] : "N/A",
+        };
+    });
 
     return {
         stats: {
