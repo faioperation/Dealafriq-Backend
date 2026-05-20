@@ -26,13 +26,51 @@ export const NotificationService = {
       prisma.notification.count({ where }),
     ]);
 
+    const meetingIds = notifications
+      .filter((n) => n.type === "ZOOM_MEETING" && n.entityId)
+      .map((n) => n.entityId);
+
+    let meetingsMap = new Map();
+    if (meetingIds.length > 0) {
+      const meetings = await prisma.projectMeeting.findMany({
+        where: { id: { in: meetingIds } },
+        include: { project: true },
+      });
+      meetingsMap = new Map(meetings.map((m) => [m.id, m]));
+    }
+
+    const mappedNotifications = notifications.map((n) => {
+      const nObj = { ...n, meetingSummary: null, previousProjectSummary: null };
+      if (n.type === "ZOOM_MEETING" && n.entityId) {
+        const meeting = meetingsMap.get(n.entityId);
+        if (meeting) {
+          const meetingSum = meeting.lastMeetingSummary ||
+            (meeting.aiMeetingSummary && meeting.aiMeetingSummary.length > 0
+              ? meeting.aiMeetingSummary[meeting.aiMeetingSummary.length - 1]
+              : null);
+
+          if (meetingSum) {
+            nObj.meetingSummary = meetingSum;
+          } else if (meeting.project) {
+            const project = meeting.project;
+            nObj.previousProjectSummary =
+              project.weeklyMeetingSummary ||
+              (project.projectAiSummary && project.projectAiSummary.length > 0
+                ? project.projectAiSummary[project.projectAiSummary.length - 1]
+                : null);
+          }
+        }
+      }
+      return nObj;
+    });
+
     return {
       meta: {
         page: Number(page),
         limit: Number(limit),
         total,
       },
-      data: notifications,
+      data: mappedNotifications,
     };
   },
 
