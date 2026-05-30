@@ -441,6 +441,7 @@ const createMeeting = async (data) => {
                 topic: data.topic,
                 type: 2, // Scheduled meeting
                 start_time: data.start_time,
+                timezone: data.timezone, // Use provided timezone or fallback to Zoom account default
                 settings: {
                     host_video: true,
                     participant_video: true,
