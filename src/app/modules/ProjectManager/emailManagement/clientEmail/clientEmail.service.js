@@ -47,17 +47,20 @@ const createEmail = async (payload) => {
         AiEmailSummaryUtils.getGeneratedReply(email.created_by, email.id, 'email');
     }
 
-    // Trigger external AI Emails summary API
+    // Trigger external AI Emails summary API (wait for it to ensure sequential processing)
     const liveEmailsSummaryUrl = `${envVars.API_AI}/summary/emails?id=${email.id}`;
-    console.log(`[Email AI Sync] Triggering background email summary API: ${liveEmailsSummaryUrl}`);
-    axios.post(liveEmailsSummaryUrl, {}, {
-        headers: {
-            'Content-Type': 'application/json',
-            "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
-        }
-    }).catch(axiosErr => {
-        console.error(`[Email AI Sync] Failed to trigger background AI Email summary:`, axiosErr.message);
-    });
+    console.log(`[Email AI Sync] Triggering email summary API (waiting for response): ${liveEmailsSummaryUrl}`);
+    try {
+        await axios.post(liveEmailsSummaryUrl, {}, {
+            headers: {
+                'Content-Type': 'application/json',
+                "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+            }
+        });
+        console.log(`[Email AI Sync] Successfully triggered AI summary for Email ID: ${email.id}`);
+    } catch (axiosErr) {
+        console.error(`[Email AI Sync] Failed to trigger AI Email summary:`, axiosErr.message);
+    }
 
     return email;
 };
@@ -196,17 +199,20 @@ const syncEmail = async (payload) => {
 
     console.log(`[Email Sync] Initial record created for Gmail Message ID: ${gmailMessageId} (ID: ${email.id}). AI data will be handled via Push API.`);
 
-    // Trigger external AI Emails summary API
+    // Trigger external AI Emails summary API (wait for it to ensure sequential processing)
     const liveEmailsSummaryUrl = `${envVars.API_AI}/summary/emails?id=${email.id}`;
-    console.log(`[Email AI Sync] Triggering background email summary API: ${liveEmailsSummaryUrl}`);
-    axios.post(liveEmailsSummaryUrl, {}, {
-        headers: {
-            'Content-Type': 'application/json',
-            "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
-        }
-    }).catch(axiosErr => {
-        console.error(`[Email AI Sync] Failed to trigger background AI Email summary:`, axiosErr.message);
-    });
+    console.log(`[Email AI Sync] Triggering email summary API (waiting for response): ${liveEmailsSummaryUrl}`);
+    try {
+        await axios.post(liveEmailsSummaryUrl, {}, {
+            headers: {
+                'Content-Type': 'application/json',
+                "x-backend-service": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9sTOlGEcqrij9J70RUO8Clh0"
+            }
+        });
+        console.log(`[Email AI Sync] Successfully triggered AI summary for Email ID: ${email.id}`);
+    } catch (axiosErr) {
+        console.error(`[Email AI Sync] Failed to trigger AI Email summary:`, axiosErr.message);
+    }
 
     return email;
 };
