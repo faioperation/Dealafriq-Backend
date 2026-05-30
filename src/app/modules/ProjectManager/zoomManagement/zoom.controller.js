@@ -22,15 +22,24 @@ const authorizeZoom = catchAsync(async (req, res) => {
 
 const zoomCallback = catchAsync(async (req, res) => {
     const { code, state } = req.query;
+    const frontendRedirectUrl = `${envVars.FRONT_END_URL}/data-source`;
 
     if (!code || !state) {
-        return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: "Missing authorization code or state." });
+        console.warn("Zoom Callback Missing Params");
+        return res.redirect(`${frontendRedirectUrl}?zoomConnect=error&reason=missing_params`);
     }
 
-    const result = await ZoomService.handleZoomCallback(code, state);
-
-    const frontendRedirectUrl = `${envVars.FRONT_END_URL}/data-source`;
-    res.redirect(frontendRedirectUrl);
+    try {
+        await ZoomService.handleZoomCallback(code, state);
+        // Successfully connected
+        return res.redirect(`${frontendRedirectUrl}?zoomConnect=success`);
+    } catch (error) {
+        // This usually happens if the user refreshes the callback page or double-clicks,
+        // causing the state to be used twice. Since they might already be connected,
+        // it's safer to redirect them back to the app instead of showing an ugly JSON error.
+        console.error("Zoom Callback Error (Possible double-hit):", error.message);
+        return res.redirect(`${frontendRedirectUrl}?zoomConnect=error&reason=invalid_state`);
+    }
 });
 
 /**
