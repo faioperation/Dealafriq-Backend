@@ -8,6 +8,7 @@ import { DashboardRoutes } from "../modules/Admin/dashboard/dashboard.route.js";
 import { AdminClientRoutes } from "../modules/Admin/clientManagement/adminClient.route.js";
 import { AdminMeetingRoutes } from "../modules/Admin/MeetingManagement/meeting.route.js";
 import { AdminDocumentRoutes } from "../modules/Admin/DocumentManagement/document.route.js";
+import { LessonLearnPublicRoutes } from "../modules/Admin/lessonLearnPublic/lessonLearnPublic.route.js";
 import { AuthRouter } from "../modules/auth/auth.route.js";
 import { OtpRouter } from "../modules/otp/otp.route.js";
 import { AiDetectionRoutes } from "../modules/ProjectManager/aiDetection/aiDetection.route.js";
@@ -82,6 +83,10 @@ const moduleRoutes = [
   {
     path: "/document-management",
     route: AdminDocumentRoutes,
+  },
+  {
+    path: "/lesson-learn-public",
+    route: LessonLearnPublicRoutes,
   },
   // Admin Routes ends here
   // Project Manager Routes starts here
