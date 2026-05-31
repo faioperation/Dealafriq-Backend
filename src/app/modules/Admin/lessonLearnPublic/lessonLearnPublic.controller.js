@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
-import prisma from "../../../../prisma/client.js";
-import { catchAsync } from "../../../../utils/catchAsync.js";
-import { sendResponse } from "../../../../utils/sendResponse.js";
+import prisma from "../../../prisma/client.js";
+import { catchAsync } from "../../../utils/catchAsync.js";
+import { sendResponse } from "../../../utils/sendResponse.js";
 import { LessonLearnPublicService } from "./lessonLearnPublic.service.js";
 
 const getAllPublicLessonLearns = catchAsync(async (req, res) => {
