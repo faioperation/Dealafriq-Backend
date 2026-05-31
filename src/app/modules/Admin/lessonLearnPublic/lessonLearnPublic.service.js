@@ -1,5 +1,5 @@
 import { StatusCodes } from "http-status-codes";
-import { AppError } from "../../../../errorHelper/appError.js";
+import { AppError } from "../../../errorHelper/appError.js";
 
 const getAllPublicLessonLearns = async (prisma) => {
     const lessonLearns = await prisma.lessonLearn.findMany({
