@@ -272,6 +272,11 @@ export const ProjectMeetingService = {
                         name: true,
                         managerId: true,
                         deletedAt: true,
+                        assignments: {
+                            select: {
+                                userId: true,
+                            },
+                        },
                     }
                 },
                 keyPoints: {
@@ -291,17 +296,21 @@ export const ProjectMeetingService = {
             },
         });
 
-        if (
-            !meeting ||
-            meeting.project.managerId !== userId ||
-            meeting.project.deletedAt !== null
-        ) {
+        if (!meeting || meeting.project.deletedAt !== null) {
+            throw new AppError(StatusCodes.FORBIDDEN, "Meeting not found or access denied");
+        }
+
+        const isManager = meeting.project.managerId === userId;
+        const isAssignee = meeting.project.assignments?.some((a) => a.userId === userId);
+
+        if (!isManager && !isAssignee) {
             throw new AppError(StatusCodes.FORBIDDEN, "Meeting not found or access denied");
         }
 
         // Clean up internal authorization fields before returning
         delete meeting.project.managerId;
         delete meeting.project.deletedAt;
+        delete meeting.project.assignments;
 
         return meeting;
     },
