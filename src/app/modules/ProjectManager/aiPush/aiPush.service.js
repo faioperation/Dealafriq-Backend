@@ -110,11 +110,18 @@ const syncProjectData = async (projectId, payload, userId) => {
         }
     }
 
+    let newProjectAiSummary = undefined;
+    if (summaryList.length > 0) {
+        const existing = project.projectAiSummary || [];
+        const combined = [...existing, ...summaryList];
+        newProjectAiSummary = combined.slice(-3);
+    }
+
     // Update project with AI data
     const updatedProject = await prisma.project.update({
         where: { id: projectId },
         data: {
-            projectAiSummary: summaryList.length > 0 ? { push: summaryList } : undefined,
+            projectAiSummary: newProjectAiSummary !== undefined ? newProjectAiSummary : undefined,
             projectAiDetails: fullAiResponse || payload,
             projectHealth: projectHealth || undefined,
             discussionPoints: discussionPoints || undefined,
@@ -539,14 +546,18 @@ const syncMeetingAiData = async (meetingId, payload, userId) => {
     let latestSummaryString = undefined;
 
     if (aiMeetingSummary) {
+        let incomingSummaries = [];
         if (Array.isArray(aiMeetingSummary)) {
-            if (aiMeetingSummary.length > 0) {
-                aiMeetingSummaryValue = { push: aiMeetingSummary };
-                latestSummaryString = aiMeetingSummary[aiMeetingSummary.length - 1];
-            }
+            incomingSummaries = aiMeetingSummary.filter(s => typeof s === 'string' && s.trim() !== '');
         } else if (typeof aiMeetingSummary === 'string' && aiMeetingSummary.trim() !== '') {
-            aiMeetingSummaryValue = { push: aiMeetingSummary };
-            latestSummaryString = aiMeetingSummary;
+            incomingSummaries = [aiMeetingSummary];
+        }
+
+        if (incomingSummaries.length > 0) {
+            const existing = meeting.aiMeetingSummary || [];
+            const combined = [...existing, ...incomingSummaries];
+            aiMeetingSummaryValue = combined.slice(-3);
+            latestSummaryString = incomingSummaries[incomingSummaries.length - 1];
         }
     }
 
@@ -555,7 +566,7 @@ const syncMeetingAiData = async (meetingId, payload, userId) => {
         data: {
             notes: notes || undefined,
             agenda: agenda || undefined,
-            aiMeetingSummary: aiMeetingSummaryValue,
+            aiMeetingSummary: aiMeetingSummaryValue !== undefined ? aiMeetingSummaryValue : undefined,
             lastMeetingSummary: latestSummaryString || undefined,
             aiCheck: true,
             rawAiResponse: payload,
