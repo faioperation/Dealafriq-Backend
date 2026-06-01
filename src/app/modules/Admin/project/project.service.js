@@ -195,6 +195,7 @@ export const AdminProjectService = {
                     },
                     vendor: true,
                     milestones: true,
+                    lessonLearns: true,
                 },
             }),
             prisma.project.count({ where: buildQuery.where }),
@@ -258,6 +259,7 @@ export const AdminProjectService = {
                 dependencies: true,
                 vendor: true,
                 milestones: true,
+                lessonLearns: true,
             },
         });
 
