@@ -870,6 +870,7 @@ export const RaiddService = {
 
     syncIndividualItems: async (prisma, projectId, raiddFlags, raiddId = null, sourceIds = {}) => {
         try {
+            const resultData = {};
             const { emailId, outlookId, aiDetectionId } = sourceIds;
             const models = [
                 { type: "RISK", key: "risks", model: "projectRisk" },
@@ -880,7 +881,8 @@ export const RaiddService = {
             ];
 
             for (const { key, model } of models) {
-                const items = raiddFlags[key];
+                const items = raiddFlags[key] || raiddFlags[key.toLowerCase()] || raiddFlags[key.charAt(0).toUpperCase() + key.slice(1)];
+                resultData[key] = [];
 
                 if (Array.isArray(items) && items.length > 0) {
                     for (const rawItem of items) {
@@ -920,8 +922,9 @@ export const RaiddService = {
                                     data: updateData
                                 });
                             }
+                            resultData[key].push({ id: exists.id, data: exists.data });
                         } else {
-                            await prisma[model].create({
+                            const newRec = await prisma[model].create({
                                 data: {
                                     projectId,
                                     raiddId: raiddId || undefined,
@@ -931,12 +934,19 @@ export const RaiddService = {
                                     data: itemData
                                 }
                             });
+                            resultData[key].push({ id: newRec.id, data: newRec.data });
                         }
                     }
                 }
+                
+                if (resultData[key].length === 0) {
+                    delete resultData[key];
+                }
             }
+            return resultData;
         } catch (err) {
             console.error(`[RAIDD Individual Sync] Failed to sync individual models:`, err.message);
+            return null;
         }
     },
 

@@ -656,7 +656,13 @@ const syncMeetingAiData = async (meetingId, payload, userId) => {
 
         // If raiddFlags is provided, also sync individual RAIDD items to project!
         if (raiddFlags) {
-            await RaiddService.syncIndividualItems(prisma, meeting.projectId, raiddFlags, null, { aiDetectionId: aiDetection.id });
+            const syncedItems = await RaiddService.syncIndividualItems(prisma, meeting.projectId, raiddFlags, null, { aiDetectionId: aiDetection.id });
+            if (syncedItems && Object.keys(syncedItems).length > 0) {
+                await prisma.aiDetection.update({
+                    where: { id: aiDetection.id },
+                    data: { raiddData: syncedItems }
+                });
+            }
         }
     }
 
