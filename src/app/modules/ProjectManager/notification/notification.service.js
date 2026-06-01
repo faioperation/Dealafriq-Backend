@@ -31,16 +31,22 @@ export const NotificationService = {
       .map((n) => n.entityId);
 
     let meetingsMap = new Map();
+    let aiDetectionMap = new Map();
     if (meetingIds.length > 0) {
       const meetings = await prisma.projectMeeting.findMany({
         where: { id: { in: meetingIds } },
         include: { project: true },
       });
       meetingsMap = new Map(meetings.map((m) => [m.id, m]));
+
+      const aiDetections = await prisma.aiDetection.findMany({
+        where: { sourceType: "meeting", raiddMessage: { in: meetingIds }, deletedAt: null },
+      });
+      aiDetectionMap = new Map(aiDetections.map((a) => [a.raiddMessage, a]));
     }
 
     const mappedNotifications = notifications.map((n) => {
-      const nObj = { ...n, meetingSummary: null, previousProjectSummary: null };
+      const nObj = { ...n, meetingSummary: null, previousProjectSummary: null, raiddData: null, raiddAnalysis: null };
       if (n.type === "ZOOM_MEETING" && n.entityId) {
         const meeting = meetingsMap.get(n.entityId);
         if (meeting) {
@@ -59,6 +65,12 @@ export const NotificationService = {
                 ? project.projectAiSummary[project.projectAiSummary.length - 1]
                 : null);
           }
+        }
+        
+        const detection = aiDetectionMap.get(n.entityId);
+        if (detection) {
+          nObj.raiddData = detection.raiddData;
+          nObj.raiddAnalysis = detection.raiddAnalysis;
         }
       }
       return nObj;
