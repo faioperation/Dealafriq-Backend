@@ -873,16 +873,16 @@ export const RaiddService = {
             const resultData = {};
             const { emailId, outlookId, aiDetectionId } = sourceIds;
             const models = [
-                { type: "RISK", key: "risks", model: "projectRisk" },
-                { type: "ASSUMPTION", key: "assumptions", model: "projectAssumption" },
-                { type: "ISSUE", key: "issues", model: "projectIssue" },
-                { type: "DEPENDENCY", key: "dependencies", model: "projectDependency" },
-                { type: "DECISION", key: "decisions", model: "projectDecision" }
+                { type: "RISK", key: "risks", model: "projectRisk", returnKey: "projectRisks" },
+                { type: "ASSUMPTION", key: "assumptions", model: "projectAssumption", returnKey: "projectAssumptions" },
+                { type: "ISSUE", key: "issues", model: "projectIssue", returnKey: "projectIssues" },
+                { type: "DEPENDENCY", key: "dependencies", model: "projectDependency", returnKey: "projectDependencies" },
+                { type: "DECISION", key: "decisions", model: "projectDecision", returnKey: "projectDecisions" }
             ];
 
-            for (const { key, model } of models) {
+            for (const { key, model, returnKey } of models) {
                 const items = raiddFlags[key] || raiddFlags[key.toLowerCase()] || raiddFlags[key.charAt(0).toUpperCase() + key.slice(1)];
-                resultData[key] = [];
+                resultData[returnKey] = [];
 
                 if (Array.isArray(items) && items.length > 0) {
                     for (const rawItem of items) {
@@ -922,7 +922,7 @@ export const RaiddService = {
                                     data: updateData
                                 });
                             }
-                            resultData[key].push({ id: exists.id, data: exists.data });
+                            resultData[returnKey].push({ id: exists.id, data: exists.data });
                         } else {
                             const newRec = await prisma[model].create({
                                 data: {
@@ -934,13 +934,13 @@ export const RaiddService = {
                                     data: itemData
                                 }
                             });
-                            resultData[key].push({ id: newRec.id, data: newRec.data });
+                            resultData[returnKey].push({ id: newRec.id, data: newRec.data });
                         }
                     }
                 }
                 
-                if (resultData[key].length === 0) {
-                    delete resultData[key];
+                if (resultData[returnKey].length === 0) {
+                    delete resultData[returnKey];
                 }
             }
             return resultData;
