@@ -117,6 +117,9 @@ const populateLogData = async (prisma, logs) => {
                         break;
                     case "meeting":
                         crudData = await prisma.projectMeeting.findUnique({ where: { id: log.crudId } });
+                        if (crudData && crudData.transcriptData) {
+                            delete crudData.transcriptData;
+                        }
                         break;
                     case "document":
                         crudData = await prisma.projectDocumentUpload.findUnique({ where: { id: log.crudId } });
