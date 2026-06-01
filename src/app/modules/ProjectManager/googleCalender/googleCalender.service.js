@@ -277,7 +277,7 @@ export const GoogleCalendarService = {
         zoomMeetings.forEach(m => {
             if (m.aiMeetingSummary && Array.isArray(m.aiMeetingSummary) && m.aiMeetingSummary.length > 0) {
                 if (!latestProjectSummaries[m.projectId]) {
-                    latestProjectSummaries[m.projectId] = m.aiMeetingSummary;
+                    latestProjectSummaries[m.projectId] = m.aiMeetingSummary.slice(-3);
                 }
             }
         });
@@ -310,7 +310,7 @@ export const GoogleCalendarService = {
                 createdAt: meeting.createdAt,
                 type: 'ZOOM_MEETING',
                 url: meeting.meetingUrl,
-                aiSummary: hasSummary ? meeting.aiMeetingSummary : (latestProjectSummaries[meeting.projectId] || []),
+                aiSummary: hasSummary ? meeting.aiMeetingSummary.slice(-3) : (latestProjectSummaries[meeting.projectId] || []),
                 projectId: meeting.projectId,
                 projectName: meeting.project?.name || null
             };
