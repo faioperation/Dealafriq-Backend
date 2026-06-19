@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { EmailService } from "../modules/ProjectManager/emailManagement/email/email.service.js";
 import { OutlookService } from "../modules/ProjectManager/outlookManagement/outlook.service.js";
 import { GoogleCalendarService } from "../modules/ProjectManager/googleCalender/googleCalender.service.js";
+import { OutlookCalendarService } from "../modules/ProjectManager/outlookCalender/outlookCalender.service.js";
 
 /**
  * Initialize email sync cron job
@@ -14,6 +15,7 @@ export const initEmailSyncCron = () => {
             await EmailService.syncAllConnectedAccounts();
             await OutlookService.syncAllConnectedAccounts();
             await GoogleCalendarService.syncAllConnectedCalendars();
+            await OutlookCalendarService.syncAllConnectedCalendars();
         } catch (error) {
             console.error(`[${new Date().toISOString()}] Sync Cron Job failed:`, error.message);
         }

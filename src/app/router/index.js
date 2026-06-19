@@ -32,6 +32,7 @@ import { PMDashboardRoutes } from "../modules/ProjectManager/dashboard/pm_dashbo
 import { UserRoutes } from "../modules/user/user.route.js";
 import { LessonLearnRoutes } from "../modules/ProjectManager/leasonLearn/leasonLearn.route.js";
 import { GoogleCalendarRoutes } from "../modules/ProjectManager/googleCalender/googleCalender.route.js";
+import { OutlookCalendarRoutes } from "../modules/ProjectManager/outlookCalender/outlookCalender.route.js";
 import { NotificationRoutes } from "../modules/ProjectManager/notification/notification.route.js";
 import { DraftMailRoutes } from "../modules/ProjectManager/draftMail/draftMail.route.js";
 import { AiPushRoutes } from "../modules/ProjectManager/aiPush/aiPush.routes.js";
@@ -178,6 +179,10 @@ const moduleRoutes = [
   {
     path: "/project-manager/google-calendar",
     route: GoogleCalendarRoutes,
+  },
+  {
+    path: "/project-manager/outlook-calendar",
+    route: OutlookCalendarRoutes,
   },
   {
     path: "/project-manager/project-chatbot",
