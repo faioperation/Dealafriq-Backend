@@ -157,11 +157,16 @@ export const NotificationService = {
       });
 
       if (subscriptions.length > 0) {
+        const frontendBase = envVars.FRONT_END_URL || "http://localhost:3000";
+        const separator = frontendBase.includes("?") ? "&" : "?";
+        const redirectLink = `${frontendBase}${separator}notificationId=${notification.id}`;
+
         const payload = JSON.stringify({
           title: data.title,
           body: data.message,
           type: data.type,
-          link: data.link || "",
+          link: redirectLink,
+          externalLink: data.link || "",
           id: notification.id,
         });
 
