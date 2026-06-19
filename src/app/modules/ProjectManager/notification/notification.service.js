@@ -1,5 +1,14 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
+import webpush from "web-push";
+import { envVars } from "../../../config/env.js";
+
+// Initialize VAPID details for Web Push
+webpush.setVapidDetails(
+  envVars.VAPID_EMAIL,
+  envVars.VAPID_PUBLIC_KEY,
+  envVars.VAPID_PRIVATE_KEY
+);
 
 /**
  * Notification Service
@@ -112,11 +121,90 @@ export const NotificationService = {
     });
   },
 
-  // Internal: Create a notification
+  // Subscribe a device for push notifications
+  subscribeDevice: async (prisma, userId, subscriptionData) => {
+    const { endpoint, keys } = subscriptionData;
+    if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Invalid subscription object");
+    }
 
+    return prisma.pushSubscription.upsert({
+      where: { endpoint },
+      update: {
+        userId,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      },
+      create: {
+        userId,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      },
+    });
+  },
+
+  // Internal: Create a notification and send push notification to registered devices
   createNotification: async (prisma, data) => {
-    return prisma.notification.create({
+    const notification = await prisma.notification.create({
       data,
     });
+
+    try {
+      // Find all push subscriptions for this user
+      const subscriptions = await prisma.pushSubscription.findMany({
+        where: { userId: data.userId },
+      });
+
+      if (subscriptions.length > 0) {
+        const frontendBase = envVars.FRONT_END_URL || "http://localhost:3000";
+        const separator = frontendBase.includes("?") ? "&" : "?";
+        const redirectLink = `${frontendBase}${separator}notificationId=${notification.id}`;
+
+        const payload = JSON.stringify({
+          title: data.title,
+          body: data.message,
+          type: data.type,
+          link: redirectLink,
+          externalLink: data.link || "",
+          id: notification.id,
+        });
+
+        // Broadcast to all user's registered devices
+        const pushPromises = subscriptions.map((sub) => {
+          const pushSubscription = {
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: sub.p256dh,
+              auth: sub.auth,
+            },
+          };
+
+          return webpush
+            .sendNotification(pushSubscription, payload)
+            .catch(async (error) => {
+              console.error(
+                `❌ Failed to send push to endpoint: ${sub.endpoint}`,
+                error
+              );
+              // Clean up expired subscriptions (410 Gone / 404 Not Found)
+              if (error.statusCode === 410 || error.statusCode === 404) {
+                await prisma.pushSubscription.delete({
+                  where: { id: sub.id },
+                }).catch((err) => {
+                  console.error(`❌ Failed to delete stale subscription: ${sub.id}`, err);
+                });
+              }
+            });
+        });
+
+        // Run asynchronously in the background
+        Promise.all(pushPromises);
+      }
+    } catch (pushError) {
+      console.error("❌ Push notification broadcast error:", pushError);
+    }
+
+    return notification;
   },
 };

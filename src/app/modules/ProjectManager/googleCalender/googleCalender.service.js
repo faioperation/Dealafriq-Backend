@@ -247,6 +247,17 @@ export const GoogleCalendarService = {
             }
         });
 
+        // 1b. Fetch Outlook Calendar Events
+        const outlookCalendarEvents = await prisma.outlookCalendarEvent.findMany({
+            where: {
+                userId,
+                deleted_at: null
+            },
+            orderBy: {
+                start: 'desc'
+            }
+        });
+
         // 2. Fetch Zoom Meetings (ProjectMeetings) for the user's projects
         const zoomMeetings = await prisma.projectMeeting.findMany({
             where: {
@@ -298,6 +309,21 @@ export const GoogleCalendarService = {
             projectName: null
         }));
 
+        const standardizedOutlookEvents = outlookCalendarEvents.map(event => ({
+            id: event.id,
+            title: event.summary || '(No Summary)',
+            description: event.description || '',
+            location: event.location || '',
+            start: event.start,
+            end: event.end,
+            createdAt: event.created_at,
+            type: 'OUTLOOK_CALENDAR_EVENT',
+            url: event.webLink,
+            aiSummary: [],
+            projectId: event.projectId,
+            projectName: null
+        }));
+
         const standardizedZoomMeetings = zoomMeetings.map(meeting => {
             const hasSummary = meeting.aiMeetingSummary && Array.isArray(meeting.aiMeetingSummary) && meeting.aiMeetingSummary.length > 0;
             return {
@@ -316,21 +342,15 @@ export const GoogleCalendarService = {
             };
         });
 
-        // 5. Combine and sort by date descending (Newest first)
-        // We use the 'start' date (when the event happens) as the primary sort key
-        // If sorting by record creation time is preferred, change 'start' to 'createdAt'
-        const allEvents = [...standardizedCalendarEvents, ...standardizedZoomMeetings].sort((a, b) => {
-            const timeA = a.start ? new Date(a.start).getTime() : 0;
-            const timeB = b.start ? new Date(b.start).getTime() : 0;
-            
-            if (timeB !== timeA) {
-                return timeB - timeA; // Newest event date first
-            }
-            
-            // Fallback: newest record created in DB first
-            const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return createdB - createdA;
+        // 5. Combine and sort by creation date descending (Newest created first)
+        const allEvents = [
+            ...standardizedCalendarEvents,
+            ...standardizedOutlookEvents,
+            ...standardizedZoomMeetings
+        ].sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeB - timeA;
         });
 
         return allEvents;

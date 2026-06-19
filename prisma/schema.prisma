@@ -67,6 +67,8 @@ model User {
   clientsDeleted          Client[]              @relation("ClientDeletedBy")
   clientsUpdated          Client[]              @relation("ClientUpdatedBy")
   zoomAccounts            ZoomAccount[]
+  pushSubscriptions       PushSubscription[]
+  outlookCalendarEvents   OutlookCalendarEvent[]
 
   @@index([role])
   @@map("users")
@@ -199,6 +201,7 @@ model Project {
   issues               ProjectIssue[]
   decisions            ProjectDecision[]
   dependencies         ProjectDependency[]
+  outlookCalendarEvents OutlookCalendarEvent[]
 
   @@map("projects")
 }
@@ -923,4 +926,39 @@ model Vendor {
 enum VendorStatus {
   ACTIVE
   INACTIVE
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
+}
+
+model OutlookCalendarEvent {
+  id             String    @id @default(uuid())
+  outlookEventId String    @unique @map("outlook_event_id")
+  summary        String?
+  description    String?
+  location       String?
+  start          DateTime
+  end            DateTime
+  webLink        String?   @map("web_link")
+  userId         String    @map("user_id")
+  projectId      String?   @map("project_id")
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  deleted_at     DateTime?
+  project        Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([projectId])
+  @@map("outlook_calendar_events")
 }

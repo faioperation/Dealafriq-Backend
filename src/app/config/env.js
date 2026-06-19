@@ -47,6 +47,9 @@ const loadEnvVars = () => {
     "AI_CHATBOT_API",
     "UPDATE_CHATBOT_AI_BASE_URL",
     "INTERNAL_BACKEND_SERVICE_KEY",
+    "VAPID_PUBLIC_KEY",
+    "VAPID_PRIVATE_KEY",
+    "VAPID_EMAIL",
   ];
 
   requiredVars.forEach((key) => {
@@ -116,7 +119,11 @@ const loadEnvVars = () => {
 
     // headers secreat
     INTERNAL_BACKEND_SERVICE_KEY: process.env.INTERNAL_BACKEND_SERVICE_KEY,
- 
+
+    // VAPID keys for Web Push
+    VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+    VAPID_EMAIL: process.env.VAPID_EMAIL,
   };
 };
 
