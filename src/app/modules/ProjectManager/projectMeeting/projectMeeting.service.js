@@ -2,6 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../../errorHelper/appError.js";
 import { ActivityLogService } from "../../activityLog/activityLog.service.js";
 import { GoogleCalendarService } from "../googleCalender/googleCalender.service.js";
+import { OutlookCalendarService } from "../outlookCalender/outlookCalender.service.js";
 import { buildFileUrl } from "../../../utils/buildFileUrl.js";
 import { TranscriptParser } from "../../../utils/transcript.parser.js";
 import path from "path";
@@ -122,6 +123,11 @@ export const ProjectMeetingService = {
         // Trigger Google Calendar sync in the background
         GoogleCalendarService.createEvent(userId, meeting).catch(error => {
             console.error("Background Google Calendar event creation failed:", error.message);
+        });
+
+        // Trigger Outlook Calendar sync in the background
+        OutlookCalendarService.createEvent(userId, meeting).catch(error => {
+            console.error("Background Outlook Calendar event creation failed:", error.message);
         });
 
         // Trigger external AI Meeting summary API

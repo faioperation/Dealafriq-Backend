@@ -26,4 +26,12 @@ router.patch(
   NotificationController.markAsRead,
 );
 
+// Subscribe device for push notifications
+router.post(
+  "/subscribe",
+  checkAuthMiddleware(Role.PROJECT_MANAGER, Role.ADMIN),
+  NotificationController.subscribeDevice,
+);
+
 export const NotificationRoutes = router;
+

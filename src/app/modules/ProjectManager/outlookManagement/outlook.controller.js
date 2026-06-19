@@ -32,9 +32,9 @@ const connect = catchAsync(async (req, res) => {
 });
 
 const callback = catchAsync(async (req, res) => {
-    const { code, state: encodedState } = req.query;
+    const { code, state: encodedState, error, error_description } = req.query;
     if (!code) {
-        throw new Error("Code is required");
+        throw new Error(error_description || error || "Code is required from Outlook OAuth callback");
     }
 
     // Decode the state parameter to get userId and redirectUrl

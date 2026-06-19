@@ -38,8 +38,21 @@ const markAllAsRead = catchAsync(async (req, res) => {
   });
 });
 
+// Subscribe a device for push notifications
+const subscribeDevice = catchAsync(async (req, res) => {
+  const result = await NotificationService.subscribeDevice(prisma, req.user.id, req.body);
+  sendResponse(res, {
+    statusCode: StatusCodes.CREATED,
+    success: true,
+    message: "Device subscribed successfully",
+    data: result,
+  });
+});
+
 export const NotificationController = {
   getNotifications,
   markAsRead,
   markAllAsRead,
+  subscribeDevice,
 };
+

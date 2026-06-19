@@ -16,7 +16,7 @@ export const OutlookOAuth = {
             response_type: "code",
             redirect_uri: OUTLOOK_CALLBACK_URL,
             response_mode: "query",
-            scope: "offline_access User.Read Mail.Read",
+            scope: "offline_access User.Read Mail.Read Calendars.ReadWrite",
             state,
         });
         return `${url}?${params.toString()}`;
@@ -30,7 +30,7 @@ export const OutlookOAuth = {
             code,
             redirect_uri: OUTLOOK_CALLBACK_URL,
             grant_type: "authorization_code",
-            scope: "offline_access User.Read Mail.Read",
+            scope: "offline_access User.Read Mail.Read Calendars.ReadWrite",
         });
 
         const response = await axios.post(url, params, {
@@ -47,7 +47,7 @@ export const OutlookOAuth = {
             client_secret: OUTLOOK_CLIENT_SECRET,
             refresh_token: refreshToken,
             grant_type: "refresh_token",
-            scope: "offline_access User.Read Mail.Read",
+            scope: "offline_access User.Read Mail.Read Calendars.ReadWrite",
         });
 
         const response = await axios.post(url, params, {

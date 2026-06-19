@@ -51,6 +51,44 @@ export const initNotificationCron = () => {
                 }
             }
 
+            // 1b. Check Outlook Calendar Events
+            const outlookEvents = await prisma.outlookCalendarEvent.findMany({
+                where: {
+                    start: {
+                        gte: now,
+                        lte: futureLimit,
+                    },
+                    deleted_at: null,
+                },
+            });
+
+            for (const event of outlookEvents) {
+                // Check if notification already exists
+                const existing = await prisma.notification.findFirst({
+                    where: {
+                        userId: event.userId,
+                        entityId: event.id,
+                        reminderType: "START_REMINDER",
+                    },
+                });
+
+                if (!existing) {
+                    const diffMinutes = Math.round((event.start.getTime() - now.getTime()) / (1000 * 60));
+                    const timeStr = diffMinutes <= 0 ? "now" : `in ${diffMinutes} minutes`;
+
+                    await NotificationService.createNotification(prisma, {
+                        userId: event.userId,
+                        title: "Upcoming Outlook Calendar Event",
+                        message: `Reminder: Your event "${event.summary}" starts ${timeStr}.`,
+                        type: "CALENDAR_EVENT",
+                        entityId: event.id,
+                        reminderType: "START_REMINDER",
+                        link: event.webLink,
+                    });
+                    console.log(`Notification created for Outlook Calendar Event: ${event.summary} (${timeStr})`);
+                }
+            }
+
             // 2. Check Project Meetings
             const meetings = await prisma.projectMeeting.findMany({
                 where: {
